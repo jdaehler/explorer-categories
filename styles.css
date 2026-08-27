@@ -5,8 +5,32 @@
  * colours except where the user picked one.
  */
 
+/* The window takes a set height rather than growing with its content.
+   Otherwise it changes size with every click in the list, because a hint
+   appears for some categories and not for others.
+
+   Set here, on the window, and no longer on the columns: pinning the
+   columns to a number of pixels left the rest of the window empty on a
+   large display (reported 2026-08-27, measured at 1920x1080 -- roughly
+   900px available against 640px used). Now the columns take whatever is
+   left over, so the space is used whatever the screen. */
 .fc-fenster {
   max-width: 720px;
+  height: min(88vh, 1000px);
+}
+
+.fc-fenster .modal-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Everything except the columns keeps its natural height. */
+.fc-fenster .modal-content > h2,
+.fc-reiter,
+.fc-fuss,
+.fc-herkunft {
+  flex: 0 0 auto;
 }
 
 /* --- List on the left, settings on the right ---------------------- */
@@ -15,7 +39,12 @@
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 18px;
-  align-items: start;
+  /* Fills the space between the tabs and the footer. min-height keeps
+     the children from pushing it open: without it a flex child refuses
+     to shrink below its content, and the whole window would grow again
+     instead of the columns scrolling inside themselves. */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* --- Groups -------------------------------------------------------- */
@@ -80,20 +109,13 @@
   color: var(--text-error);
 }
 
-/* Both columns are the same height, and that height does not depend on
-   what is in them. Otherwise the window jumps with every click in the
-   list, because a hint appears for some categories and not for others.
-   Each column scrolls inside itself when needed.
-
-   Tied to the window rather than fixed at a number of pixels: 360px was
-   too short for the settings column, which left it permanently scrolled
-   with the delete button cut off (reported 2026-08-27). The lower bound
-   keeps it usable on a short window, the upper one stops it from
-   stretching absurdly on a large display. */
+/* Both columns fill the window's height and scroll inside themselves.
+   The height comes from .fc-fenster above, so neither column can push
+   the window open. */
 .fc-liste {
   display: flex;
   flex-direction: column;
-  height: clamp(320px, 62vh, 640px);
+  min-height: 0;
   border-right: 1px solid var(--background-modifier-border);
   padding-right: 10px;
 }
@@ -105,7 +127,7 @@
 }
 
 .fc-detail {
-  height: clamp(320px, 62vh, 640px);
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -329,8 +351,12 @@
 /* There is not enough width on a phone for two columns. The list goes
    on top and the settings below it. */
 @media (max-width: 600px) {
+  /* Stacked, not side by side: the list takes what it needs up to its
+     cap, the settings take the rest. Both still scroll inside
+     themselves, so the window's height stays the window's business. */
   .fc-spalten {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
     gap: 12px;
   }
 
@@ -340,13 +366,6 @@
     border-bottom: 1px solid var(--background-modifier-border);
     padding-right: 0;
     padding-bottom: 10px;
-  }
-
-  /* Below each other, not side by side, so the two heights add up. The
-     settings column has to be capped or the modal itself starts to
-     scroll on a phone. */
-  .fc-detail {
-    height: 45vh;
   }
 }
 
