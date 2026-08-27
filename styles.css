@@ -438,6 +438,12 @@
   margin-top: 8px;
 }
 
+/* Der Starthinweis ist anklickbar und oeffnet das Verwaltungsfenster.
+   Der Zeiger sagt das, sonst sieht er aus wie jede andere Meldung. */
+.fc-waisenhinweis {
+  cursor: pointer;
+}
+
 /* --- Fusszeile ----------------------------------------------------- */
 
 /* Name, Version, Autor, Hilfe. Bewusst klein und blass: Es ist eine

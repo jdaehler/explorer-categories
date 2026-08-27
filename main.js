@@ -109,10 +109,12 @@ const TEXTE_DE = {
     n === 1
       ? 'Einen Eintrag wegwerfen?'
       : `${n} Einträge wegwerfen? Die Farben kommen damit nicht zurück.`,
+  /* The notice stays put until it is clicked, so it has to say what a
+     click does. */
   waisenStart: (n) =>
     n === 1
-      ? 'Farbkategorien: eine Zuordnung zeigt ins Leere.'
-      : `Farbkategorien: ${n} Zuordnungen zeigen ins Leere.`,
+      ? 'Farbkategorien: eine Zuordnung zeigt ins Leere. Zum Ansehen klicken.'
+      : `Farbkategorien: ${n} Zuordnungen zeigen ins Leere. Zum Ansehen klicken.`,
   waisenNeuZuordnen: 'Neu zuordnen',
   waisenOrdnerSuche: 'Ordner suchen, der an die Stelle tritt',
   ordnerSuche: 'Ordner suchen',
@@ -197,8 +199,8 @@ const TEXTE_EN = {
       : `Discard ${n} entries? This will not bring the colors back.`,
   waisenStart: (n) =>
     n === 1
-      ? 'Color categories: one assignment points nowhere.'
-      : `Color categories: ${n} assignments point nowhere.`,
+      ? 'Color categories: one assignment points nowhere. Click to see it.'
+      : `Color categories: ${n} assignments point nowhere. Click to see them.`,
   waisenNeuZuordnen: 'Point at folder',
   waisenOrdnerSuche: 'Search for the folder that takes its place',
   ordnerSuche: 'Search folders',
@@ -581,13 +583,29 @@ class ExplorerCategoriesPlugin extends Plugin {
     });
   }
 
-  /* Says once, at startup, that something points nowhere -- and stops
-     there. No dialog: the vault may still be syncing, and a window in
-     the face over something that fixes itself would be worse than the
-     problem. The details wait in the category window. */
+  /* Says at startup that something points nowhere.
+   *
+   * The notice does NOT fade out, and clicking it opens the window where
+   * the entries can be dealt with. Both were added on 2026-08-27, after
+   * it turned out you had to open that window to find out there was
+   * anything to do -- a message that disappears after a few seconds is
+   * easy to miss, and then the whole check is worthless.
+   *
+   * Still no dialog in the way: the vault may still be syncing, and a
+   * window in the face over something that fixes itself would be worse
+   * than the problem. A notice can be ignored, a dialog cannot. */
   waisenMelden() {
     const anzahl = this.waisen().length;
-    if (anzahl) new Notice(TEXTE.waisenStart(anzahl));
+    if (!anzahl) return;
+
+    /* 0 means no auto-hide (checked in obsidian.asar, 1.12.7:
+       setAutoHide only starts a timer when it gets a duration). */
+    const hinweis = new Notice(TEXTE.waisenStart(anzahl), 0);
+
+    if (hinweis.noticeEl) {
+      hinweis.noticeEl.addClass('fc-waisenhinweis');
+      hinweis.noticeEl.addEventListener('click', () => this.fensterOeffnen());
+    }
   }
 
   /* Points a dead entry at a folder the user picked.
