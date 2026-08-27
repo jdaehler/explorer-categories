@@ -23,6 +23,7 @@ const {
   Modal,
   TFolder,
   Notice,
+  FuzzySuggestModal,
   setIcon,
   getIconIds,
   getLanguage,
@@ -112,6 +113,20 @@ const TEXTE_DE = {
     n === 1
       ? 'Farbkategorien: eine Zuordnung zeigt ins Leere.'
       : `Farbkategorien: ${n} Zuordnungen zeigen ins Leere.`,
+  waisenNeuZuordnen: 'Neu zuordnen',
+  waisenOrdnerSuche: 'Ordner suchen, der an die Stelle tritt',
+  ordnerSuche: 'Ordner suchen',
+  /* How many further entries a repair takes along. */
+  waisenDarunter: (n) => (n === 1 ? '+1 darunter' : `+${n} darunter`),
+  waisenUmgezogen: (name, n) =>
+    n === 0
+      ? `Zeigt jetzt auf „${name}".`
+      : `Zeigt jetzt auf „${name}", samt ${n === 1 ? 'einem Eintrag' : `${n} Einträgen`} darunter.`,
+  /* Asked only when the chosen folder already carries a category -- the
+     old one would otherwise replace it without a word. */
+  waisenBesetztFrage: (name) =>
+    `„${name}" hat schon eine Kategorie. Soll die alte sie ersetzen?`,
+  waisenBesetztJa: 'Ersetzen',
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
@@ -184,6 +199,17 @@ const TEXTE_EN = {
     n === 1
       ? 'Color categories: one assignment points nowhere.'
       : `Color categories: ${n} assignments point nowhere.`,
+  waisenNeuZuordnen: 'Point at folder',
+  waisenOrdnerSuche: 'Search for the folder that takes its place',
+  ordnerSuche: 'Search folders',
+  waisenDarunter: (n) => (n === 1 ? '+1 below' : `+${n} below`),
+  waisenUmgezogen: (name, n) =>
+    n === 0
+      ? `Now points at "${name}".`
+      : `Now points at "${name}", along with ${n === 1 ? 'one entry' : `${n} entries`} below it.`,
+  waisenBesetztFrage: (name) =>
+    `"${name}" already has a category. Should the old one replace it?`,
+  waisenBesetztJa: 'Replace',
 };
 
 const SPRACHEN = { de: TEXTE_DE, en: TEXTE_EN };
@@ -564,6 +590,16 @@ class ExplorerCategoriesPlugin extends Plugin {
     if (anzahl) new Notice(TEXTE.waisenStart(anzahl));
   }
 
+  /* Points a dead entry at a folder the user picked.
+
+     This is the same move Obsidian triggers by itself when a folder is
+     renamed from the inside -- pfadUmschreiben, the exact function the
+     rename event calls. Which means everything stored below the old path
+     comes along, so one repair usually settles a whole group. */
+  async waisenUmziehen(altPfad, neuPfad) {
+    await this.pfadUmschreiben(altPfad, neuPfad);
+  }
+
   /* Only ever called from the button in the window, never automatically.
      Both tables have to be cleaned: an inheritance flag left behind
      would come back to life the moment a folder of that name reappears. */
@@ -840,7 +876,8 @@ class KategorienFenster extends Modal {
        they must not push the categories off the screen. */
     const rollen = kasten.createDiv({ cls: 'fc-waisenrollen' });
 
-    for (const pfad of waisen) {
+    for (const gruppe of waisenGruppieren(waisen)) {
+      const pfad = gruppe.pfad;
       const zeile = rollen.createDiv({ cls: 'fc-waisenzeile' });
 
       /* Folder name first, the way there behind it in a fainter colour.
@@ -857,11 +894,28 @@ class KategorienFenster extends Modal {
       text.createSpan({ cls: 'fc-waisenname', text: name });
       if (weg) text.createSpan({ cls: 'fc-waisenweg-pfad', text: weg });
 
+      /* Says that repairing this one settles the ones below it too. */
+      if (gruppe.darunter) {
+        text.createSpan({
+          cls: 'fc-waisendarunter',
+          text: TEXTE.waisenDarunter(gruppe.darunter),
+        });
+      }
+
+      /* Repair is the prominent button, discarding the quiet one. The
+         other way round the window would push people towards throwing
+         away what it just told them to look at. */
+      const neu = zeile.createEl('button', {
+        cls: 'fc-waisenknopf mod-cta',
+        text: TEXTE.waisenNeuZuordnen,
+      });
+      neu.addEventListener('click', () => this.waisenUmziehen(pfad));
+
       const knopf = zeile.createEl('button', {
         cls: 'fc-waisenknopf',
         text: TEXTE.waisenWegwerfen,
       });
-      knopf.addEventListener('click', () => this.waisenFrage([pfad]));
+      knopf.addEventListener('click', () => this.waisenFrage(gruppe.alle));
     }
 
     if (waisen.length > 1) {
@@ -871,6 +925,45 @@ class KategorienFenster extends Modal {
       });
       alle.addEventListener('click', () => this.waisenFrage(waisen));
     }
+  }
+
+  /* Repairing a dead entry: pick the folder that took its place, and the
+     category moves over -- together with everything stored below it. */
+  waisenUmziehen(altPfad) {
+    new OrdnerWaehlen(this.app, (neuPfad) => {
+      /* Picking the folder that is already stored would do nothing and
+         look like a failure. Cannot normally happen -- the entry is only
+         listed because that folder is gone -- but a sync finishing
+         between opening the window and choosing would do it. */
+      if (neuPfad === altPfad) return;
+
+      const gruppe = waisenGruppieren(this.plugin.waisen()).find((g) => g.pfad === altPfad);
+      const darunter = gruppe ? gruppe.darunter : 0;
+
+      const umziehen = async () => {
+        await this.plugin.waisenUmziehen(altPfad, neuPfad);
+        const name = neuPfad.slice(neuPfad.lastIndexOf('/') + 1);
+        new Notice(TEXTE.waisenUmgezogen(name, darunter));
+        this.waisenFuellen();
+        this.listeFuellen();
+        this.detailFuellen();
+      };
+
+      /* Would the move overwrite a category the target folder already
+         has? Then ask -- otherwise the old one quietly replaces it and
+         the folder changes colour for no visible reason. */
+      if (this.plugin.daten.zuordnung[neuPfad]) {
+        const name = neuPfad.slice(neuPfad.lastIndexOf('/') + 1);
+        new BestaetigenFenster(
+          this.app,
+          TEXTE.waisenBesetztFrage(name),
+          umziehen,
+          TEXTE.waisenBesetztJa
+        ).open();
+      } else {
+        umziehen();
+      }
+    }, TEXTE.waisenOrdnerSuche).open();
   }
 
   /* Always asks, even for a single entry -- same rule as deleting a
@@ -1145,6 +1238,40 @@ class KategorienFenster extends Modal {
 /* Own confirmation dialog instead of confirm(). The built-in one is not
    dependable inside Obsidian -- it looks foreign on mobile, and Electron
    can have it disabled. */
+/* Picks a folder by typing, using Obsidian's own suggestion window.
+ *
+ * Deliberately not a second folder tree of our own: that was weighed up
+ * on 2026-08-27 and dropped, because it means rebuilding search,
+ * keyboard handling and scrolling that Obsidian already has. Typing beats
+ * clicking through a tree anyway once there are hundreds of folders.
+ *
+ * The vault root is left out -- it has no name to show, and a category on
+ * the whole vault colours nothing useful. */
+class OrdnerWaehlen extends FuzzySuggestModal {
+  constructor(app, beiWahl, platzhalter) {
+    super(app);
+    this.beiWahl = beiWahl;
+    this.setPlaceholder(platzhalter || TEXTE.ordnerSuche);
+  }
+
+  getItems() {
+    /* getAllFolders(false) leaves the root out; older builds without the
+       argument are caught by the filter. */
+    const alle = this.app.vault.getAllFolders
+      ? this.app.vault.getAllFolders(false)
+      : [];
+    return alle.filter((o) => o && o.path && o.path !== '/');
+  }
+
+  getItemText(ordner) {
+    return ordner.path;
+  }
+
+  onChooseItem(ordner) {
+    this.beiWahl(ordner.path);
+  }
+}
+
 class BestaetigenFenster extends Modal {
   constructor(app, frage, beiJa, jaText) {
     super(app);
@@ -1336,6 +1463,38 @@ function waisenFinden(daten, istOrdner) {
   }
 
   return pfade.filter((pfad) => !istOrdner(pfad));
+}
+
+/* Groups orphans by the topmost one.
+ *
+ * Renaming one folder outside Obsidian usually kills several entries at
+ * once: the folder itself and everything stored below it. Listing them
+ * all makes one mistake look like five, and it invites throwing each
+ * away by hand when a single repair would have fixed the lot -- pointing
+ * the top one at the renamed folder carries everything below it along.
+ *
+ * Each group is one root plus every path that hangs off it. The full
+ * list matters for discarding as much as for repairing: throwing away
+ * the root alone would leave its children behind as fresh orphans, and
+ * the box would grow back the moment it was redrawn. */
+function waisenGruppieren(waisen) {
+  /* Shallow before deep, so a parent is always seen before its
+     children. */
+  const sortiert = waisen.slice().sort((a, b) => a.length - b.length || (a < b ? -1 : 1));
+  const gruppen = [];
+
+  for (const pfad of sortiert) {
+    const eltern = gruppen.find((g) => pfad.startsWith(g.pfad + '/'));
+    if (eltern) eltern.alle.push(pfad);
+    else gruppen.push({ pfad, alle: [pfad] });
+  }
+
+  for (const g of gruppen) g.darunter = g.alle.length - 1;
+
+  /* Back into the order they came in, so the list does not reshuffle
+     itself between openings of the window. */
+  const rang = new Map(waisen.map((p, i) => [p, i]));
+  return gruppen.sort((a, b) => rang.get(a.pfad) - rang.get(b.pfad));
 }
 
 /* Sorts index entries by plain code-point order. Never localeCompare

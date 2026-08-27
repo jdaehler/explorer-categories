@@ -419,6 +419,15 @@
   font-size: var(--font-ui-smaller);
 }
 
+/* "+2 darunter": sagt, dass eine Reparatur die Eintraege unterhalb
+   gleich mitnimmt. Blass, es ist eine Randnotiz. */
+.fc-waisendarunter {
+  flex: none;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
 .fc-waisenknopf,
 .fc-waisenalle {
   flex: none;
