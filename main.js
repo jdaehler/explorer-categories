@@ -963,7 +963,7 @@ class KategorienFenster extends Modal {
       } else {
         umziehen();
       }
-    }, TEXTE.waisenOrdnerSuche).open();
+    }, TEXTE.waisenOrdnerSuche, altPfad.slice(altPfad.lastIndexOf('/') + 1)).open();
   }
 
   /* Always asks, even for a single entry -- same rule as deleting a
@@ -1248,10 +1248,34 @@ class KategorienFenster extends Modal {
  * The vault root is left out -- it has no name to show, and a category on
  * the whole vault colours nothing useful. */
 class OrdnerWaehlen extends FuzzySuggestModal {
-  constructor(app, beiWahl, platzhalter) {
+  constructor(app, beiWahl, platzhalter, vorgabe) {
     super(app);
     this.beiWahl = beiWahl;
+    this.vorgabe = vorgabe || '';
     this.setPlaceholder(platzhalter || TEXTE.ordnerSuche);
+  }
+
+  /* Starts with a search term already filled in, because an unfiltered
+     list of every folder in the vault helps nobody -- with a few hundred
+     of them it is a wall of text, and the one being looked for is
+     somewhere in the middle of it.
+
+     The term is the old folder's own name: renaming usually changes very
+     little ("Sub1-1" becomes "Sub 1-1"), so the folder that took its
+     place tends to land at the top by itself.
+
+     It is selected rather than just inserted, so the first keystroke
+     replaces it -- the guess must never get in the way of someone who
+     knows better. */
+  onOpen() {
+    super.onOpen();
+    if (!this.vorgabe) return;
+
+    this.inputEl.value = this.vorgabe;
+    this.inputEl.select();
+    /* An "input" event rather than calling the internal refresh: this is
+       the part of the behaviour Obsidian documents. */
+    this.inputEl.dispatchEvent(new Event('input'));
   }
 
   getItems() {
