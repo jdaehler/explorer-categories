@@ -419,8 +419,9 @@
   font-size: var(--font-ui-smaller);
 }
 
-/* "+2 darunter": sagt, dass eine Reparatur die Eintraege unterhalb
-   gleich mitnimmt. Blass, es ist eine Randnotiz. */
+/* "+2 darunter": sagt, wie viele weitere Eintraege an derselben
+   Umbenennung gestorben sind und deshalb mit weggeworfen werden.
+   Blass, es ist eine Randnotiz. */
 .fc-waisendarunter {
   flex: none;
   color: var(--text-faint);
