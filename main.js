@@ -99,7 +99,6 @@ const TEXTE_DE = {
       ? `Gruppe „${name}" löschen?`
       : `Gruppe „${name}" löschen? ${n === 1 ? 'Die Kategorie darin wird' : `Die ${n} Kategorien darin werden`} mitgelöscht, und Ordner mit diesen Farben verlieren sie.`,
   gruppeGeloescht: (name) => `Gruppe „${name}" gelöscht.`,
-  gruppeLetzte: 'Die letzte Gruppe kann nicht gelöscht werden.',
   gruppeZahl: (n) => (n === 1 ? '1 Kategorie' : `${n} Kategorien`),
   keineKategorienInGruppe: 'In dieser Gruppe ist noch keine Kategorie.',
 };
@@ -164,7 +163,6 @@ const TEXTE_EN = {
       ? `Delete group "${name}"?`
       : `Delete group "${name}"? ${n === 1 ? 'The category in it goes' : `The ${n} categories in it go`} with it, and folders carrying those colors lose them.`,
   gruppeGeloescht: (name) => `Group "${name}" deleted.`,
-  gruppeLetzte: 'The last group cannot be deleted.',
   gruppeZahl: (n) => (n === 1 ? '1 category' : `${n} categories`),
   keineKategorienInGruppe: 'No category in this group yet.',
 };
@@ -602,10 +600,6 @@ class ExplorerCategoriesPlugin extends Plugin {
     this.stilSchreiben();
   }
 
-  async zuweisen(pfad, katId) {
-    await this.zuweisenMehrere([pfad], katId);
-  }
-
   /* Changes every path and then saves ONCE. With forty selected folders,
      forty separate writes to data.json would be most of the waiting time
      -- and the stylesheet would be rebuilt forty times over. */
@@ -635,10 +629,6 @@ class ExplorerCategoriesPlugin extends Plugin {
         if (kat) new Notice(TEXTE.zugewiesen(pfade.length, kat.name));
       }
     }
-  }
-
-  async vererbungUmschalten(pfad) {
-    await this.vererbungMehrere([pfad], this.daten.vererbung[pfad] !== true);
   }
 
   async vererbungMehrere(pfade, anschalten) {

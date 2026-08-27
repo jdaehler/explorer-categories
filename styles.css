@@ -14,9 +14,24 @@
    large display (reported 2026-08-27, measured at 1920x1080 -- roughly
    900px available against 640px used). Now the columns take whatever is
    left over, so the space is used whatever the screen. */
+   WHY VARIABLES AND NOT PROPERTIES
+   Obsidian's own rule for ".modal" sets "width: var(--dialog-width)" and
+   "max-height: var(--dialog-max-height)". Verified in Obsidian 1.12.7:
+   on the desktop those are 560px and 85vh. A "max-width" set here is
+   therefore inert -- it sits above a width that is already fixed -- and
+   a height beyond 85vh is trimmed without a word. So the variable has to
+   change, not the property.
+
+   The phone sets both on ".is-phone .modal-container", one level up, so
+   overriding them here would reach the phone too. The media query at the
+   bottom hands the width back. */
 .fc-fenster {
-  max-width: 720px;
-  height: min(88vh, 1000px);
+  --dialog-width: 720px;
+  /* As tall as Obsidian allows, instead of a number it silently trims.
+     The fallback covers a version that does not know the variable: the
+     window is then merely as tall as its content, which is the old
+     cosmetic problem, not a broken window. */
+  height: var(--dialog-max-height, 85vh);
 }
 
 .fc-fenster .modal-content {
@@ -351,6 +366,13 @@
 /* There is not enough width on a phone for two columns. The list goes
    on top and the settings below it. */
 @media (max-width: 600px) {
+  /* Hands the width back to Obsidian. The 720px at the top of this file
+     is meant for the desktop; on a phone Obsidian runs its dialogs at
+     the full screen width, and a fixed 720 would stick out of it. */
+  .fc-fenster {
+    --dialog-width: 100vw;
+  }
+
   /* Stacked, not side by side: the list takes what it needs up to its
      cap, the settings take the rest. Both still scroll inside
      themselves, so the window's height stays the window's business. */
