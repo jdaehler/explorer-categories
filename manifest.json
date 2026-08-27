@@ -1,0 +1,10 @@
+{
+  "id": "explorer-categories",
+  "name": "Explorer Categories",
+  "version": "1.0.0",
+  "minAppVersion": "1.12.0",
+  "description": "Assign categories to folders and color the file explorer by category. A category carries the color, the marker and the icon, and every folder in it follows.",
+  "author": "ARPMAN",
+  "authorUrl": "https://github.com/jdaehler",
+  "isDesktopOnly": false
+}

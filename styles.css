@@ -1,0 +1,356 @@
+/* Folder Categories -- Aussehen des Fensters
+ *
+ * Es werden durchweg Obsidian-eigene Farbvariablen benutzt, damit das
+ * Fenster in jedem Erscheinungsbild passt -- hell, dunkel und fremde
+ * Themes. Keine festen Farben ausser dort, wo der Nutzer sie selbst
+ * gewaehlt hat.
+ */
+
+.fc-fenster {
+  max-width: 720px;
+}
+
+/* --- Liste links, Einstellungen rechts ---------------------------- */
+
+.fc-spalten {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+/* Beide Spalten haben eine feste Hoehe. Sonst springt das Fenster bei
+   jedem Klick in der Liste, weil mal ein Hinweis erscheint und mal
+   nicht. Die Liste rollt bei Bedarf in sich selbst. */
+.fc-liste {
+  display: flex;
+  flex-direction: column;
+  height: 360px;
+  border-right: 1px solid var(--background-modifier-border);
+  padding-right: 10px;
+}
+
+.fc-listenrollen {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.fc-detail {
+  height: 360px;
+  overflow-y: auto;
+}
+
+.fc-listenzeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.fc-listenzeile:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.fc-listenzeile.fc-aktiv {
+  background-color: var(--background-modifier-active-hover, var(--background-secondary-alt));
+  font-weight: 600;
+}
+
+.fc-listenpunkt {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.fc-listenname {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc-listenanzahl {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.fc-neu {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* --- Einstellungen der gewaehlten Kategorie ----------------------- */
+
+.fc-zeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Der Systemwaehler bringt einen eigenen Rahmen mit, der in Obsidian
+   fremd aussieht. Deshalb rund und randlos. */
+.fc-farbe {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.fc-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fc-untertitel {
+  margin: 14px 0 6px 0;
+  font-size: var(--font-ui-smaller);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.fc-schalter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fc-schalter button,
+.fc-gruppe button {
+  font-size: var(--font-ui-smaller);
+  padding: 4px 10px;
+  height: auto;
+}
+
+/* Markierung: die drei gehoeren zusammen und sehen deshalb aus wie ein
+   Stueck, nicht wie drei einzelne Knoepfe. */
+.fc-gruppe {
+  display: inline-flex;
+}
+
+.fc-gruppe button {
+  border-radius: 0;
+  margin: 0;
+}
+
+.fc-gruppe button:first-child {
+  border-radius: var(--radius-s) 0 0 var(--radius-s);
+}
+
+.fc-gruppe button:last-child {
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+}
+
+/* Farbige Schrift, waehrend der Hintergrund an ist: die Einstellung
+   bleibt gespeichert, wirkt aber gerade nicht. */
+.fc-wirkungslos {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+/* --- Vorschau ------------------------------------------------------ */
+
+/* Sieht aus wie eine Zeile im Dateibaum, damit der Vergleich stimmt. */
+.fc-vorschau-zeile {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: var(--font-ui-small);
+}
+
+.fc-vorschau-marke {
+  display: inline-block;
+  margin-right: 7px;
+  flex: 0 0 auto;
+}
+
+.fc-vorschau-marke.fc-lasche {
+  width: 5px;
+  height: 0.95em;
+  border-radius: 3px;
+}
+
+.fc-vorschau-marke.fc-punkt {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.fc-hinweis {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin-top: 6px;
+}
+
+.fc-leer {
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 8px 0;
+}
+
+/* --- Fusszeilen ---------------------------------------------------- */
+
+.fc-detailfuss {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.fc-weg {
+  color: var(--text-muted);
+}
+
+.fc-weg:hover {
+  color: var(--text-on-accent);
+  background-color: var(--text-error);
+}
+
+.fc-fuss {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 1.2em;
+}
+
+/* --- Telefon ------------------------------------------------------- */
+
+/* Nebeneinander gibt es auf dem Handy nicht genug Breite. Dort steht
+   die Liste oben und die Einstellungen darunter. */
+@media (max-width: 600px) {
+  .fc-spalten {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .fc-liste {
+    max-height: 180px;
+    border-right: none;
+    border-bottom: 1px solid var(--background-modifier-border);
+    padding-right: 0;
+    padding-bottom: 10px;
+  }
+}
+
+/* --- Symbol -------------------------------------------------------- */
+
+/* In der Vorschau ein richtiges Symbol mit gesetzter Farbe. Im
+   Dateibaum ist es eine eingefaerbte Maske -- beides sieht gleich aus,
+   nur der Weg dorthin ist ein anderer. */
+.fc-vorschau-symbol {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  flex: 0 0 auto;
+}
+
+.fc-vorschau-symbol svg {
+  width: 15px;
+  height: 15px;
+}
+
+.fc-symbolzeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Der Waehler soll zeigen, was gewaehlt ist: Symbol links in der
+   Kategoriefarbe, Kennung daneben. Deshalb keine reine Beschriftung,
+   sondern zwei Teile in einem Knopf. */
+.fc-symbolknopf {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.fc-symbolbild {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.fc-symbolbild svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fc-symbolleer {
+  color: var(--text-muted);
+}
+
+/* --- Symbolauswahl ------------------------------------------------- */
+
+.fc-symbolsuche {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Feste Hoehe mit eigener Rolltreppe: Ohne sie waechst das Fenster mit
+   der Trefferzahl und schiebt den Hinweis darunter aus dem Bild. */
+.fc-symbolraster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.fc-symbolfeld {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0;
+}
+
+.fc-symbolfeld svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Auf dem Telefon ist weniger Platz, und getippt wird mit dem Finger:
+   groessere Felder, dafuer weniger nebeneinander. */
+@media (max-width: 600px) {
+  .fc-symbolraster {
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    max-height: 260px;
+  }
+
+  .fc-symbolfeld {
+    height: 44px;
+  }
+}
+
+/* --- Fusszeile ----------------------------------------------------- */
+
+/* Name, Version, Autor, Hilfe. Bewusst klein und blass: Es ist eine
+   Herkunftsangabe, keine Bedienung. */
+.fc-herkunft {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  text-align: center;
+}
+
+.fc-herkunft a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.fc-herkunft a:hover {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
