@@ -42,25 +42,27 @@ file explorer, then right-click. The menu title tells you how many folders
 you picked. Notes in the selection are skipped — a category is always
 assigned to a folder, never to a single file.
 
-**Let subfolders inherit.** Turn on "Also applies to subfolders" for that
-one folder, and everything below it follows, including folders you create
-later. A subfolder with its own category keeps it. You decide this per
-folder, not once for the whole vault.
+**Let subfolders inherit.** Turn on "Also applies to subfolders" for a
+category, and every folder in it passes its color down, including folders
+you create later. A subfolder with a category of its own keeps it.
 
 **Let the notes inherit too.** "Also applies to the notes inside" is a
-second, separate switch. Turn it on and the notes below that folder carry
-its color as well — canvases included. It reaches the whole subtree, and a
-deeper folder with the same switch takes over from there.
+second, separate switch. Turn it on and the notes below those folders
+carry the color as well — canvases included. It reaches the whole subtree,
+and a deeper folder with the same switch takes over from there.
 
 It is deliberately not the same switch as the one above. Folding the two
 together would have turned every folder that already inherits colorful in
 one go, without anyone changing a setting.
 
+Both switches sit in the management window, on the category — not on the
+single folder. Everything a category decides is decided in one place.
+
 **Manage categories.** Right-click any folder and choose "Manage
 categories …", or run the command from the command palette. The window
 lists your categories on the left and the settings of the selected one on
-the right: color, name, marker, icon, the three extra switches, and a live
-preview of how a folder will look.
+the right: color, name, marker, icon, the three extra switches, a live
+preview of how a folder will look, and the two inheritance switches.
 
 **Icons come from Obsidian.** Any icon Obsidian ships with, searchable,
 shown in the color of its category. An icon takes the place of the bar or

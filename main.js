@@ -51,6 +51,8 @@ const TEXTE_DE = {
   nichtsGewaehlt: 'Links eine Kategorie auswählen.',
   markierung: 'Markierung',
   zusaetzlich: 'Zusätzlich',
+  vererbung: 'Vererbung',
+  vererbungHinweis: 'Gilt für alle Ordner dieser Kategorie.',
   vorschau: 'Vorschau',
   symbol: 'Symbol',
   symbolWaehlen: 'Symbol wählen …',
@@ -120,6 +122,8 @@ const TEXTE_EN = {
   nichtsGewaehlt: 'Select a category on the left.',
   markierung: 'Marker',
   zusaetzlich: 'Additional',
+  vererbung: 'Inheritance',
+  vererbungHinweis: 'Applies to every folder in this category.',
   vorschau: 'Preview',
   symbol: 'Icon',
   symbolWaehlen: 'Choose icon …',
@@ -203,6 +207,16 @@ const STIL_VORGABE = {
   hintergrund: false,
   schriftFarbig: false,
   fett: false,
+  /* Inheritance is a property of the category, not of the single
+     folder. It used to sit on the folder so that two folders sharing a
+     category could behave differently; in practice that case never came
+     up, and the switch was hard to find -- it lived in the context menu
+     while everything else about a category lives in the window.
+
+     Two fields on purpose: notes must not start taking the colour just
+     because subfolders do. */
+  vererbt: false,
+  vererbtDateien: false,
 };
 
 /* Neutral examples, deliberately meaningless -- users rename them. The
@@ -230,18 +244,11 @@ const BEISPIEL_GRUPPEN = [{ id: 'grp-1', name: TEXTE.beispielGruppe }];
 const STANDARD_DATEN = {
   gruppen: BEISPIEL_GRUPPEN,
   kategorien: BEISPIEL_KATEGORIEN,
-  /* folder path -> category id */
+  /* folder path -> category id.
+     The only table about folders. Whether a folder passes its colour
+     down is not stored here: that hangs off the category, see
+     STIL_VORGABE above. */
   zuordnung: {},
-  /* folder path -> true when the category also applies to everything
-     below it. Deliberately one entry rather than one per subfolder:
-     otherwise the file grows with the vault, and the stylesheet with
-     it. */
-  vererbung: {},
-  /* folder path -> true when the notes below it take the colour too.
-     Deliberately a second table rather than a value inside "vererbung":
-     the two switches are independent, and an existing setting must not
-     start colouring notes on its own. */
-  dateiVererbung: {},
 };
 
 const STIL_ID = 'explorer-categories-stil';
@@ -341,7 +348,34 @@ class ExplorerCategoriesPlugin extends Plugin {
       kat.stil = stilAusAlterForm(alt);
     }
 
+    this.vererbungUmstellen();
     gruppenNachziehen(this.daten, TEXTE.beispielGruppe);
+  }
+
+  /* Inheritance used to be two tables of folder paths. It is a property
+     of the category now, so the old flags are carried over: a category
+     inherits from now on if at least one of its folders used to.
+     Deliberately generous rather than exact -- the alternative is a
+     folder that quietly loses a colour it had yesterday, and that is
+     harder to notice than one that has too much. */
+  vererbungUmstellen() {
+    const stilSetzen = (pfad, feld) => {
+      const katId = this.daten.zuordnung[pfad];
+      if (!katId) return;
+      const kat = this.daten.kategorien.find((k) => k.id === katId);
+      if (!kat) return;
+      kat.stil = Object.assign({}, STIL_VORGABE, kat.stil || {}, { [feld]: true });
+    };
+
+    for (const pfad of Object.keys(this.daten.vererbung || {})) {
+      if (this.daten.vererbung[pfad]) stilSetzen(pfad, 'vererbt');
+    }
+    for (const pfad of Object.keys(this.daten.dateiVererbung || {})) {
+      if (this.daten.dateiVererbung[pfad]) stilSetzen(pfad, 'vererbtDateien');
+    }
+
+    delete this.daten.vererbung;
+    delete this.daten.dateiVererbung;
   }
 
   /* The categories of one group, in the order they are stored. */
@@ -385,17 +419,14 @@ class ExplorerCategoriesPlugin extends Plugin {
     return true;
   }
 
-  /* Drops every assignment pointing at a category, and the inheritance
-     flags that go with them. Used when a category or a whole group is
-     deleted -- an assignment left pointing at something gone would
-     colour nothing and sit in the file forever. */
+  /* Drops every assignment pointing at a category. Used when a category
+     or a whole group is deleted -- an assignment left pointing at
+     something gone would colour nothing and sit in the file forever.
+     The inheritance flags need no cleaning up: they went with the
+     category. */
   zuordnungenEntfernen(katId) {
     for (const pfad of Object.keys(this.daten.zuordnung)) {
-      if (this.daten.zuordnung[pfad] === katId) {
-        delete this.daten.zuordnung[pfad];
-        delete this.daten.vererbung[pfad];
-        delete this.daten.dateiVererbung[pfad];
-      }
+      if (this.daten.zuordnung[pfad] === katId) delete this.daten.zuordnung[pfad];
     }
   }
 
@@ -414,10 +445,11 @@ class ExplorerCategoriesPlugin extends Plugin {
     for (let i = teile.length - 1; i > 0; i--) {
       const eltern = teile.slice(0, i).join('/');
       const katId = this.daten.zuordnung[eltern];
-      if (this.daten.vererbung[eltern] && katId) {
-        const kat = this.daten.kategorien.find((k) => k.id === katId);
-        if (kat) return { ordner: eltern, kategorie: kat.name };
-      }
+      if (!katId) continue;
+      const stil = this.stilVon(katId);
+      if (!stil || !stil.vererbt) continue;
+      const kat = this.daten.kategorien.find((k) => k.id === katId);
+      if (kat) return { ordner: eltern, kategorie: kat.name };
     }
 
     return null;
@@ -514,43 +546,16 @@ class ExplorerCategoriesPlugin extends Plugin {
         });
       }
 
-      /* Removing and inheriting sit at the bottom, and only when there
-         is something to remove or inherit. Up among the categories,
-         removal read as just another category rather than an action. */
+      /* Removal sits at the bottom, and only when there is something to
+         remove. Up among the categories it read as just another
+         category rather than an action.
+
+         The two inheritance switches used to sit here as well. They are
+         in the window now, on the category: the same switch in two
+         places drifts apart, and everything else about a category is
+         set there too. */
       if (irgendeine) {
         if (typeof ziel.addSeparator === 'function') ziel.addSeparator();
-
-        /* A state, not a one-off copy: nothing is written into the
-           subfolders, the rule simply covers everything below. That
-           keeps the settings file small even with tens of thousands of
-           folders underneath -- and new subfolders are included by
-           themselves. */
-        const alleErben = pfade.every((p) => this.daten.vererbung[p] === true);
-        ziel.addItem((i) =>
-          i
-            .setTitle(titel(TEXTE.aufUnterordner))
-            .setIcon('git-branch')
-            .setChecked(alleErben)
-            /* Mixed selection: turn all of them on first. Only once
-               every folder inherits does the same click turn them off
-               again. The checkmark always shows the state you will
-               get. */
-            .onClick(() => this.vererbungMehrere(pfade, !alleErben))
-        );
-
-        /* Notes get their own switch. Folded into the one above, every
-           folder that already inherits would have turned colourful at
-           once, without anybody changing a setting. */
-        const alleDateien = pfade.every(
-          (p) => this.daten.dateiVererbung[p] === true
-        );
-        ziel.addItem((i) =>
-          i
-            .setTitle(titel(TEXTE.aufDateien))
-            .setIcon('file-text')
-            .setChecked(alleDateien)
-            .onClick(() => this.dateiVererbungMehrere(pfade, !alleDateien))
-        );
 
         ziel.addItem((i) =>
           i
@@ -605,15 +610,8 @@ class ExplorerCategoriesPlugin extends Plugin {
      -- and the stylesheet would be rebuilt forty times over. */
   async zuweisenMehrere(pfade, katId) {
     for (const pfad of pfade) {
-      if (katId === null) {
-        delete this.daten.zuordnung[pfad];
-        /* No category means there is nothing to inherit -- neither to
-           the subfolders nor to the notes. */
-        delete this.daten.vererbung[pfad];
-        delete this.daten.dateiVererbung[pfad];
-      } else {
-        this.daten.zuordnung[pfad] = katId;
-      }
+      if (katId === null) delete this.daten.zuordnung[pfad];
+      else this.daten.zuordnung[pfad] = katId;
     }
     await this.speichern();
 
@@ -629,31 +627,6 @@ class ExplorerCategoriesPlugin extends Plugin {
         if (kat) new Notice(TEXTE.zugewiesen(pfade.length, kat.name));
       }
     }
-  }
-
-  async vererbungMehrere(pfade, anschalten) {
-    for (const pfad of pfade) {
-      /* Only folders with a category can pass one down. An entry on an
-         uncategorised folder would do nothing now and surprise you the
-         next time you assign one. */
-      if (anschalten && this.daten.zuordnung[pfad]) this.daten.vererbung[pfad] = true;
-      else delete this.daten.vererbung[pfad];
-    }
-    await this.speichern();
-  }
-
-  /* The same for the notes below a folder. A separate switch on purpose:
-     folding it into the one above would have turned every folder that
-     already inherits colourful in one go. */
-  async dateiVererbungMehrere(pfade, anschalten) {
-    for (const pfad of pfade) {
-      if (anschalten && this.daten.zuordnung[pfad]) {
-        this.daten.dateiVererbung[pfad] = true;
-      } else {
-        delete this.daten.dateiVererbung[pfad];
-      }
-    }
-    await this.speichern();
   }
 
   /* How many folders hang off this category? Needed before deleting, so
@@ -704,18 +677,11 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* Renaming or moving a folder changes the paths of everything inside
      it too. So not just the one key, but every key below it. */
   async pfadUmschreiben(alt, neu) {
-    /* All three maps have to come along: assignments, inheritance to
-       subfolders and inheritance to notes. Left at the old path, an
-       inheritance would colour nothing after a rename. */
-    const geaendert = [
-      this.daten.zuordnung,
-      this.daten.vererbung,
-      this.daten.dateiVererbung,
-    ]
-      .map((verzeichnis) => schluesselUmschreiben(verzeichnis, alt, neu))
-      .some(Boolean);
-
-    if (geaendert) await this.speichern();
+    /* One table to carry along. Inheritance needs no rewriting since it
+       moved to the category -- it knows no paths. */
+    if (schluesselUmschreiben(this.daten.zuordnung, alt, neu)) {
+      await this.speichern();
+    }
   }
 
   /* ---------------------------------------------------------------- */
@@ -1220,6 +1186,33 @@ class KategorienFenster extends Modal {
     const vorschau = this.detailEl.createDiv({ cls: 'fc-vorschau' });
     this.vorschauZeichnen(vorschau, kat.farbe, stil, kat.icon);
 
+    /* --- Vererbung ------------------------------------------------- */
+    /* Below the preview, because this is not about looks but about
+       reach: how far the colour carries. Used to be two entries in the
+       context menu, set per folder -- hard to find, and the only thing
+       about a category that was not set in this window. */
+    this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.vererbung });
+
+    const reichweite = this.detailEl.createDiv({ cls: 'fc-schalter' });
+    const erbschalter = [
+      ['vererbt', TEXTE.aufUnterordner],
+      ['vererbtDateien', TEXTE.aufDateien],
+    ];
+
+    for (const [feld, beschriftung] of erbschalter) {
+      const knopf = reichweite.createEl('button', { text: beschriftung });
+      if (stil[feld]) knopf.addClass('mod-cta');
+      knopf.addEventListener('click', async () => {
+        await this.plugin.stilAendern(kat.id, { [feld]: !stil[feld] });
+        this.detailFuellen();
+      });
+    }
+
+    /* Says what "inherit" reaches here: not this one folder, but every
+       folder carrying this category. That is the whole difference to
+       the switch that used to sit in the context menu. */
+    this.detailEl.createDiv({ cls: 'fc-hinweis', text: TEXTE.vererbungHinweis });
+
     /* --- Loeschen -------------------------------------------------- */
     const fuss = this.detailEl.createDiv({ cls: 'fc-detailfuss' });
     const weg = fuss.createEl('button', { cls: 'fc-weg', text: TEXTE.loeschen });
@@ -1554,9 +1547,10 @@ function praefixTreffer(index, praefix) {
  * colour and a style each.
  *
  * Two kinds of target:
- *   1. Inheritance -- one folder colours everything beneath it. A single
- *      selector using ^= ("starts with") covers any number of folders,
- *      including ones that do not exist yet.
+ *   1. Inheritance -- one folder colours everything beneath it, because
+ *      its category says so. A single selector using ^= ("starts with")
+ *      covers any number of folders, including ones that do not exist
+ *      yet.
  *   2. The folder itself -- an exact selector.
  *
  * Order decides who wins, because both kinds of selector carry the same
@@ -1569,16 +1563,23 @@ function praefixTreffer(index, praefix) {
  * background. */
 function zieleBauen(daten, nachschlagen) {
   const zuordnung = daten.zuordnung || {};
-  const vererbung = daten.vererbung || {};
-  const dateiVererbung = daten.dateiVererbung || {};
   const ziele = [];
 
   const tiefe = (pfad) => pfad.split('/').length;
 
+  /* Which folders pass their colour down? Every folder whose category
+     says so. There is no table of its own for this any more -- the
+     switch sits on the category, so this is a lookup. */
+  const quellenMit = (feld) =>
+    Object.keys(zuordnung)
+      .filter((pfad) => {
+        const eintrag = nachschlagen(zuordnung[pfad]);
+        return !!(eintrag && eintrag.stil && eintrag.stil[feld]);
+      })
+      .sort((a, b) => tiefe(a) - tiefe(b) || a.localeCompare(b));
+
   /* --- 1. inheritance, shallow to deep ---------------------------- */
-  const quellen = Object.keys(vererbung)
-    .filter((pfad) => vererbung[pfad] && zuordnung[pfad])
-    .sort((a, b) => tiefe(a) - tiefe(b) || a.localeCompare(b));
+  const quellen = quellenMit('vererbt');
 
   /* Both indexes are built once and then searched per source, instead of
      walking the full lists again for every single one. */
@@ -1629,17 +1630,15 @@ function zieleBauen(daten, nachschlagen) {
   }
 
   /* --- 3. the notes below a folder -------------------------------- */
-  /* Its own switch, separate from the one for subfolders. Adding notes
-     to that one would have turned every folder that already inherits
-     colourful in one go, without anyone changing a setting.
+  /* Its own switch, separate from the one for subfolders. Folded into
+     that one, every category that already inherits would have turned
+     its notes colourful in one go, without anyone changing a setting.
 
      Reaches the whole subtree, not just the files sitting directly in
      the folder: a CSS attribute selector cannot express "exactly one
      level down", and excluding every subfolder by name would produce a
      selector as long as the vault. */
-  const dateiQuellen = Object.keys(dateiVererbung)
-    .filter((pfad) => dateiVererbung[pfad] && zuordnung[pfad])
-    .sort((a, b) => tiefe(a) - tiefe(b) || a.localeCompare(b));
+  const dateiQuellen = quellenMit('vererbtDateien');
 
   const dateiIndex = indexBauen(dateiQuellen);
 
