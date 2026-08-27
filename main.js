@@ -88,34 +88,6 @@ const TEXTE_DE = {
     n === 1 ? 'Farbe von 1 Ordner entfernt.' : `Farbe von ${n} Ordnern entfernt.`,
   beispielName: (n) => `Kategorie ${n}`,
   hilfe: 'Hilfe',
-  /* Orphans: entries pointing at folders that are no longer there.
-     Happens when a folder is renamed outside Obsidian -- in Finder, on
-     another device, through a sync. Obsidian never reports those, so the
-     entry silently keeps pointing nowhere. */
-  waisenTitel: 'Zeigt ins Leere',
-  waisenHinweis: (n) =>
-    n === 1
-      ? 'Eine Zuordnung zeigt auf einen Ordner, den es nicht mehr gibt.'
-      : `${n} Zuordnungen zeigen auf Ordner, die es nicht mehr gibt.`,
-  waisenErklaerung:
-    'Meist wurde der Ordner außerhalb von Obsidian umbenannt oder verschoben. ' +
-    'Die Einträge bleiben erhalten, bis du sie wegwirfst — falls der Ordner zurückkommt, gilt die Farbe wieder.',
-  waisenWegwerfen: 'Wegwerfen',
-  waisenAlleWegwerfen: 'Alle wegwerfen',
-  waisenWeggeworfen: (n) =>
-    n === 1 ? '1 Eintrag weggeworfen.' : `${n} Einträge weggeworfen.`,
-  waisenFrage: (n) =>
-    n === 1
-      ? 'Einen Eintrag wegwerfen?'
-      : `${n} Einträge wegwerfen? Die Farben kommen damit nicht zurück.`,
-  /* The notice stays put until it is clicked, so it has to say what a
-     click does. */
-  waisenStart: (n) =>
-    n === 1
-      ? 'Farbkategorien: eine Zuordnung zeigt ins Leere. Zum Ansehen klicken.'
-      : `Farbkategorien: ${n} Zuordnungen zeigen ins Leere. Zum Ansehen klicken.`,
-  /* How many further entries a repair takes along. */
-  waisenDarunter: (n) => (n === 1 ? '+1 darunter' : `+${n} darunter`),
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
@@ -168,27 +140,6 @@ const TEXTE_EN = {
     n === 1 ? 'Color removed from 1 folder.' : `Color removed from ${n} folders.`,
   beispielName: (n) => `Category ${n}`,
   hilfe: 'Help',
-  waisenTitel: 'Pointing nowhere',
-  waisenHinweis: (n) =>
-    n === 1
-      ? 'One assignment points at a folder that is no longer there.'
-      : `${n} assignments point at folders that are no longer there.`,
-  waisenErklaerung:
-    'Usually the folder was renamed or moved outside Obsidian. ' +
-    'The entries stay until you discard them — if the folder comes back, so does its color.',
-  waisenWegwerfen: 'Discard',
-  waisenAlleWegwerfen: 'Discard all',
-  waisenWeggeworfen: (n) =>
-    n === 1 ? '1 entry discarded.' : `${n} entries discarded.`,
-  waisenFrage: (n) =>
-    n === 1
-      ? 'Discard one entry?'
-      : `Discard ${n} entries? This will not bring the colors back.`,
-  waisenStart: (n) =>
-    n === 1
-      ? 'Color categories: one assignment points nowhere. Click to see it.'
-      : `Color categories: ${n} assignments point nowhere. Click to see them.`,
-  waisenDarunter: (n) => (n === 1 ? '+1 below' : `+${n} below`),
 };
 
 const SPRACHEN = { de: TEXTE_DE, en: TEXTE_EN };
@@ -315,14 +266,6 @@ class ExplorerCategoriesPlugin extends Plugin {
       name: TEXTE.fensterOeffnen,
       callback: () => this.fensterOeffnen(),
     });
-
-    /* Check for orphaned entries -- but only once the vault is actually
-       loaded. Doing this in onload() would report every single entry as
-       an orphan, because at that point Obsidian has not filled its file
-       list yet. onLayoutReady exists for exactly this (checked in
-       obsidian.asar, 1.12.7) and fires immediately when the layout is
-       already up, so a plugin enabled by hand is covered too. */
-    this.app.workspace.onLayoutReady(() => this.waisenMelden());
   }
 
   onunload() {
@@ -550,52 +493,6 @@ class ExplorerCategoriesPlugin extends Plugin {
     await this.speichern();
   }
 
-  /* Stored paths whose folder is gone. Asked fresh every time rather
-     than cached: a folder can come back from a sync at any moment, and a
-     stale list would keep claiming it is missing. */
-  waisen() {
-    return waisenFinden(this.daten, (pfad) => {
-      const treffer = this.app.vault.getAbstractFileByPath(pfad);
-      return treffer instanceof TFolder;
-    });
-  }
-
-  /* Says at startup that something points nowhere.
-   *
-   * The notice does NOT fade out, and clicking it opens the window where
-   * the entries can be dealt with. Both were added on 2026-08-27, after
-   * it turned out you had to open that window to find out there was
-   * anything to do -- a message that disappears after a few seconds is
-   * easy to miss, and then the whole check is worthless.
-   *
-   * Still no dialog in the way: the vault may still be syncing, and a
-   * window in the face over something that fixes itself would be worse
-   * than the problem. A notice can be ignored, a dialog cannot. */
-  waisenMelden() {
-    const anzahl = this.waisen().length;
-    if (!anzahl) return;
-
-    /* 0 means no auto-hide (checked in obsidian.asar, 1.12.7:
-       setAutoHide only starts a timer when it gets a duration). */
-    const hinweis = new Notice(TEXTE.waisenStart(anzahl), 0);
-
-    if (hinweis.noticeEl) {
-      hinweis.noticeEl.addClass('fc-waisenhinweis');
-      hinweis.noticeEl.addEventListener('click', () => this.fensterOeffnen());
-    }
-  }
-
-  /* Only ever called from the button in the window, never automatically.
-     Both tables have to be cleaned: an inheritance flag left behind
-     would come back to life the moment a folder of that name reappears. */
-  async waisenWegwerfen(pfade) {
-    for (const pfad of pfade) {
-      delete this.daten.zuordnung[pfad];
-      delete this.daten.vererbung[pfad];
-    }
-    await this.speichern();
-  }
-
   /* How many folders hang off this category? Needed before deleting, so
      nobody throws something away blind. */
   ordnerAnzahl(katId) {
@@ -780,12 +677,6 @@ class KategorienFenster extends Modal {
     contentEl.empty();
     contentEl.createEl('h2', { text: TEXTE.fensterTitel });
 
-    /* Sits above the columns, and only when there is something to say.
-       An empty box explaining that nothing is wrong would be noise in a
-       window people open to change colors. */
-    this.waisenEl = contentEl.createDiv();
-    this.waisenFuellen();
-
     const spalten = contentEl.createDiv({ cls: 'fc-spalten' });
     this.listeEl = spalten.createDiv({ cls: 'fc-liste' });
     this.detailEl = spalten.createDiv({ cls: 'fc-detail' });
@@ -837,85 +728,6 @@ class KategorienFenster extends Modal {
         attr: { target: '_blank', rel: 'noopener' },
       });
     }
-  }
-
-  /* ---------------- Waisen ---------------------------------------- */
-
-  /* Entries whose folder is gone. Rebuilt rather than patched, so the
-     block disappears on its own once the last one is dealt with. */
-  waisenFuellen() {
-    this.waisenEl.empty();
-
-    const waisen = this.plugin.waisen();
-    if (!waisen.length) return;
-
-    const kasten = this.waisenEl.createDiv({ cls: 'fc-waisen' });
-
-    const kopf = kasten.createDiv({ cls: 'fc-waisenkopf' });
-    kopf.createSpan({ cls: 'fc-waisentitel', text: TEXTE.waisenTitel });
-    kopf.createSpan({ cls: 'fc-waisenzahl', text: TEXTE.waisenHinweis(waisen.length) });
-
-    kasten.createDiv({ cls: 'fc-waisenerklaerung', text: TEXTE.waisenErklaerung });
-
-    /* The list scrolls: after a botched sync there can be hundreds, and
-       they must not push the categories off the screen. */
-    const rollen = kasten.createDiv({ cls: 'fc-waisenrollen' });
-
-    for (const gruppe of waisenGruppieren(waisen)) {
-      const pfad = gruppe.pfad;
-      const zeile = rollen.createDiv({ cls: 'fc-waisenzeile' });
-
-      /* Folder name first, the way there behind it in a fainter colour.
-         Only the way gets shortened when the row runs out of room -- the
-         name is what identifies the entry and must never end up hidden
-         behind an ellipsis. The full path stays available as a tooltip. */
-      const trenner = pfad.lastIndexOf('/');
-      const name = trenner === -1 ? pfad : pfad.slice(trenner + 1);
-      const weg = trenner === -1 ? '' : pfad.slice(0, trenner);
-
-      const text = zeile.createDiv({ cls: 'fc-waisenpfad' });
-      text.setAttribute('aria-label', pfad);
-      text.setAttribute('title', pfad);
-      text.createSpan({ cls: 'fc-waisenname', text: name });
-      if (weg) text.createSpan({ cls: 'fc-waisenweg-pfad', text: weg });
-
-      /* Says how many further entries died with this one, and therefore
-         go with it when it is discarded. */
-      if (gruppe.darunter) {
-        text.createSpan({
-          cls: 'fc-waisendarunter',
-          text: TEXTE.waisenDarunter(gruppe.darunter),
-        });
-      }
-
-      const knopf = zeile.createEl('button', {
-        cls: 'fc-waisenknopf',
-        text: TEXTE.waisenWegwerfen,
-      });
-      knopf.addEventListener('click', () => this.waisenFrage(gruppe.alle));
-    }
-
-    if (waisen.length > 1) {
-      const alle = kasten.createEl('button', {
-        cls: 'fc-waisenalle',
-        text: TEXTE.waisenAlleWegwerfen,
-      });
-      alle.addEventListener('click', () => this.waisenFrage(waisen));
-    }
-  }
-
-  /* Always asks, even for a single entry -- same rule as deleting a
-     category. Throwing one away cannot be undone from inside the
-     plugin. */
-  waisenFrage(pfade) {
-    new BestaetigenFenster(this.app, TEXTE.waisenFrage(pfade.length), async () => {
-      await this.plugin.waisenWegwerfen(pfade);
-      new Notice(TEXTE.waisenWeggeworfen(pfade.length));
-      this.waisenFuellen();
-      /* The counts next to the categories change with it. */
-      this.listeFuellen();
-      this.detailFuellen();
-    }).open();
   }
 
   /* ---------------- Liste ----------------------------------------- */
@@ -1328,76 +1140,6 @@ function stilAusAlterForm(alt) {
   }
 
   return stil;
-}
-
-/* Finds stored paths whose folder is gone.
- *
- * Obsidian reports renaming and moving, and the assignment follows along
- * -- but only for things that happen inside Obsidian. Rename a folder in
- * Finder, on a phone, or through a sync, and nothing is reported: the
- * entry keeps pointing at a path that no longer exists, the folder shows
- * up uncolored, and the old entry sits in data.json forever.
- *
- * So the check is a deliberate part of startup rather than a repair
- * routine. It reports, it never deletes -- a folder that vanished may
- * well come back from a sync a minute later, and quietly throwing away
- * its color would be the worse surprise.
- *
- * "istOrdner" is handed in rather than called on the vault directly,
- * which is what makes this testable without Obsidian. It has to answer
- * for folders only: should a note ever occupy a former folder's path,
- * the entry is just as dead.
- *
- * Cost is one lookup per stored path -- never a walk over the vault.
- * Obsidian's getAbstractFileByPath is a plain hasOwnProperty on its
- * fileMap (checked in obsidian.asar, 1.12.7), so the size of the vault
- * does not matter, only the number of assignments. Measured 2026-08-27:
- * 0.0 ms at 200 assignments, 57 ms at 300,000. */
-function waisenFinden(daten, istOrdner) {
-  const zuordnung = daten.zuordnung || {};
-  const vererbung = daten.vererbung || {};
-
-  /* One entry per path, even when a path carries both an assignment and
-     an inheritance flag -- reporting the same folder twice would only
-     make the list look worse than it is. Assignments come first because
-     they are what the user actually set. */
-  const pfade = Object.keys(zuordnung);
-  for (const pfad of Object.keys(vererbung)) {
-    if (!Object.prototype.hasOwnProperty.call(zuordnung, pfad)) pfade.push(pfad);
-  }
-
-  return pfade.filter((pfad) => !istOrdner(pfad));
-}
-
-/* Groups orphans by the topmost one.
- *
- * Renaming one folder outside Obsidian usually kills several entries at
- * once: the folder itself and everything stored below it. Listing them
- * all makes one mistake look like five, when in truth a single rename
- * caused the lot.
- *
- * Each group is one root plus every path that hangs off it. The full
- * list is what gets discarded: throwing away the root alone would leave
- * its children behind as fresh orphans, and the box would grow straight
- * back the moment it was redrawn. */
-function waisenGruppieren(waisen) {
-  /* Shallow before deep, so a parent is always seen before its
-     children. */
-  const sortiert = waisen.slice().sort((a, b) => a.length - b.length || (a < b ? -1 : 1));
-  const gruppen = [];
-
-  for (const pfad of sortiert) {
-    const eltern = gruppen.find((g) => pfad.startsWith(g.pfad + '/'));
-    if (eltern) eltern.alle.push(pfad);
-    else gruppen.push({ pfad, alle: [pfad] });
-  }
-
-  for (const g of gruppen) g.darunter = g.alle.length - 1;
-
-  /* Back into the order they came in, so the list does not reshuffle
-     itself between openings of the window. */
-  const rang = new Map(waisen.map((p, i) => [p, i]));
-  return gruppen.sort((a, b) => rang.get(a.pfad) - rang.get(b.pfad));
 }
 
 /* Sorts index entries by plain code-point order. Never localeCompare
