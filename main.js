@@ -47,7 +47,6 @@ const TEXTE_DE = {
   neueVorgabe: 'Neue Kategorie',
   loeschen: 'Löschen',
   namePlatzhalter: 'Name',
-  keineKategorien: 'Noch keine Kategorie angelegt.',
   nichtsGewaehlt: 'Links eine Kategorie auswählen.',
   markierung: 'Markierung',
   zusaetzlich: 'Zusätzlich',
@@ -88,6 +87,20 @@ const TEXTE_DE = {
     n === 1 ? 'Farbe von 1 Ordner entfernt.' : `Farbe von ${n} Ordnern entfernt.`,
   beispielName: (n) => `Kategorie ${n}`,
   hilfe: 'Hilfe',
+  /* Groups: one legend per part of the vault. */
+  beispielGruppe: 'Legende 1',
+  gruppeNeu: 'Neue Gruppe',
+  gruppeNeuVorgabe: 'Neue Gruppe',
+  gruppeName: 'Name der Gruppe',
+  gruppeLoeschen: 'Gruppe löschen',
+  gruppeLoeschFrage: (name, n) =>
+    n === 0
+      ? `Gruppe „${name}" löschen?`
+      : `Gruppe „${name}" löschen? ${n === 1 ? 'Die Kategorie darin wird' : `Die ${n} Kategorien darin werden`} mitgelöscht, und Ordner mit diesen Farben verlieren sie.`,
+  gruppeGeloescht: (name) => `Gruppe „${name}" gelöscht.`,
+  gruppeLetzte: 'Die letzte Gruppe kann nicht gelöscht werden.',
+  gruppeZahl: (n) => (n === 1 ? '1 Kategorie' : `${n} Kategorien`),
+  keineKategorienInGruppe: 'In dieser Gruppe ist noch keine Kategorie.',
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
@@ -103,7 +116,6 @@ const TEXTE_EN = {
   neueVorgabe: 'New category',
   loeschen: 'Delete',
   namePlatzhalter: 'Name',
-  keineKategorien: 'No categories yet.',
   nichtsGewaehlt: 'Select a category on the left.',
   markierung: 'Marker',
   zusaetzlich: 'Additional',
@@ -140,6 +152,19 @@ const TEXTE_EN = {
     n === 1 ? 'Color removed from 1 folder.' : `Color removed from ${n} folders.`,
   beispielName: (n) => `Category ${n}`,
   hilfe: 'Help',
+  beispielGruppe: 'Legend 1',
+  gruppeNeu: 'New group',
+  gruppeNeuVorgabe: 'New group',
+  gruppeName: 'Group name',
+  gruppeLoeschen: 'Delete group',
+  gruppeLoeschFrage: (name, n) =>
+    n === 0
+      ? `Delete group "${name}"?`
+      : `Delete group "${name}"? ${n === 1 ? 'The category in it goes' : `The ${n} categories in it go`} with it, and folders carrying those colors lose them.`,
+  gruppeGeloescht: (name) => `Group "${name}" deleted.`,
+  gruppeLetzte: 'The last group cannot be deleted.',
+  gruppeZahl: (n) => (n === 1 ? '1 category' : `${n} categories`),
+  keineKategorienInGruppe: 'No category in this group yet.',
 };
 
 const SPRACHEN = { de: TEXTE_DE, en: TEXTE_EN };
@@ -185,12 +210,25 @@ const STIL_VORGABE = {
    sees after installing, and an untranslated name would be a poor first
    impression. */
 const BEISPIEL_KATEGORIEN = [
-  { id: 'kat-1', name: TEXTE.beispielName(1), farbe: '#4a90d9' },
-  { id: 'kat-2', name: TEXTE.beispielName(2), farbe: '#e05252' },
-  { id: 'kat-3', name: TEXTE.beispielName(3), farbe: '#3fb950' },
+  { id: 'kat-1', name: TEXTE.beispielName(1), farbe: '#4a90d9', gruppe: 'grp-1' },
+  { id: 'kat-2', name: TEXTE.beispielName(2), farbe: '#e05252', gruppe: 'grp-1' },
+  { id: 'kat-3', name: TEXTE.beispielName(3), farbe: '#3fb950', gruppe: 'grp-1' },
 ];
 
+/* Groups are the legend a set of categories belongs to.
+ *
+ * The same colour means different things in different parts of a vault:
+ * red is "software" in one notebook and "cardiologist" in another. With
+ * one flat list, six such legends put sixty entries in front of you and
+ * the context menu offers all sixty for a folder where nine apply.
+ *
+ * A group is pure order. It carries no colour, no marker, no icon --
+ * only which categories are shown together. Which folder gets which
+ * colour is still decided per folder, exactly as before. */
+const BEISPIEL_GRUPPEN = [{ id: 'grp-1', name: TEXTE.beispielGruppe }];
+
 const STANDARD_DATEN = {
+  gruppen: BEISPIEL_GRUPPEN,
   kategorien: BEISPIEL_KATEGORIEN,
   /* folder path -> category id */
   zuordnung: {},
@@ -276,13 +314,15 @@ class ExplorerCategoriesPlugin extends Plugin {
     new KategorienFenster(this.app, this).open();
   }
 
-  /* Two older data shapes have to be carried over so nobody loses their
-     settings:
+  /* Three older data shapes have to be carried over so nobody loses
+     their settings:
        1. A single appearance for everything (top-level "darstellung").
        2. One appearance per category, but only one of four at a time
           (a "darstellung" field inside the category).
-     Both are translated into the current form with four independent
-     switches. */
+       3. No groups at all -- one flat list of categories.
+     The first two are translated into the current form with four
+     independent switches, the third into a single group holding
+     everything. */
   altbestandUmstellen() {
     const alteGlobale = this.daten.darstellung;
     delete this.daten.darstellung;
@@ -294,6 +334,62 @@ class ExplorerCategoriesPlugin extends Plugin {
       const alt = kat.darstellung || alteGlobale;
       delete kat.darstellung;
       kat.stil = stilAusAlterForm(alt);
+    }
+
+    gruppenNachziehen(this.daten, TEXTE.beispielGruppe);
+  }
+
+  /* The categories of one group, in the order they are stored. */
+  kategorienIn(gruppenId) {
+    return this.daten.kategorien.filter((k) => k.gruppe === gruppenId);
+  }
+
+  async gruppeAnlegen() {
+    const id = `grp-${Date.now()}`;
+    this.daten.gruppen.push({ id, name: TEXTE.gruppeNeuVorgabe });
+    await this.speichern();
+    return id;
+  }
+
+  async gruppeUmbenennen(gruppenId, name) {
+    const gruppe = this.daten.gruppen.find((g) => g.id === gruppenId);
+    if (!gruppe) return;
+    gruppe.name = name;
+    await this.speichern();
+  }
+
+  /* Deletes the group and everything in it. The categories cannot stay
+     behind: a category outside every group would show up nowhere and be
+     impossible to get at again.
+
+     Never the last one. Without a group there is no place to put a new
+     category, and the window would have nothing to show. */
+  async gruppeLoeschen(gruppenId) {
+    if (this.daten.gruppen.length < 2) return false;
+
+    for (const kat of this.kategorienIn(gruppenId)) {
+      this.zuordnungenEntfernen(kat.id);
+    }
+
+    this.daten.kategorien = this.daten.kategorien.filter(
+      (k) => k.gruppe !== gruppenId
+    );
+    this.daten.gruppen = this.daten.gruppen.filter((g) => g.id !== gruppenId);
+
+    await this.speichern();
+    return true;
+  }
+
+  /* Drops every assignment pointing at a category, and the inheritance
+     flags that go with them. Used when a category or a whole group is
+     deleted -- an assignment left pointing at something gone would
+     colour nothing and sit in the file forever. */
+  zuordnungenEntfernen(katId) {
+    for (const pfad of Object.keys(this.daten.zuordnung)) {
+      if (this.daten.zuordnung[pfad] === katId) {
+        delete this.daten.zuordnung[pfad];
+        delete this.daten.vererbung[pfad];
+      }
     }
   }
 
@@ -341,19 +437,58 @@ class ExplorerCategoriesPlugin extends Plugin {
        exactly when it is needed. */
     const irgendeine = pfade.some((p) => this.daten.zuordnung[p]);
 
-    /* The entries are identical either way; only the place differs:
-       inside a submenu, or flat in the main menu. */
-    const eintraegeFuellen = (ziel, mitPraefix) => {
-      const kopf = mehrere ? TEXTE.menueMehrere(pfade.length) : TEXTE.menue;
-      const titel = (t) => (mitPraefix ? `${kopf}: ${t}` : t);
-
-      for (const kat of this.daten.kategorien) {
+    /* One row per category. Pulled out because it is needed in three
+       places: flat, inside the one submenu, and inside a group's
+       submenu. */
+    const katZeilen = (ziel, kategorien, titel) => {
+      for (const kat of kategorien) {
         ziel.addItem((i) =>
           i
             .setTitle(titel(kat.name))
             .setChecked(aktuell === kat.id)
             .onClick(() => this.zuweisenMehrere(pfade, kat.id))
         );
+      }
+    };
+
+    /* The entries are identical either way; only the place differs:
+       inside a submenu, or flat in the main menu.
+
+       "mitUnter" says whether this Obsidian has submenus at all. It is
+       known from the outer entry: if that one could not open a submenu,
+       nothing below it can either. */
+    const eintraegeFuellen = (ziel, mitPraefix, mitUnter) => {
+      const kopf = mehrere ? TEXTE.menueMehrere(pfade.length) : TEXTE.menue;
+      const titel = (t) => (mitPraefix ? `${kopf}: ${t}` : t);
+
+      const gruppen = this.daten.gruppen;
+
+      /* A single legend gets no level of its own. A submenu that always
+         holds exactly one thing is a click for nothing -- and until
+         somebody sets up a second legend, that is every vault. */
+      if (gruppen.length < 2 || !mitUnter) {
+        for (const gruppe of gruppen) {
+          const kats = this.kategorienIn(gruppe.id);
+          if (!kats.length) continue;
+          /* Flat with several legends: the group name has to travel
+             with each entry, or two identical reds give no clue which
+             legend they belong to. */
+          const mitGruppe =
+            gruppen.length < 2 ? titel : (t) => titel(`${gruppe.name}: ${t}`);
+          katZeilen(ziel, kats, mitGruppe);
+        }
+      } else {
+        for (const gruppe of gruppen) {
+          const kats = this.kategorienIn(gruppe.id);
+          /* An empty legend would be a submenu that opens on nothing. */
+          if (!kats.length) continue;
+
+          ziel.addItem((eintrag) => {
+            eintrag.setTitle(gruppe.name);
+            const unter = eintrag.setSubmenu();
+            katZeilen(unter, kats, (t) => t);
+          });
+        }
       }
 
       /* If the folder inherits from above, say so here -- otherwise you
@@ -429,11 +564,11 @@ class ExplorerCategoriesPlugin extends Plugin {
       const unter = eintrag.setSubmenu();
       if (!unter || typeof unter.addItem !== 'function') return;
 
-      eintraegeFuellen(unter, false);
+      eintraegeFuellen(unter, false, true);
       untermenueGebaut = true;
     });
 
-    if (!untermenueGebaut) eintraegeFuellen(menu, true);
+    if (!untermenueGebaut) eintraegeFuellen(menu, true, false);
   }
 
   /* ---------------------------------------------------------------- */
@@ -499,12 +634,16 @@ class ExplorerCategoriesPlugin extends Plugin {
     return Object.values(this.daten.zuordnung).filter((id) => id === katId).length;
   }
 
-  async kategorieAnlegen() {
+  /* A new category always lands in a group -- the one the window is
+     showing. There is no such thing as a category outside every group:
+     it would appear nowhere and could never be reached again. */
+  async kategorieAnlegen(gruppenId) {
     const id = `kat-${Date.now()}`;
     this.daten.kategorien.push({
       id,
       name: TEXTE.neueVorgabe,
       farbe: zufallsfarbe(),
+      gruppe: gruppenId || this.daten.gruppen[0].id,
       stil: Object.assign({}, STIL_VORGABE),
     });
     await this.speichern();
@@ -527,15 +666,10 @@ class ExplorerCategoriesPlugin extends Plugin {
 
   async kategorieLoeschen(katId) {
     this.daten.kategorien = this.daten.kategorien.filter((k) => k.id !== katId);
-    for (const [pfad, id] of Object.entries(this.daten.zuordnung)) {
-      if (id === katId) {
-        delete this.daten.zuordnung[pfad];
-        /* Without a category there is nothing left to inherit. If the
-           entry stayed, it would quietly take effect again the next time
-           the same folder is assigned one. */
-        delete this.daten.vererbung[pfad];
-      }
-    }
+    /* Without a category there is nothing left to inherit either. An
+       inheritance flag left behind would quietly take effect again the
+       next time the same folder is assigned one. */
+    this.zuordnungenEntfernen(katId);
     await this.speichern();
   }
 
@@ -657,7 +791,9 @@ class KategorienFenster extends Modal {
   constructor(app, plugin) {
     super(app);
     this.plugin = plugin;
-    const erste = plugin.daten.kategorien[0];
+
+    this.gruppeGewaehlt = plugin.daten.gruppen[0].id;
+    const erste = plugin.kategorienIn(this.gruppeGewaehlt)[0];
     this.gewaehlt = erste ? erste.id : null;
   }
 
@@ -676,6 +812,9 @@ class KategorienFenster extends Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl('h2', { text: TEXTE.fensterTitel });
+
+    this.reiterEl = contentEl.createDiv({ cls: 'fc-reiter' });
+    this.reiterFuellen();
 
     const spalten = contentEl.createDiv({ cls: 'fc-spalten' });
     this.listeEl = spalten.createDiv({ cls: 'fc-liste' });
@@ -742,10 +881,13 @@ class KategorienFenster extends Modal {
        out of sight once there are many categories. */
     const rollen = this.listeEl.createDiv({ cls: 'fc-listenrollen' });
 
-    const kategorien = this.plugin.daten.kategorien;
+    /* Only the active group. That is the whole point of groups: the same
+       colour means different things in different parts of the vault, and
+       all of them at once is what made the list unusable. */
+    const kategorien = this.plugin.kategorienIn(this.gruppeGewaehlt);
 
     if (!kategorien.length) {
-      rollen.createDiv({ cls: 'fc-leer', text: TEXTE.keineKategorien });
+      rollen.createDiv({ cls: 'fc-leer', text: TEXTE.keineKategorienInGruppe });
     }
 
     for (const kat of kategorien) {
@@ -781,9 +923,112 @@ class KategorienFenster extends Modal {
       text: '+ ' + TEXTE.neue,
     });
     neu.addEventListener('click', async () => {
-      this.gewaehlt = await this.plugin.kategorieAnlegen();
+      this.gewaehlt = await this.plugin.kategorieAnlegen(this.gruppeGewaehlt);
       this.listeFuellen();
       this.detailFuellen();
+    });
+  }
+
+  /* ---------------- Gruppen --------------------------------------- */
+
+  /* One tab per group, plus a button to add one. The tabs scroll
+     sideways rather than wrapping: with eight legends a wrapping row
+     would change height as you switch, and everything below it would
+     jump. */
+  reiterFuellen() {
+    this.reiterEl.empty();
+
+    const leiste = this.reiterEl.createDiv({ cls: 'fc-reiterleiste' });
+
+    for (const gruppe of this.plugin.daten.gruppen) {
+      const knopf = leiste.createEl('button', {
+        cls: 'fc-reiterknopf',
+        text: gruppe.name,
+      });
+      if (gruppe.id === this.gruppeGewaehlt) knopf.addClass('fc-reiteraktiv');
+
+      knopf.setAttribute(
+        'aria-label',
+        TEXTE.gruppeZahl(this.plugin.kategorienIn(gruppe.id).length)
+      );
+
+      knopf.addEventListener('click', () => {
+        if (gruppe.id === this.gruppeGewaehlt) return;
+        this.gruppeGewaehlt = gruppe.id;
+        /* The selection cannot survive a group change: the category it
+           points at is not in the new group. */
+        const erste = this.plugin.kategorienIn(gruppe.id)[0];
+        this.gewaehlt = erste ? erste.id : null;
+        this.reiterFuellen();
+        this.listeFuellen();
+        this.detailFuellen();
+      });
+    }
+
+    const neu = leiste.createEl('button', {
+      cls: 'fc-reiterneu',
+      text: '+',
+    });
+    neu.setAttribute('aria-label', TEXTE.gruppeNeu);
+    neu.addEventListener('click', async () => {
+      this.gruppeGewaehlt = await this.plugin.gruppeAnlegen();
+      this.gewaehlt = null;
+      this.reiterFuellen();
+      this.listeFuellen();
+      this.detailFuellen();
+    });
+
+    /* Name and delete for the group sit under the tabs, not in them: a
+       tab you can type in is hard to hit, and the delete button has to
+       be somewhere it cannot be pressed by accident while switching. */
+    const zeile = this.reiterEl.createDiv({ cls: 'fc-gruppenzeile' });
+    const gruppe = this.plugin.daten.gruppen.find(
+      (g) => g.id === this.gruppeGewaehlt
+    );
+    if (!gruppe) return;
+
+    const name = zeile.createEl('input', {
+      type: 'text',
+      cls: 'fc-gruppenname',
+      placeholder: TEXTE.gruppeName,
+    });
+    name.value = gruppe.name;
+
+    /* Deliberately no full redraw while typing, or the field would lose
+       the caret after every character -- only the tab's label follows. */
+    name.addEventListener('input', () => {
+      this.plugin.gruppeUmbenennen(gruppe.id, name.value);
+      const knopf = leiste.querySelector('.fc-reiteraktiv');
+      if (knopf) knopf.setText(name.value);
+    });
+
+    /* Hidden rather than disabled while there is only one group: a
+       button that can never be pressed is just a thing to wonder
+       about. */
+    if (this.plugin.daten.gruppen.length < 2) return;
+
+    const weg = zeile.createEl('button', {
+      cls: 'fc-gruppeweg',
+      text: TEXTE.gruppeLoeschen,
+    });
+    weg.addEventListener('click', () => {
+      const anzahl = this.plugin.kategorienIn(gruppe.id).length;
+      const alterName = gruppe.name;
+
+      new BestaetigenFenster(
+        this.app,
+        TEXTE.gruppeLoeschFrage(alterName, anzahl),
+        async () => {
+          await this.plugin.gruppeLoeschen(gruppe.id);
+          new Notice(TEXTE.gruppeGeloescht(alterName));
+          this.gruppeGewaehlt = this.plugin.daten.gruppen[0].id;
+          const erste = this.plugin.kategorienIn(this.gruppeGewaehlt)[0];
+          this.gewaehlt = erste ? erste.id : null;
+          this.reiterFuellen();
+          this.listeFuellen();
+          this.detailFuellen();
+        }
+      ).open();
     });
   }
 
@@ -974,8 +1219,13 @@ class KategorienFenster extends Modal {
       const loeschen = async () => {
         await this.plugin.kategorieLoeschen(kat.id);
         new Notice(TEXTE.geloescht(alterName));
-        const erste = this.plugin.daten.kategorien[0];
+        /* The next one from THIS group. Falling back to the first
+           category overall would jump into another legend while the tab
+           above still says this one. */
+        const erste = this.plugin.kategorienIn(this.gruppeGewaehlt)[0];
         this.gewaehlt = erste ? erste.id : null;
+        /* The tab carries the category count, so it follows too. */
+        this.reiterFuellen();
         this.listeFuellen();
         this.detailFuellen();
       };
@@ -1180,6 +1430,40 @@ function stilAusAlterForm(alt) {
   }
 
   return stil;
+}
+
+/* Brings data from before groups existed up to date, and repairs data
+ * that lost its way.
+ *
+ * Three things can be wrong, and all three end up the same way -- every
+ * category sits in a group that exists:
+ *   1. No groups at all: the file predates them.
+ *   2. Groups exist, but a category has no group, because it was written
+ *      by an older version running alongside a newer one (a vault synced
+ *      between two machines).
+ *   3. A category names a group that is gone.
+ *
+ * Cases 2 and 3 matter more than they look. A category in no group would
+ * be invisible in the window and unreachable in the menu, while still
+ * colouring folders -- a colour you cannot find and cannot change is
+ * worse than a lost one. So they are moved into the first group rather
+ * than dropped.
+ *
+ * Pure function on the data, no vault involved, so it can be tested
+ * without Obsidian. */
+function gruppenNachziehen(daten, vorgabeName) {
+  if (!Array.isArray(daten.gruppen) || !daten.gruppen.length) {
+    daten.gruppen = [{ id: 'grp-1', name: vorgabeName }];
+  }
+
+  const bekannt = new Set(daten.gruppen.map((g) => g.id));
+  const erste = daten.gruppen[0].id;
+
+  for (const kat of daten.kategorien || []) {
+    if (!kat.gruppe || !bekannt.has(kat.gruppe)) kat.gruppe = erste;
+  }
+
+  return daten;
 }
 
 /* Sorts index entries by plain code-point order. Never localeCompare
