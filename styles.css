@@ -13,7 +13,8 @@
    columns to a number of pixels left the rest of the window empty on a
    large display (reported 2026-08-27, measured at 1920x1080 -- roughly
    900px available against 640px used). Now the columns take whatever is
-   left over, so the space is used whatever the screen. */
+   left over, so the space is used whatever the screen.
+
    WHY VARIABLES AND NOT PROPERTIES
    Obsidian's own rule for ".modal" sets "width: var(--dialog-width)" and
    "max-height: var(--dialog-max-height)". Verified in Obsidian 1.12.7:
