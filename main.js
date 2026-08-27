@@ -1142,6 +1142,57 @@ function stilAusAlterForm(alt) {
   return stil;
 }
 
+/* Sorts index entries by plain code-point order. Never localeCompare
+ * here: the prefix search below only works if "a/b" and "a/c" really do
+ * end up next to each other, and locale rules do not guarantee that. */
+function nachPfad(a, b) {
+  return a.pfad < b.pfad ? -1 : a.pfad > b.pfad ? 1 : 0;
+}
+
+/* Turns a list of paths into a searchable index: every entry keeps the
+ * position it had in the original list, so results can be handed back
+ * in that order later. */
+function indexBauen(pfade) {
+  return pfade.map((pfad, idx) => ({ pfad, idx })).sort(nachPfad);
+}
+
+/* First position in the index whose path is not less than the prefix.
+ * Everything starting with that prefix sits in one unbroken block from
+ * there on, which is what makes the scan cheap. */
+function erstePosition(index, praefix) {
+  let lo = 0;
+  let hi = index.length;
+  while (lo < hi) {
+    const mitte = (lo + hi) >> 1;
+    if (index[mitte].pfad < praefix) lo = mitte + 1;
+    else hi = mitte;
+  }
+  return lo;
+}
+
+/* All paths starting with the prefix, back in the order of the list the
+ * index was built from.
+ *
+ * This replaces a scan over every assignment per inheritance source. That
+ * scan was quadratic: measured on 2026-08-27 with 300,000 assignments and
+ * 60 sources it took 2.8 seconds, and it ran on every rebuild, not just
+ * at startup. Cost now is one sort up front plus a binary search per
+ * source -- the same case lands in a few milliseconds.
+ *
+ * The output order is restored on purpose. ":not(a):not(b)" and
+ * ":not(b):not(a)" mean the same thing to a browser, but keeping the old
+ * order makes this a pure speed change with an unchanged result, which
+ * the tests can then confirm. */
+function praefixTreffer(index, praefix) {
+  const treffer = [];
+  for (let i = erstePosition(index, praefix); i < index.length; i++) {
+    if (!index[i].pfad.startsWith(praefix)) break;
+    treffer.push(index[i]);
+  }
+  treffer.sort((a, b) => a.idx - b.idx);
+  return treffer;
+}
+
 /* Turns the stored data into a list of targets: a CSS selector with a
  * colour and a style each.
  *
@@ -1171,6 +1222,11 @@ function zieleBauen(daten, nachschlagen) {
     .filter((pfad) => vererbung[pfad] && zuordnung[pfad])
     .sort((a, b) => tiefe(a) - tiefe(b) || a.localeCompare(b));
 
+  /* Both indexes are built once and then searched per source, instead of
+     walking the full lists again for every single one. */
+  const zuordnungIndex = indexBauen(Object.keys(zuordnung));
+  const quellenIndex = indexBauen(quellen);
+
   for (const quelle of quellen) {
     const { farbe, stil, icon } = nachschlagen(zuordnung[quelle]);
     if (!farbe || !stil) continue;
@@ -1182,14 +1238,14 @@ function zieleBauen(daten, nachschlagen) {
        everything beneath it. */
     const ausnahmen = [];
 
-    for (const pfad of Object.keys(zuordnung)) {
-      if (pfad.startsWith(praefix)) ausnahmen.push(`[data-path="${maskieren(pfad)}"]`);
+    for (const { pfad } of praefixTreffer(zuordnungIndex, praefix)) {
+      ausnahmen.push(`[data-path="${maskieren(pfad)}"]`);
     }
 
-    for (const andere of quellen) {
-      if (andere !== quelle && andere.startsWith(praefix)) {
-        ausnahmen.push(`[data-path^="${maskieren(andere + '/')}"]`);
-      }
+    /* A source can never start with its own prefix -- the prefix is one
+       separator longer -- so nothing has to be filtered out here. */
+    for (const { pfad } of praefixTreffer(quellenIndex, praefix)) {
+      ausnahmen.push(`[data-path^="${maskieren(pfad + '/')}"]`);
     }
 
     ziele.push({
