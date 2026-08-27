@@ -1,16 +1,15 @@
-/* Folder Categories -- Aussehen des Fensters
+/* Explorer Categories -- how the window looks
  *
- * Es werden durchweg Obsidian-eigene Farbvariablen benutzt, damit das
- * Fenster in jedem Erscheinungsbild passt -- hell, dunkel und fremde
- * Themes. Keine festen Farben ausser dort, wo der Nutzer sie selbst
- * gewaehlt hat.
+ * Colours come from Obsidian's own variables throughout, so the window
+ * fits every appearance -- light, dark and third-party themes. No fixed
+ * colours except where the user picked one.
  */
 
 .fc-fenster {
   max-width: 720px;
 }
 
-/* --- Liste links, Einstellungen rechts ---------------------------- */
+/* --- List on the left, settings on the right ---------------------- */
 
 .fc-spalten {
   display: grid;
@@ -19,9 +18,9 @@
   align-items: start;
 }
 
-/* Beide Spalten haben eine feste Hoehe. Sonst springt das Fenster bei
-   jedem Klick in der Liste, weil mal ein Hinweis erscheint und mal
-   nicht. Die Liste rollt bei Bedarf in sich selbst. */
+/* Both columns have a fixed height. Otherwise the window jumps with
+   every click in the list, because a hint appears for some categories
+   and not for others. The list scrolls inside itself when needed. */
 .fc-liste {
   display: flex;
   flex-direction: column;
@@ -85,7 +84,7 @@
   margin-top: 8px;
 }
 
-/* --- Einstellungen der gewaehlten Kategorie ----------------------- */
+/* --- Settings of the selected category ---------------------------- */
 
 .fc-zeile {
   display: flex;
@@ -93,8 +92,8 @@
   gap: 8px;
 }
 
-/* Der Systemwaehler bringt einen eigenen Rahmen mit, der in Obsidian
-   fremd aussieht. Deshalb rund und randlos. */
+/* The system colour picker brings its own frame, which looks alien in
+   Obsidian. Hence rounded and borderless. */
 .fc-farbe {
   flex: 0 0 auto;
   width: 34px;
@@ -132,8 +131,8 @@
   height: auto;
 }
 
-/* Markierung: die drei gehoeren zusammen und sehen deshalb aus wie ein
-   Stueck, nicht wie drei einzelne Knoepfe. */
+/* Marker: the three belong together and therefore look like one piece
+   rather than three separate buttons. */
 .fc-gruppe {
   display: inline-flex;
 }
@@ -151,16 +150,16 @@
   border-radius: 0 var(--radius-s) var(--radius-s) 0;
 }
 
-/* Farbige Schrift, waehrend der Hintergrund an ist: die Einstellung
-   bleibt gespeichert, wirkt aber gerade nicht. */
+/* Coloured text while the background is on: the setting is kept, it
+   just has no effect right now. */
 .fc-wirkungslos {
   opacity: 0.45;
   text-decoration: line-through;
 }
 
-/* --- Vorschau ------------------------------------------------------ */
+/* --- Preview ------------------------------------------------------- */
 
-/* Sieht aus wie eine Zeile im Dateibaum, damit der Vergleich stimmt. */
+/* Looks like a row in the file explorer, so the comparison holds. */
 .fc-vorschau-zeile {
   display: inline-flex;
   align-items: center;
@@ -198,7 +197,7 @@
   padding: 8px 0;
 }
 
-/* --- Fusszeilen ---------------------------------------------------- */
+/* --- Footers ------------------------------------------------------- */
 
 .fc-detailfuss {
   margin-top: 18px;
@@ -222,10 +221,10 @@
   margin-top: 1.2em;
 }
 
-/* --- Telefon ------------------------------------------------------- */
+/* --- Phone --------------------------------------------------------- */
 
-/* Nebeneinander gibt es auf dem Handy nicht genug Breite. Dort steht
-   die Liste oben und die Einstellungen darunter. */
+/* There is not enough width on a phone for two columns. The list goes
+   on top and the settings below it. */
 @media (max-width: 600px) {
   .fc-spalten {
     grid-template-columns: 1fr;
@@ -241,11 +240,11 @@
   }
 }
 
-/* --- Symbol -------------------------------------------------------- */
+/* --- Icon ---------------------------------------------------------- */
 
-/* In der Vorschau ein richtiges Symbol mit gesetzter Farbe. Im
-   Dateibaum ist es eine eingefaerbte Maske -- beides sieht gleich aus,
-   nur der Weg dorthin ist ein anderer. */
+/* In the preview a real icon with a colour set on it. In the file
+   explorer it is a tinted mask -- both look the same, only the route
+   there differs. */
 .fc-vorschau-symbol {
   display: inline-flex;
   align-items: center;
@@ -264,9 +263,9 @@
   gap: 8px;
 }
 
-/* Der Waehler soll zeigen, was gewaehlt ist: Symbol links in der
-   Kategoriefarbe, Kennung daneben. Deshalb keine reine Beschriftung,
-   sondern zwei Teile in einem Knopf. */
+/* The picker should show what is picked: icon on the left in the
+   category colour, id beside it. Hence two parts in one button rather
+   than a plain label. */
 .fc-symbolknopf {
   display: inline-flex;
   align-items: center;
@@ -289,15 +288,15 @@
   color: var(--text-muted);
 }
 
-/* --- Symbolauswahl ------------------------------------------------- */
+/* --- Icon picker --------------------------------------------------- */
 
 .fc-symbolsuche {
   width: 100%;
   margin-bottom: 10px;
 }
 
-/* Feste Hoehe mit eigener Rolltreppe: Ohne sie waechst das Fenster mit
-   der Trefferzahl und schiebt den Hinweis darunter aus dem Bild. */
+/* Fixed height with its own scrollbar: without it the window grows
+   with the number of matches and pushes the hint below out of view. */
 .fc-symbolraster {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
@@ -319,8 +318,8 @@
   height: 18px;
 }
 
-/* Auf dem Telefon ist weniger Platz, und getippt wird mit dem Finger:
-   groessere Felder, dafuer weniger nebeneinander. */
+/* Less room on a phone, and tapping is done with a finger: bigger
+   cells, fewer of them side by side. */
 @media (max-width: 600px) {
   .fc-symbolraster {
     grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
@@ -332,15 +331,15 @@
   }
 }
 
-/* --- Zeigt ins Leere ----------------------------------------------- */
+/* --- Pointing nowhere ---------------------------------------------- */
 
-/* Eintraege, deren Ordner es nicht mehr gibt. Der Kasten erscheint nur,
-   wenn wirklich etwas fehlt, und steht dann ueber den Kategorien.
+/* Entries whose folder is gone. The box shows up only when something
+   is actually missing, and then sits above the categories.
 
-   Bewusst ein Hinweis und keine Fehlermeldung: Der Ordner kann jeden
-   Moment aus einem Sync zurueckkommen. Deshalb der gelbe Faden am Rand
-   statt roter Flaeche. Alle Farben kommen aus Obsidians eigenen
-   Variablen, damit hell und dunkel ohne Zutun stimmen. */
+   Deliberately a notice and not an error: the folder may come back from
+   a sync at any moment. Hence the warning-coloured edge rather than a
+   red field. Every colour comes from Obsidian's own variables, so light
+   and dark are right without further work. */
 .fc-waisen {
   margin-bottom: 12px;
   padding: 10px 12px;
@@ -374,9 +373,8 @@
   line-height: 1.4;
 }
 
-/* Nach einem missglueckten Sync koennen es hunderte sein. Die Liste
-   rollt deshalb fuer sich, sonst schiebt sie die Kategorien aus dem
-   Fenster. */
+/* After a botched sync there can be hundreds. The list scrolls on its
+   own, or it would push the categories out of the window. */
 .fc-waisenrollen {
   max-height: 140px;
   margin-top: 8px;
@@ -390,13 +388,13 @@
   padding: 3px 0;
 }
 
-/* Der Ordnername steht vorn, der Weg dorthin blass dahinter. Gekuerzt
-   wird nur der Weg -- der Name ist das, woran man den Eintrag erkennt,
-   und er darf nie unter Punkten verschwinden.
+/* The folder name comes first, the way there faintly behind it. Only
+   the way gets shortened -- the name is what identifies the entry and
+   must never disappear behind an ellipsis.
 
-   Bewusst nicht ueber "direction: rtl" geloest, mit dem man sonst am
-   Anfang kuerzt: Das Verfahren stellt bei Pfaden mit Binde- und
-   Schraegstrichen die Zeichen um. */
+   Deliberately not done with "direction: rtl", the usual trick for
+   shortening at the start: it reorders characters in paths containing
+   hyphens and slashes. */
 .fc-waisenpfad {
   display: flex;
   align-items: baseline;
@@ -419,9 +417,8 @@
   font-size: var(--font-ui-smaller);
 }
 
-/* "+2 darunter": sagt, wie viele weitere Eintraege an derselben
-   Umbenennung gestorben sind und deshalb mit weggeworfen werden.
-   Blass, es ist eine Randnotiz. */
+/* "+2 below": says how many further entries died in the same rename
+   and therefore go when this one is discarded. Faint, it is an aside. */
 .fc-waisendarunter {
   flex: none;
   color: var(--text-faint);
@@ -439,16 +436,16 @@
   margin-top: 8px;
 }
 
-/* Der Starthinweis ist anklickbar und oeffnet das Verwaltungsfenster.
-   Der Zeiger sagt das, sonst sieht er aus wie jede andere Meldung. */
+/* The startup notice is clickable and opens the category window. The
+   cursor says so -- otherwise it looks like any other message. */
 .fc-waisenhinweis {
   cursor: pointer;
 }
 
-/* --- Fusszeile ----------------------------------------------------- */
+/* --- Footer -------------------------------------------------------- */
 
-/* Name, Version, Autor, Hilfe. Bewusst klein und blass: Es ist eine
-   Herkunftsangabe, keine Bedienung. */
+/* Name, version, author, help. Deliberately small and faint: it is an
+   attribution, not a control. */
 .fc-herkunft {
   margin-top: 10px;
   padding-top: 8px;

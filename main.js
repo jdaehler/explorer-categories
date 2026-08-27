@@ -391,10 +391,10 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     /* With several folders, a checkmark only when all of them really
        share a category. Otherwise the mark would claim something that
-       fuer die Haelfte der Auswahl falsch ist. */
+       is wrong for half of the selection. */
     const aktuell = gemeinsameKategorie(this.daten.zuordnung, pfade);
-    /* Fuer "entfernen" und "vererben" reicht ein einziger gefaerbter
-       folder in the selection -- otherwise the entry would be missing
+    /* For "remove" and "inherit", a single coloured folder in the
+       selection is enough -- otherwise the entry would be missing
        exactly when it is needed. */
     const irgendeine = pfade.some((p) => this.daten.zuordnung[p]);
 
@@ -523,8 +523,8 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     /* Feedback only for multiple folders: with a single one you see the
        color appear in the explorer straight away, so a notice would just
-       be in the way. With
-       vierzig ist der getroffene Ordner womoeglich gar nicht sichtbar. */
+       be in the way. With forty, the folders that changed may not even
+       be on screen. */
     if (pfade.length > 1) {
       if (katId === null) {
         new Notice(TEXTE.entfernt(pfade.length));
@@ -984,7 +984,7 @@ class KategorienFenster extends Modal {
 
     const stil = this.plugin.stilVon(kat.id);
 
-    /* --- Farbe und Name ------------------------------------------- */
+    /* --- Colour and name ------------------------------------------ */
     const kopf = this.detailEl.createDiv({ cls: 'fc-zeile' });
 
     const farbe = kopf.createEl('input', { type: 'color', cls: 'fc-farbe' });
