@@ -18,13 +18,20 @@
   align-items: start;
 }
 
-/* Both columns have a fixed height. Otherwise the window jumps with
-   every click in the list, because a hint appears for some categories
-   and not for others. The list scrolls inside itself when needed. */
+/* Both columns are the same height, and that height does not depend on
+   what is in them. Otherwise the window jumps with every click in the
+   list, because a hint appears for some categories and not for others.
+   Each column scrolls inside itself when needed.
+
+   Tied to the window rather than fixed at a number of pixels: 360px was
+   too short for the settings column, which left it permanently scrolled
+   with the delete button cut off (reported 2026-08-27). The lower bound
+   keeps it usable on a short window, the upper one stops it from
+   stretching absurdly on a large display. */
 .fc-liste {
   display: flex;
   flex-direction: column;
-  height: 360px;
+  height: clamp(320px, 62vh, 640px);
   border-right: 1px solid var(--background-modifier-border);
   padding-right: 10px;
 }
@@ -36,7 +43,7 @@
 }
 
 .fc-detail {
-  height: 360px;
+  height: clamp(320px, 62vh, 640px);
   overflow-y: auto;
 }
 
@@ -58,11 +65,40 @@
   font-weight: 600;
 }
 
-.fc-listenpunkt {
+/* The marker in front of a name. Fixed width and centred, so the names
+   line up whatever sits in front of them -- a tab is 5px wide, a dot
+   12px, an icon 15px. */
+.fc-listenmarkierung {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
+  width: 15px;
+}
+
+/* Same shapes as in the preview, but sized for a list row rather than
+   for the example text: the preview's tab is measured in em so it
+   follows its own line, here a fixed height keeps the rows even. */
+.fc-listenmarke.fc-punkt {
   width: 12px;
   height: 12px;
   border-radius: 50%;
+}
+
+.fc-listenmarke.fc-lasche {
+  width: 5px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.fc-listensymbol {
+  display: inline-flex;
+  align-items: center;
+}
+
+.fc-listensymbol svg {
+  width: 15px;
+  height: 15px;
 }
 
 .fc-listenname {
@@ -110,12 +146,17 @@
   min-width: 0;
 }
 
+/* Section headings in the settings column. Muted grey made them fade
+   into the hints around them (reported 2026-08-27), so they carry the
+   normal text colour and some weight -- they are what you scan for when
+   looking for a setting. */
 .fc-untertitel {
   margin: 14px 0 6px 0;
   font-size: var(--font-ui-smaller);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-normal);
 }
 
 .fc-schalter {
@@ -237,6 +278,13 @@
     border-bottom: 1px solid var(--background-modifier-border);
     padding-right: 0;
     padding-bottom: 10px;
+  }
+
+  /* Below each other, not side by side, so the two heights add up. The
+     settings column has to be capped or the modal itself starts to
+     scroll on a phone. */
+  .fc-detail {
+    height: 45vh;
   }
 }
 

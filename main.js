@@ -752,8 +752,12 @@ class KategorienFenster extends Modal {
       const zeile = rollen.createDiv({ cls: 'fc-listenzeile' });
       if (kat.id === this.gewaehlt) zeile.addClass('fc-aktiv');
 
-      const punkt = zeile.createSpan({ cls: 'fc-listenpunkt' });
-      punkt.style.backgroundColor = kat.farbe;
+      /* A holder of fixed width, so the names line up whatever marker
+         sits in front of them -- a tab is narrower than a dot, an icon
+         wider. Without it the column of names would shift from row to
+         row. */
+      const marke = zeile.createSpan({ cls: 'fc-listenmarkierung' });
+      this.listenMarkeZeichnen(marke, kat.farbe, this.plugin.stilVon(kat.id), kat.icon);
 
       const name = zeile.createSpan({ cls: 'fc-listenname', text: kat.name });
 
@@ -769,7 +773,7 @@ class KategorienFenster extends Modal {
         this.detailFuellen();
       });
 
-      this.zeilen.set(kat.id, { punkt, name });
+      this.zeilen.set(kat.id, { marke, name });
     }
 
     const neu = this.listeEl.createEl('button', {
@@ -781,6 +785,38 @@ class KategorienFenster extends Modal {
       this.listeFuellen();
       this.detailFuellen();
     });
+  }
+
+  /* The marker in front of a name in the list: dot, tab or icon,
+     whichever the category actually carries. Added on 2026-08-27 -- the
+     list showed a coloured dot no matter what was set on the right,
+     which read as if the setting had not taken.
+
+     Only the marker is mirrored. Background, coloured text and bold stay
+     out of it: a filled row would compete with the highlight on the
+     selected category, and that highlight is what tells you where you
+     are.
+
+     With "no marker" the dot stands in rather than nothing. The list is
+     also how the categories are told apart, and a row carrying no colour
+     at all could not do that. Same reason the preview is still there:
+     that one shows the truth, this one shows which category is which.
+
+     Deliberately not shared with vorschauZeichnen -- the preview builds
+     a whole example row, this is a marker in a fixed-width holder. */
+  listenMarkeZeichnen(ziel, farbe, stil, icon) {
+    ziel.empty();
+
+    if (stil.markierung !== 'keine' && icon) {
+      const symbol = ziel.createSpan({ cls: 'fc-listensymbol' });
+      setIcon(symbol, icon);
+      symbol.style.color = farbe;
+      return;
+    }
+
+    const marke = ziel.createSpan({ cls: 'fc-listenmarke' });
+    marke.addClass(stil.markierung === 'lasche' ? 'fc-lasche' : 'fc-punkt');
+    marke.style.backgroundColor = farbe;
   }
 
   /* ---------------- Detail ---------------------------------------- */
@@ -818,6 +854,8 @@ class KategorienFenster extends Modal {
       if (stil.markierung === m.id) knopf.addClass('mod-cta');
       knopf.addEventListener('click', async () => {
         await this.plugin.stilAendern(kat.id, { markierung: m.id });
+        /* The list carries the marker too, so it has to follow. */
+        this.listeFuellen();
         this.detailFuellen();
       });
     }
@@ -844,6 +882,7 @@ class KategorienFenster extends Modal {
     waehlen.addEventListener('click', () => {
       new SymbolFenster(this.app, kat.icon || null, async (gewaehlt) => {
         await this.plugin.kategorieAendern(kat.id, { icon: gewaehlt });
+        this.listeFuellen();
         this.detailFuellen();
       }).open();
     });
@@ -852,6 +891,7 @@ class KategorienFenster extends Modal {
       const weg = symbolZeile.createEl('button', { text: TEXTE.symbolEntfernen });
       weg.addEventListener('click', async () => {
         await this.plugin.kategorieAendern(kat.id, { icon: null });
+        this.listeFuellen();
         this.detailFuellen();
       });
     }
@@ -909,12 +949,12 @@ class KategorienFenster extends Modal {
     /* --- Ereignisse ------------------------------------------------ */
 
     /* The colour takes effect immediately, so you can see the tree
-       change while still dragging in the picker. Only the dot in the
+       change while still dragging in the picker. Only the marker in the
        list and the preview are redrawn. */
     farbe.addEventListener('input', () => {
       this.plugin.kategorieAendern(kat.id, { farbe: farbe.value });
       const zeile = this.zeilen.get(kat.id);
-      if (zeile) zeile.punkt.style.backgroundColor = farbe.value;
+      if (zeile) this.listenMarkeZeichnen(zeile.marke, farbe.value, stil, kat.icon);
       vorschau.empty();
       this.vorschauZeichnen(vorschau, farbe.value, stil, kat.icon);
     });
