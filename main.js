@@ -40,6 +40,7 @@ const TEXTE_DE = {
   keine: 'Farbe entfernen',
   verwalten: 'Kategorien verwalten …',
   aufUnterordner: 'Gilt auch für Unterordner',
+  aufDateien: 'Gilt auch für Notizen darin',
   erbtVon: (ordner, kategorie) => `Erbt „${kategorie}" von „${ordner}"`,
   fensterTitel: 'Farbkategorien',
   fensterOeffnen: 'Farbkategorien verwalten',
@@ -109,6 +110,7 @@ const TEXTE_EN = {
   keine: 'Remove color',
   verwalten: 'Manage categories …',
   aufUnterordner: 'Also applies to subfolders',
+  aufDateien: 'Also applies to the notes inside',
   erbtVon: (ordner, kategorie) => `Inherits "${kategorie}" from "${ordner}"`,
   fensterTitel: 'Color categories',
   fensterOeffnen: 'Manage color categories',
@@ -237,6 +239,11 @@ const STANDARD_DATEN = {
      otherwise the file grows with the vault, and the stylesheet with
      it. */
   vererbung: {},
+  /* folder path -> true when the notes below it take the colour too.
+     Deliberately a second table rather than a value inside "vererbung":
+     the two switches are independent, and an existing setting must not
+     start colouring notes on its own. */
+  dateiVererbung: {},
 };
 
 const STIL_ID = 'explorer-categories-stil';
@@ -389,6 +396,7 @@ class ExplorerCategoriesPlugin extends Plugin {
       if (this.daten.zuordnung[pfad] === katId) {
         delete this.daten.zuordnung[pfad];
         delete this.daten.vererbung[pfad];
+        delete this.daten.dateiVererbung[pfad];
       }
     }
   }
@@ -532,6 +540,20 @@ class ExplorerCategoriesPlugin extends Plugin {
             .onClick(() => this.vererbungMehrere(pfade, !alleErben))
         );
 
+        /* Notes get their own switch. Folded into the one above, every
+           folder that already inherits would have turned colourful at
+           once, without anybody changing a setting. */
+        const alleDateien = pfade.every(
+          (p) => this.daten.dateiVererbung[p] === true
+        );
+        ziel.addItem((i) =>
+          i
+            .setTitle(titel(TEXTE.aufDateien))
+            .setIcon('file-text')
+            .setChecked(alleDateien)
+            .onClick(() => this.dateiVererbungMehrere(pfade, !alleDateien))
+        );
+
         ziel.addItem((i) =>
           i
             .setTitle(titel(TEXTE.keine))
@@ -591,8 +613,10 @@ class ExplorerCategoriesPlugin extends Plugin {
     for (const pfad of pfade) {
       if (katId === null) {
         delete this.daten.zuordnung[pfad];
-        /* No category means there is nothing to inherit. */
+        /* No category means there is nothing to inherit -- neither to
+           the subfolders nor to the notes. */
         delete this.daten.vererbung[pfad];
+        delete this.daten.dateiVererbung[pfad];
       } else {
         this.daten.zuordnung[pfad] = katId;
       }
@@ -624,6 +648,20 @@ class ExplorerCategoriesPlugin extends Plugin {
          next time you assign one. */
       if (anschalten && this.daten.zuordnung[pfad]) this.daten.vererbung[pfad] = true;
       else delete this.daten.vererbung[pfad];
+    }
+    await this.speichern();
+  }
+
+  /* The same for the notes below a folder. A separate switch on purpose:
+     folding it into the one above would have turned every folder that
+     already inherits colourful in one go. */
+  async dateiVererbungMehrere(pfade, anschalten) {
+    for (const pfad of pfade) {
+      if (anschalten && this.daten.zuordnung[pfad]) {
+        this.daten.dateiVererbung[pfad] = true;
+      } else {
+        delete this.daten.dateiVererbung[pfad];
+      }
     }
     await this.speichern();
   }
@@ -676,9 +714,14 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* Renaming or moving a folder changes the paths of everything inside
      it too. So not just the one key, but every key below it. */
   async pfadUmschreiben(alt, neu) {
-    /* Both maps have to come along: assignments and inheritance. Left at
-       the old path, inheritance would colour nothing after a rename. */
-    const geaendert = [this.daten.zuordnung, this.daten.vererbung]
+    /* All three maps have to come along: assignments, inheritance to
+       subfolders and inheritance to notes. Left at the old path, an
+       inheritance would colour nothing after a rename. */
+    const geaendert = [
+      this.daten.zuordnung,
+      this.daten.vererbung,
+      this.daten.dateiVererbung,
+    ]
       .map((verzeichnis) => schluesselUmschreiben(verzeichnis, alt, neu))
       .some(Boolean);
 
@@ -1537,6 +1580,7 @@ function praefixTreffer(index, praefix) {
 function zieleBauen(daten, nachschlagen) {
   const zuordnung = daten.zuordnung || {};
   const vererbung = daten.vererbung || {};
+  const dateiVererbung = daten.dateiVererbung || {};
   const ziele = [];
 
   const tiefe = (pfad) => pfad.split('/').length;
@@ -1594,6 +1638,45 @@ function zieleBauen(daten, nachschlagen) {
     });
   }
 
+  /* --- 3. the notes below a folder -------------------------------- */
+  /* Its own switch, separate from the one for subfolders. Adding notes
+     to that one would have turned every folder that already inherits
+     colourful in one go, without anyone changing a setting.
+
+     Reaches the whole subtree, not just the files sitting directly in
+     the folder: a CSS attribute selector cannot express "exactly one
+     level down", and excluding every subfolder by name would produce a
+     selector as long as the vault. */
+  const dateiQuellen = Object.keys(dateiVererbung)
+    .filter((pfad) => dateiVererbung[pfad] && zuordnung[pfad])
+    .sort((a, b) => tiefe(a) - tiefe(b) || a.localeCompare(b));
+
+  const dateiIndex = indexBauen(dateiQuellen);
+
+  for (const quelle of dateiQuellen) {
+    const { farbe, stil, icon } = nachschlagen(zuordnung[quelle]);
+    if (!farbe || !stil) continue;
+
+    const praefix = quelle + '/';
+
+    /* A deeper folder that colours its own notes wins over this one --
+       otherwise the outer colour would reach past it. */
+    const ausnahmen = [];
+    for (const { pfad } of praefixTreffer(dateiIndex, praefix)) {
+      ausnahmen.push(`[data-path^="${maskieren(pfad + '/')}"]`);
+    }
+
+    ziele.push({
+      selektor: `.nav-file-title[data-path^="${maskieren(praefix)}"]${ausnahmen
+        .map((a) => `:not(${a})`)
+        .join('')}`,
+      inhalt: 'nav-file-title-content',
+      farbe,
+      stil,
+      icon: icon || null,
+    });
+  }
+
   return ziele;
 }
 
@@ -1612,7 +1695,11 @@ function regelnBauen(eintraege, maskeVon) {
   if (!eintraege.length) return '';
 
   const titel = (e) => e.selektor;
-  const inhalt = (e) => `${e.selektor} .nav-folder-title-content`;
+  /* Folders and notes carry their text in differently named elements.
+     Defaults to the folder, so an entry without the field behaves the
+     way every entry did before notes could be coloured. */
+  const inhalt = (e) =>
+    `${e.selektor} .${e.inhalt || 'nav-folder-title-content'}`;
   const bloecke = [];
 
   /* Which entries actually show an icon? Only those that have one, that
