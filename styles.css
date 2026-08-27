@@ -332,6 +332,103 @@
   }
 }
 
+/* --- Zeigt ins Leere ----------------------------------------------- */
+
+/* Eintraege, deren Ordner es nicht mehr gibt. Der Kasten erscheint nur,
+   wenn wirklich etwas fehlt, und steht dann ueber den Kategorien.
+
+   Bewusst ein Hinweis und keine Fehlermeldung: Der Ordner kann jeden
+   Moment aus einem Sync zurueckkommen. Deshalb der gelbe Faden am Rand
+   statt roter Flaeche. Alle Farben kommen aus Obsidians eigenen
+   Variablen, damit hell und dunkel ohne Zutun stimmen. */
+.fc-waisen {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--text-warning);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary-alt);
+}
+
+.fc-waisenkopf {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fc-waisentitel {
+  color: var(--text-warning);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+}
+
+.fc-waisenzahl {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.fc-waisenerklaerung {
+  margin-top: 4px;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+}
+
+/* Nach einem missglueckten Sync koennen es hunderte sein. Die Liste
+   rollt deshalb fuer sich, sonst schiebt sie die Kategorien aus dem
+   Fenster. */
+.fc-waisenrollen {
+  max-height: 140px;
+  margin-top: 8px;
+  overflow-y: auto;
+}
+
+.fc-waisenzeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+/* Der Ordnername steht vorn, der Weg dorthin blass dahinter. Gekuerzt
+   wird nur der Weg -- der Name ist das, woran man den Eintrag erkennt,
+   und er darf nie unter Punkten verschwinden.
+
+   Bewusst nicht ueber "direction: rtl" geloest, mit dem man sonst am
+   Anfang kuerzt: Das Verfahren stellt bei Pfaden mit Binde- und
+   Schraegstrichen die Zeichen um. */
+.fc-waisenpfad {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fc-waisenname {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.fc-waisenweg-pfad {
+  overflow: hidden;
+  color: var(--text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-ui-smaller);
+}
+
+.fc-waisenknopf,
+.fc-waisenalle {
+  flex: none;
+  font-size: var(--font-ui-smaller);
+}
+
+.fc-waisenalle {
+  margin-top: 8px;
+}
+
 /* --- Fusszeile ----------------------------------------------------- */
 
 /* Name, Version, Autor, Hilfe. Bewusst klein und blass: Es ist eine
