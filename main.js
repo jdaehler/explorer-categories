@@ -70,7 +70,6 @@ const TEXTE_DE = {
       ? `„${name}" löschen?`
       : `„${name}" löschen? ${n === 1 ? 'Ein Ordner verliert' : `${n} Ordner verlieren`} damit die Farbe.`,
   geloescht: (name) => `„${name}" gelöscht.`,
-  fertig: 'Fertig',
   abbrechen: 'Abbrechen',
   speichern: 'Speichern',
   verwerfen: 'Verwerfen',
@@ -146,7 +145,6 @@ const TEXTE_EN = {
       ? `Delete "${name}"?`
       : `Delete "${name}"? ${n === 1 ? 'One folder loses' : `${n} folders lose`} their color.`,
   geloescht: (name) => `"${name}" deleted.`,
-  fertig: 'Done',
   abbrechen: 'Cancel',
   speichern: 'Save',
   verwerfen: 'Discard',
