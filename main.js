@@ -78,7 +78,9 @@ const TEXTE_DE = {
   hintergrund: 'Hintergrund',
   schriftFarbig: 'Schrift farbig',
   fett: 'Fett',
+  gedimmt: 'Abdunkeln',
   schriftAutomatisch: 'Bei Hintergrund wählt das Plugin die Schriftfarbe selbst, damit sie lesbar bleibt.',
+  gedimmtHinweis: 'Abgedunkelt tritt die ganze Zeile zurück, Markierung und Symbol werden blasser.',
   /* With a multi-selection the count goes in the title. It counts
      folders, not selected items: select five folders and three notes and
      this reads "5 folders", making it obvious that notes are left
@@ -149,7 +151,9 @@ const TEXTE_EN = {
   hintergrund: 'Background',
   schriftFarbig: 'Colored text',
   fett: 'Bold',
+  gedimmt: 'Dim',
   schriftAutomatisch: 'With a background, the plugin picks the text color itself so it stays readable.',
+  gedimmtHinweis: 'Dimmed, the whole row steps back: marker and icon fade with it.',
   menueMehrere: (n) => `Color category (${n} folders)`,
   zugewiesen: (n, name) =>
     n === 1 ? `1 folder → "${name}"` : `${n} folders → "${name}"`,
@@ -207,6 +211,11 @@ const STIL_VORGABE = {
   hintergrund: false,
   schriftFarbig: false,
   fett: false,
+  /* Turns a category down instead of up -- for "archive" or "done",
+     where the folders should stay findable without drawing the eye.
+     The only switch that makes a row quieter; all the others make it
+     louder. */
+  gedimmt: false,
   /* Inheritance is a property of the category, not of the single
      folder. It used to sit on the folder so that two folders sharing a
      category could behave differently; in practice that case never came
@@ -1160,7 +1169,7 @@ class KategorienFenster extends Modal {
     }
     this.detailEl.createDiv({ cls: 'fc-hinweis', text: symbolHinweis });
 
-    /* --- the three independent switches ---------------------------- */
+    /* --- the four independent switches ------------------------------ */
     this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.zusaetzlich });
 
     const schalter = this.detailEl.createDiv({ cls: 'fc-schalter' });
@@ -1168,6 +1177,10 @@ class KategorienFenster extends Modal {
       ['hintergrund', TEXTE.hintergrund],
       ['schriftFarbig', TEXTE.schriftFarbig],
       ['fett', TEXTE.fett],
+      /* Last on purpose: it is the only one that turns the row down
+         rather than up, and it works on top of whatever the three
+         before it did. */
+      ['gedimmt', TEXTE.gedimmt],
     ];
 
     for (const [feld, beschriftung] of umschalter) {
@@ -1187,10 +1200,21 @@ class KategorienFenster extends Modal {
 
     /* Two rows reserved, not one: this sentence wraps at the window's
        720 pixels. Measured 2026-08-28 -- with a single row everything
-       below it still moved by half a line. */
+       below it still moved by half a line.
+
+       Two switches can have something to say here, but only one line is
+       shown: the background hint wins because it explains something you
+       cannot see (the plugin picking the text colour), while dimming
+       shows itself in the preview right below. Reserving a third row for
+       the rare case where both are on would move everything down for
+       everyone else -- the very shifting that 0.9.16 fixed. */
+    let schalterHinweis = '';
+    if (stil.hintergrund) schalterHinweis = TEXTE.schriftAutomatisch;
+    else if (stil.gedimmt) schalterHinweis = TEXTE.gedimmtHinweis;
+
     this.detailEl.createDiv({
       cls: 'fc-hinweis fc-hinweis-zwei',
-      text: stil.hintergrund ? TEXTE.schriftAutomatisch : '',
+      text: schalterHinweis,
     });
 
     /* --- Vorschau -------------------------------------------------- */
@@ -1310,6 +1334,12 @@ class KategorienFenster extends Modal {
     }
 
     if (stil.fett) text.style.fontWeight = '700';
+
+    /* Same value as the stylesheet uses, and on the row for the same
+       reason -- the preview is only worth having if it shows what the
+       tree will do. The hover exception is left out here: nobody points
+       at the preview to read it. */
+    if (stil.gedimmt) zeile.style.opacity = '0.45';
   }
 }
 
@@ -1825,6 +1855,32 @@ ${titel(e)}.is-active {
     const auswahl = fett.map((e) => inhalt(e)).join(',\n');
     bloecke.push(`${auswahl} {
   font-weight: 700;
+}`);
+  }
+
+  /* --- dimmed ------------------------------------------------------- */
+  /* Last block on purpose: this one turns a category down while every
+     block above turns it up, and it has to sit after the background
+     rule to reach it.
+
+     On the row, not on the text: opacity on the row takes the marker,
+     the icon, the collapse arrow and the background veil with it, which
+     is what "the whole row steps back" means. Fading only the text
+     would leave a bar at full colour next to a pale name -- the eye
+     would go straight to the row that is meant to be quiet.
+
+     Deliberately not on :hover: pointing at a dimmed folder brings it
+     back to full strength, so a row you actually reach for is readable
+     while you work with it. */
+  const gedimmt = eintraege.filter((e) => e.stil.gedimmt);
+  if (gedimmt.length) {
+    const auswahl = gedimmt.map((e) => titel(e)).join(',\n');
+    const beiZeiger = gedimmt.map((e) => `${titel(e)}:hover`).join(',\n');
+    bloecke.push(`${auswahl} {
+  opacity: 0.45;
+}
+${beiZeiger} {
+  opacity: 1;
 }`);
   }
 
