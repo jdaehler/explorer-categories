@@ -326,10 +326,28 @@
   border-radius: 50%;
 }
 
+/* The hint keeps its row even when it is empty. Without that, every
+   section below it moved up as soon as a category had no icon and no
+   background -- and "Delete" moved with them, right under the pointer.
+   Reported 2026-08-28: "die rechte seite huepft". */
 .fc-hinweis {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   margin-top: 6px;
+  min-height: 1.4em;
+}
+
+/* The hint under the switches needs two rows: at 720 pixels the
+   sentence about the automatic text colour wraps. */
+.fc-hinweis-zwei {
+  min-height: 2.8em;
+}
+
+/* Keeps a control's space without showing it. Used for "Remove" next to
+   the icon, which only does something once an icon is chosen. */
+.fc-platzhalter {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .fc-leer {

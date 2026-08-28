@@ -1131,26 +1131,34 @@ class KategorienFenster extends Modal {
       }).open();
     });
 
-    if (kat.icon) {
-      const weg = symbolZeile.createEl('button', { text: TEXTE.symbolEntfernen });
-      weg.addEventListener('click', async () => {
-        await this.plugin.kategorieAendern(kat.id, { icon: null });
-        this.listeFuellen();
-        this.detailFuellen();
-      });
-    }
+    /* The button is always there, only invisible without an icon. Left
+       out entirely, everything below it moved up by a row as soon as you
+       clicked a category without an icon -- including "Delete", which
+       then slid under the pointer. Reported 2026-08-28. */
+    const symbolWeg = symbolZeile.createEl('button', { text: TEXTE.symbolEntfernen });
+    if (!kat.icon) symbolWeg.addClass('fc-platzhalter');
+    symbolWeg.addEventListener('click', async () => {
+      if (!kat.icon) return;
+      await this.plugin.kategorieAendern(kat.id, { icon: null });
+      this.listeFuellen();
+      this.detailFuellen();
+    });
 
     /* With "None" the folder stays unmarked -- the explicit choice
        beats the icon. Rather than disabling the picker it is only
        visibly dimmed, so a chosen icon survives and takes effect again
        as soon as a marker comes back. Same pattern as "coloured text"
        underneath a background. */
+    /* Same reason as the button above: the line keeps its space even
+       when it has nothing to say. .fc-hinweis reserves one row. */
+    let symbolHinweis = '';
     if (kat.icon && stil.markierung === 'keine') {
       waehlen.addClass('fc-wirkungslos');
-      this.detailEl.createDiv({ cls: 'fc-hinweis', text: TEXTE.symbolOhneWirkung });
+      symbolHinweis = TEXTE.symbolOhneWirkung;
     } else if (kat.icon) {
-      this.detailEl.createDiv({ cls: 'fc-hinweis', text: TEXTE.symbolErsetzt });
+      symbolHinweis = TEXTE.symbolErsetzt;
     }
+    this.detailEl.createDiv({ cls: 'fc-hinweis', text: symbolHinweis });
 
     /* --- the three independent switches ---------------------------- */
     this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.zusaetzlich });
@@ -1177,9 +1185,13 @@ class KategorienFenster extends Modal {
       });
     }
 
-    if (stil.hintergrund) {
-      this.detailEl.createDiv({ cls: 'fc-hinweis', text: TEXTE.schriftAutomatisch });
-    }
+    /* Two rows reserved, not one: this sentence wraps at the window's
+       720 pixels. Measured 2026-08-28 -- with a single row everything
+       below it still moved by half a line. */
+    this.detailEl.createDiv({
+      cls: 'fc-hinweis fc-hinweis-zwei',
+      text: stil.hintergrund ? TEXTE.schriftAutomatisch : '',
+    });
 
     /* --- Vorschau -------------------------------------------------- */
     this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.vorschau });
