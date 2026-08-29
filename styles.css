@@ -107,8 +107,11 @@
 }
 
 /* Name and delete for the active group, under the tabs. */
+/* Arrows, name, duplicate, delete. Five things in one row: it may wrap
+   rather than squeeze the name field to nothing. */
 .fc-gruppenzeile {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin: 8px 0 12px 0;
@@ -117,6 +120,11 @@
 .fc-gruppenname {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.fc-gruppedoppeln {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
 }
 
 .fc-gruppeweg {
@@ -420,12 +428,19 @@
 /* --- Footers ------------------------------------------------------- */
 
 .fc-detailfuss {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 18px;
   padding-top: 12px;
   border-top: 1px solid var(--background-modifier-border);
 }
 
+/* Delete keeps to the far right of the row, whatever stands beside it.
+   The one button here that cannot be taken back should not sit under the
+   hand by accident. */
 .fc-weg {
+  margin-left: auto;
   color: var(--text-muted);
 }
 
@@ -470,13 +485,9 @@
     padding-bottom: 10px;
   }
 
-  /* Arrows, name and delete no longer fit on one line once the arrows
-     are 44 pixels wide. The name field takes a line of its own; arrows
-     and delete stay together above it. */
-  .fc-gruppenzeile {
-    flex-wrap: wrap;
-  }
-
+  /* Once the arrows are 44 pixels wide, nothing else fits beside them.
+     The name field takes a line of its own; the row above it already
+     wraps by itself. */
   .fc-gruppenname {
     flex: 1 1 100%;
     order: 1;

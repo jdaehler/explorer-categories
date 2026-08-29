@@ -102,6 +102,9 @@ const TEXTE_DE = {
   gruppeNeuVorgabe: 'Neue Gruppe',
   gruppeName: 'Name der Gruppe',
   gruppeLoeschen: 'Gruppe löschen',
+  gruppeDuplizieren: 'Gruppe duplizieren',
+  duplizieren: 'Duplizieren',
+  kopieName: (name) => `${name} (Kopie)`,
   gruppeLoeschFrage: (name, n) =>
     n === 0
       ? `Gruppe „${name}" löschen?`
@@ -180,6 +183,9 @@ const TEXTE_EN = {
   gruppeNeuVorgabe: 'New group',
   gruppeName: 'Group name',
   gruppeLoeschen: 'Delete group',
+  gruppeDuplizieren: 'Duplicate group',
+  duplizieren: 'Duplicate',
+  kopieName: (name) => `${name} copy`,
   gruppeLoeschFrage: (name, n) =>
     n === 0
       ? `Delete group "${name}"?`
@@ -411,7 +417,7 @@ class ExplorerCategoriesPlugin extends Plugin {
   }
 
   async gruppeAnlegen() {
-    const id = `grp-${Date.now()}`;
+    const id = neueId('grp', this.daten.gruppen.map((g) => g.id));
     this.daten.gruppen.push({ id, name: TEXTE.gruppeNeuVorgabe });
     await this.speichern();
     return id;
@@ -444,6 +450,88 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     await this.speichern();
     return true;
+  }
+
+  /* Copies a whole legend: the group and every category in it.
+   *
+   * Made for the case the groups exist for -- one legend per book. A new
+   * book with a similar legend would otherwise mean building nine
+   * categories again by hand.
+   *
+   * The copied group lands directly behind the original, so it stands
+   * where it was made rather than at the far end of the tab strip.
+   *
+   * The categories are appended at the end of the array. Order only ever
+   * counts within a group, and these are all new, so appending keeps
+   * them in the order they were copied in.
+   *
+   * Only the group's name gets "(copy)". The categories keep theirs --
+   * the legend is being copied, not renamed.
+   *
+   * The folder assignments stay behind on purpose. A copy colouring the
+   * same folders would put two categories on one folder, and the tree
+   * can only show one. */
+  async gruppeDuplizieren(gruppenId) {
+    const gruppen = this.daten.gruppen;
+    const von = gruppen.findIndex((g) => g.id === gruppenId);
+    if (von < 0) return null;
+
+    const vorlage = gruppen[von];
+    const neu = {
+      id: neueId('grp', gruppen.map((g) => g.id)),
+      name: TEXTE.kopieName(vorlage.name),
+    };
+    gruppen.splice(von + 1, 0, neu);
+
+    /* The ids taken grow with every copy made here -- all of them fall
+       in the same millisecond, so asking the array once at the start
+       would not be enough. */
+    const vergeben = this.daten.kategorien.map((k) => k.id);
+    for (const kat of this.kategorienIn(gruppenId)) {
+      const id = neueId('kat', vergeben);
+      vergeben.push(id);
+      this.daten.kategorien.push(this.kategorieKopie(kat, id, neu.id, kat.name));
+    }
+
+    await this.speichern();
+    return neu.id;
+  }
+
+  /* Copies a category with everything that makes it look the way it
+     does, and puts the copy directly behind the original -- the place
+     you were looking at when you asked for it.
+
+     No folder assignments, same reason as above. */
+  async kategorieDuplizieren(katId) {
+    const alle = this.daten.kategorien;
+    const von = alle.findIndex((k) => k.id === katId);
+    if (von < 0) return null;
+
+    const vorlage = alle[von];
+    const id = neueId('kat', alle.map((k) => k.id));
+
+    alle.splice(
+      von + 1,
+      0,
+      this.kategorieKopie(vorlage, id, vorlage.gruppe, TEXTE.kopieName(vorlage.name))
+    );
+
+    await this.speichern();
+    return id;
+  }
+
+  /* One category, copied. The style is copied over STIL_VORGABE rather
+     than handed on: sharing the object would tie the two categories
+     together, and a switch flipped on one would move on the other. */
+  kategorieKopie(vorlage, id, gruppenId, name) {
+    return {
+      id,
+      name,
+      farbe: vorlage.farbe,
+      gruppe: gruppenId,
+      icon: vorlage.icon || null,
+      stil: Object.assign({}, STIL_VORGABE, vorlage.stil || {}),
+    };
   }
 
   /* Deletes the group and everything in it. The categories cannot stay
@@ -734,7 +822,7 @@ class ExplorerCategoriesPlugin extends Plugin {
      showing. There is no such thing as a category outside every group:
      it would appear nowhere and could never be reached again. */
   async kategorieAnlegen(gruppenId) {
-    const id = `kat-${Date.now()}`;
+    const id = neueId('kat', this.daten.kategorien.map((k) => k.id));
     this.daten.kategorien.push({
       id,
       name: TEXTE.neueVorgabe,
@@ -1262,6 +1350,24 @@ class KategorienFenster extends Modal {
       if (knopf) knopf.setText(name.value);
     });
 
+    /* Copies the whole legend. Stands before Delete, so the harmless
+       button is the one closer to the middle of the row. */
+    const doppeln = zeile.createEl('button', {
+      cls: 'fc-gruppedoppeln',
+      text: TEXTE.gruppeDuplizieren,
+    });
+    doppeln.addEventListener('click', async () => {
+      const id = await this.plugin.gruppeDuplizieren(gruppe.id);
+      if (!id) return;
+
+      this.gruppeGewaehlt = id;
+      const erste = this.plugin.kategorienIn(id)[0];
+      this.gewaehlt = erste ? erste.id : null;
+      this.reiterFuellen();
+      this.listeFuellen();
+      this.detailFuellen();
+    });
+
     /* Hidden rather than disabled while there is only one group: a
        button that can never be pressed is just a thing to wonder
        about. */
@@ -1552,6 +1658,21 @@ class KategorienFenster extends Modal {
 
     /* --- Loeschen -------------------------------------------------- */
     const fuss = this.detailEl.createDiv({ cls: 'fc-detailfuss' });
+
+    /* Duplicating sits next to deleting because both act on the category
+       shown above, and nowhere else does. Delete stays on the far right,
+       away from the hand. */
+    const doppeln = fuss.createEl('button', { text: TEXTE.duplizieren });
+    doppeln.addEventListener('click', async () => {
+      const id = await this.plugin.kategorieDuplizieren(kat.id);
+      if (!id) return;
+      /* The copy is selected straight away: it is called "... (copy)"
+         and the first thing anyone does is rename it. */
+      this.gewaehlt = id;
+      this.listeFuellen();
+      this.detailFuellen();
+    });
+
     const weg = fuss.createEl('button', { cls: 'fc-weg', text: TEXTE.loeschen });
 
     /* --- Ereignisse ------------------------------------------------ */
@@ -1850,6 +1971,29 @@ function gruppenNachziehen(daten, vorgabeName) {
   }
 
   return daten;
+}
+
+/* A fresh id that is really free.
+ *
+ * Date.now() on its own is not enough any more. Duplicating a group
+ * makes a copy of every category in it within the same millisecond --
+ * they would all come out with the same id, and a category is looked up
+ * by id everywhere: in the folder assignments, in the stylesheet, in the
+ * window. The second one would quietly stand in for the first.
+ *
+ * The ids already taken are handed in, so this can be tested without
+ * Obsidian. */
+function neueId(praefix, vergeben) {
+  const genommen = new Set(vergeben || []);
+  const jetzt = Date.now();
+
+  let kandidat = `${praefix}-${jetzt}`;
+  let n = 2;
+  while (genommen.has(kandidat)) {
+    kandidat = `${praefix}-${jetzt}-${n}`;
+    n++;
+  }
+  return kandidat;
 }
 
 /* The id without the prefix. Almost all of them read "lucide-folder";
