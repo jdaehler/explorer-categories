@@ -154,6 +154,8 @@ const TEXTE_DE = {
      for one and left/right for the other. */
   hochSchieben: 'Nach oben',
   runterSchieben: 'Nach unten',
+  sortierenAuf: 'Nach Namen sortieren, A bis Z',
+  sortierenAb: 'Nach Namen sortieren, Z bis A',
   gruppeLinks: 'Gruppe nach links',
   gruppeRechts: 'Gruppe nach rechts',
 };
@@ -264,6 +266,8 @@ const TEXTE_EN = {
   keineKategorienInGruppe: 'No category in this group yet.',
   hochSchieben: 'Move up',
   runterSchieben: 'Move down',
+  sortierenAuf: 'Sort by name, A to Z',
+  sortierenAb: 'Sort by name, Z to A',
   gruppeLinks: 'Move group left',
   gruppeRechts: 'Move group right',
 };
@@ -1119,6 +1123,44 @@ class ExplorerCategoriesPlugin extends Plugin {
     return true;
   }
 
+  /* Sorts one group by name and leaves every other group where it is.
+   *
+   * Same trick as the arrows above, for the same reason: the categories
+   * all sit in one flat list, and a group is a field on each of them. So
+   * this works on the SLOTS this group occupies -- collect the positions,
+   * sort what stands in them, write it back into the same positions.
+   * Every entry belonging to another group keeps its index untouched.
+   *
+   * localeCompare rather than a plain comparison: that is the difference
+   * between "Archiv" landing next to "Ableton" and landing after "Zoom",
+   * and it is what puts umlauts where a person looks for them.
+   *
+   * Below two entries there is nothing to sort, and the buttons are dead
+   * anyway -- the check is here as well so the method holds on its own. */
+  async kategorienSortieren(gruppeId, absteigend) {
+    const alle = this.daten.kategorien;
+
+    const stellen = [];
+    for (let i = 0; i < alle.length; i++) {
+      if (alle[i].gruppe === gruppeId) stellen.push(i);
+    }
+    if (stellen.length < 2) return false;
+
+    const sortiert = stellen
+      .map((i) => alle[i])
+      .sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+      );
+    if (absteigend) sortiert.reverse();
+
+    stellen.forEach((stelle, i) => {
+      alle[stelle] = sortiert[i];
+    });
+
+    await this.speichern();
+    return true;
+  }
+
   /* Renaming or moving a folder changes the paths of everything inside
      it too. So not just the one key, but every key below it. */
   async pfadUmschreiben(alt, neu) {
@@ -1469,6 +1511,24 @@ class KategorienFenster extends Modal {
       () => this.kategorieSchieben(1)
     );
 
+    /* Sorting sits in its own pair, a gap away from the arrows. Both do
+       the same kind of thing to the same list, and the two that move one
+       entry a step must not be confused with the two that rearrange
+       everything.
+
+       Dead below two entries: with one category there is no order to
+       establish, and a button that can never do anything is a thing to
+       wonder about. */
+    const sortierpaar = fuss.createDiv({ cls: 'fc-schiebepaar fc-sortierpaar' });
+    const genug = kategorien.length > 1;
+
+    this.schiebeKnopf(sortierpaar, 'arrow-down-a-z', TEXTE.sortierenAuf, genug, () =>
+      this.kategorienSortieren(false)
+    );
+    this.schiebeKnopf(sortierpaar, 'arrow-up-a-z', TEXTE.sortierenAb, genug, () =>
+      this.kategorienSortieren(true)
+    );
+
     const neu = fuss.createEl('button', {
       cls: 'fc-neu',
       text: '+ ' + TEXTE.neue,
@@ -1513,6 +1573,17 @@ class KategorienFenster extends Modal {
     if (!this.gewaehlt) return;
     const bewegt = await this.plugin.kategorieVerschieben(this.gewaehlt, richtung);
     if (!bewegt) return;
+    this.listeFuellen();
+  }
+
+  /* Only the list is redrawn, same as for the arrows: sorting changes
+     the order, not the settings of the category that stays selected. */
+  async kategorienSortieren(absteigend) {
+    const geaendert = await this.plugin.kategorienSortieren(
+      this.gruppeGewaehlt,
+      absteigend
+    );
+    if (!geaendert) return;
     this.listeFuellen();
   }
 

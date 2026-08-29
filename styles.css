@@ -279,8 +279,12 @@
   color: var(--text-muted);
 }
 
+/* 100% of the basis, so it takes a line of its own as soon as the
+   buttons beside it fill the row -- and shares the row when there is
+   space. Without a basis it would cling to the icons and wrap only
+   after being squashed. */
 .fc-neu {
-  flex: 1 1 auto;
+  flex: 1 1 100%;
   min-width: 0;
 }
 
@@ -291,9 +295,15 @@
    each row: the button stays where it is while the entry moves, so
    tapping three times in a row does not mean chasing it down the
    screen. */
+/* Wraps rather than squeezing. Four icon buttons and "New category" do
+   not fit across 200px, and without this the text button would be
+   crushed to a sliver instead of dropping to its own line. The list
+   above scrolls, so a second row here costs the list a row, not the
+   window its height. */
 .fc-listenfuss {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
 }
@@ -302,6 +312,13 @@
   display: flex;
   flex: 0 0 auto;
   gap: 2px;
+}
+
+/* A gap between the two pairs. Both act on the same list, but one moves
+   a single entry a step and the other rearranges all of them -- close
+   together they would read as one row of four. */
+.fc-sortierpaar {
+  margin-left: 8px;
 }
 
 /* Three classes and an element, on purpose. Obsidian's tablet rule
