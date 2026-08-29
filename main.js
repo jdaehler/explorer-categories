@@ -1549,6 +1549,25 @@ class KategorienFenster extends Modal {
     return this.symbole;
   }
 
+  /* One section: its heading on the left, everything it controls on the
+     right. Returns the right-hand box, so the caller fills that instead
+     of the column itself.
+   *
+   * Six headings used to sit on six rows of their own. Measured at the
+   * real column width of 430px, that layout came to 405px where this one
+   * comes to 297 -- the heading rows were 168 of them. A scrollbar in a
+   * window that is already at Obsidian's maximum height is what that
+   * cost.
+   *
+   * The 7em for the heading column is measured, not picked: wider and
+   * the switches under "Zusaetzlich" and "Vererbung" start wrapping,
+   * which gives back more than the heading row saved. */
+  abschnitt(text) {
+    const zeile = this.detailEl.createDiv({ cls: 'fc-abschnitt' });
+    zeile.createDiv({ cls: 'fc-untertitel', text });
+    return zeile.createDiv({ cls: 'fc-abschnittinhalt' });
+  }
+
   detailFuellen() {
     this.detailEl.empty();
 
@@ -1600,9 +1619,9 @@ class KategorienFenster extends Modal {
     name.value = kat.name;
 
     /* --- Markierung ------------------------------------------------ */
-    this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.markierung });
+    const markierungFeld = this.abschnitt(TEXTE.markierung);
 
-    const gruppe = this.detailEl.createDiv({ cls: 'fc-gruppe' });
+    const gruppe = markierungFeld.createDiv({ cls: 'fc-gruppe' });
     for (const m of MARKIERUNGEN) {
       const knopf = gruppe.createEl('button', { text: m.name });
       if (stil.markierung === m.id) knopf.addClass('mod-cta');
@@ -1618,7 +1637,7 @@ class KategorienFenster extends Modal {
     /* Sits directly under the marker because it takes the marker's
        place: choose one here and the tree shows no bar and no dot any
        more, but the icon in the category colour. */
-    this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.symbol });
+    const symbolAbschnitt = this.abschnitt(TEXTE.symbol);
 
     /* The name of the icon stands in a field you can type and paste
        into. Through the grid alone, setting one category after another
@@ -1628,7 +1647,7 @@ class KategorienFenster extends Modal {
        The grid did not go away, it moved into the small button beside
        the field. Browsing is still how you find an icon you cannot
        name. */
-    const symbolZeile = this.detailEl.createDiv({ cls: 'fc-symbolzeile' });
+    const symbolZeile = symbolAbschnitt.createDiv({ cls: 'fc-symbolzeile' });
 
     /* Keeps its width whether or not there is an icon, so the field
        does not shift sideways the moment one is set. */
@@ -1669,7 +1688,7 @@ class KategorienFenster extends Modal {
 
     /* Same reason as the button above: the line keeps its space even
        when it has nothing to say. .fc-hinweis reserves one row. */
-    const symbolHinweisEl = this.detailEl.createDiv({ cls: 'fc-hinweis' });
+    const symbolHinweisEl = symbolAbschnitt.createDiv({ cls: 'fc-hinweis' });
 
     /* The one place that decides what the icon line says and looks like.
        Called on drawing and again after every keystroke, so the two can
@@ -1702,9 +1721,9 @@ class KategorienFenster extends Modal {
     symbolStandZeigen(false);
 
     /* --- the four independent switches ------------------------------ */
-    this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.zusaetzlich });
+    const zusaetzlichFeld = this.abschnitt(TEXTE.zusaetzlich);
 
-    const schalter = this.detailEl.createDiv({ cls: 'fc-schalter' });
+    const schalter = zusaetzlichFeld.createDiv({ cls: 'fc-schalter' });
     const umschalter = [
       ['hintergrund', TEXTE.hintergrund],
       ['schriftFarbig', TEXTE.schriftFarbig],
@@ -1744,14 +1763,15 @@ class KategorienFenster extends Modal {
     if (stil.hintergrund) schalterHinweis = TEXTE.schriftAutomatisch;
     else if (stil.gedimmt) schalterHinweis = TEXTE.gedimmtHinweis;
 
-    this.detailEl.createDiv({
+    zusaetzlichFeld.createDiv({
       cls: 'fc-hinweis fc-hinweis-zwei',
       text: schalterHinweis,
     });
 
     /* --- Vorschau -------------------------------------------------- */
-    this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.vorschau });
-    const vorschau = this.detailEl.createDiv({ cls: 'fc-vorschau' });
+    const vorschau = this.abschnitt(TEXTE.vorschau).createDiv({
+      cls: 'fc-vorschau',
+    });
     this.vorschauZeichnen(vorschau, kat.farbe, stil, kat.icon);
 
     /* --- Vererbung ------------------------------------------------- */
@@ -1759,9 +1779,9 @@ class KategorienFenster extends Modal {
        reach: how far the colour carries. Used to be two entries in the
        context menu, set per folder -- hard to find, and the only thing
        about a category that was not set in this window. */
-    this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.vererbung });
+    const vererbungFeld = this.abschnitt(TEXTE.vererbung);
 
-    const reichweite = this.detailEl.createDiv({ cls: 'fc-schalter' });
+    const reichweite = vererbungFeld.createDiv({ cls: 'fc-schalter' });
     const erbschalter = [
       ['vererbt', TEXTE.aufUnterordner],
       ['vererbtDateien', TEXTE.aufDateien],
@@ -1796,13 +1816,16 @@ class KategorienFenster extends Modal {
     const vaterArt = stil.vaterHervor || 'keine';
     let vaterHinweis = '';
 
-    if (stil.vererbt || stil.vererbtDateien) {
-      this.detailEl.createDiv({
-        cls: 'fc-untertitel',
-        text: TEXTE.vaterHervorheben,
-      });
+    /* The hint belongs to whichever section is last on screen: with
+       nothing inheriting there is no parent section, and the sentence
+       has to sit under the inheritance switches instead. */
+    let hinweisFeld = vererbungFeld;
 
-      const vaterWahl = this.detailEl.createDiv({ cls: 'fc-schalter' });
+    if (stil.vererbt || stil.vererbtDateien) {
+      const vaterFeld = this.abschnitt(TEXTE.vaterHervorheben);
+      hinweisFeld = vaterFeld;
+
+      const vaterWahl = vaterFeld.createDiv({ cls: 'fc-schalter' });
 
       let gewaehlterKnopf = null;
       for (const art of VATER_ARTEN) {
@@ -1849,7 +1872,7 @@ class KategorienFenster extends Modal {
      * A situational hint takes its place while there is one. It is the
      * more useful of the two at that moment, and a second reserved line
      * is a line the window does not have. */
-    this.detailEl.createDiv({
+    hinweisFeld.createDiv({
       cls: 'fc-hinweis',
       text: vaterHinweis || TEXTE.vererbungHinweis,
     });

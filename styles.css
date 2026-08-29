@@ -390,6 +390,37 @@
 /* Tightened on 2026-08-29 from 14/6. Six headings stand in the settings
    column, so every pixel here counts six times over -- and the window
    cannot grow, it is at Obsidian's maximum height. */
+/* Heading on the left, what it controls on the right. Six headings on
+   six rows of their own came to 168px of the column; measured at the
+   real width of 430px the whole panel went from 405px to 297. The window
+   is at Obsidian's maximum height, so those rows were the scrollbar.
+
+   The heading column is 7em because that is where it stops costing more
+   than it saves: from 7.5em on, the switches under "Zusaetzlich" and
+   "Vererbung" wrap to a second row, and the wrap is taller than the
+   heading row it replaced. Measured 2026-08-29, not estimated. */
+.fc-abschnitt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 10px 0 0 0;
+}
+
+.fc-abschnitt > .fc-untertitel {
+  flex: 0 0 7em;
+  margin: 0;
+  /* Lines the small caps up with the text on the buttons beside them,
+     which sit lower by their own padding. */
+  padding-top: 5px;
+}
+
+/* min-width: 0 or a long switch row refuses to wrap inside a flex
+   child and pushes the column wider than the window. */
+.fc-abschnittinhalt {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .fc-untertitel {
   margin: 10px 0 4px 0;
   font-size: var(--font-ui-smaller);
@@ -580,6 +611,18 @@
   .fc-gruppenname {
     flex: 1 1 100%;
     order: 1;
+  }
+
+  /* Heading back above its controls. On a phone the 7em is a quarter of
+     the screen, and the switches would wrap to three and four rows --
+     the layout saves rows on the desktop and would cost them here. */
+  .fc-abschnitt {
+    display: block;
+  }
+
+  .fc-abschnitt > .fc-untertitel {
+    margin-bottom: 4px;
+    padding-top: 0;
   }
 }
 
