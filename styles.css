@@ -319,8 +319,11 @@
    into the hints around them (reported 2026-08-27), so they carry the
    normal text colour and some weight -- they are what you scan for when
    looking for a setting. */
+/* Tightened on 2026-08-29 from 14/6. Six headings stand in the settings
+   column, so every pixel here counts six times over -- and the window
+   cannot grow, it is at Obsidian's maximum height. */
 .fc-untertitel {
-  margin: 14px 0 6px 0;
+  margin: 10px 0 4px 0;
   font-size: var(--font-ui-smaller);
   text-transform: uppercase;
   letter-spacing: 0.05em;

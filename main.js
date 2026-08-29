@@ -62,12 +62,14 @@ const TEXTE_DE = {
   vaterSymbol: 'Symbol',
   vaterMarkierung: 'Markierung',
   vaterBlass: 'Kinder blasser',
-  vaterOhneVererbung: 'Wirkt erst, wenn oben eine Vererbung eingeschaltet ist.',
-  vaterSchonFett: 'Die ganze Kategorie ist schon fett — so hebt sich der Vater nicht ab.',
-  vaterSchonHintergrund: 'Die ganze Kategorie hat schon einen Hintergrund — so hebt sich der Vater nicht ab.',
-  vaterSchonBlass: 'Die ganze Kategorie ist schon abgedunkelt — so treten die Kinder nicht zurück.',
+  /* Short on purpose: these share one reserved line with the sentence
+     above them, and a second line would push the window into a
+     scrollbar. */
+  vaterSchonFett: 'Die Kategorie ist ohnehin ganz fett.',
+  vaterSchonHintergrund: 'Die Kategorie hat ohnehin einen Hintergrund.',
+  vaterSchonBlass: 'Die Kategorie ist ohnehin abgedunkelt.',
   vaterOhneSymbol: 'Dafür muss oben ein Symbol gesetzt sein.',
-  vaterSymbolSchlaegt: 'Solange ein Symbol gesetzt ist, tragen Vater und Kinder dasselbe Zeichen.',
+  vaterSymbolSchlaegt: 'Mit Symbol tragen beide dasselbe Zeichen.',
   vorschau: 'Vorschau',
   symbol: 'Symbol',
   symbolWaehlen: 'Symbol wählen …',
@@ -161,12 +163,11 @@ const TEXTE_EN = {
   vaterSymbol: 'Icon',
   vaterMarkierung: 'Marker',
   vaterBlass: 'Children fainter',
-  vaterOhneVererbung: 'Takes effect once inheritance is switched on above.',
-  vaterSchonFett: 'The whole category is bold already, so the parent does not stand out.',
-  vaterSchonHintergrund: 'The whole category has a background already, so the parent does not stand out.',
-  vaterSchonBlass: 'The whole category is dimmed already, so the children do not step back.',
+  vaterSchonFett: 'The category is bold throughout anyway.',
+  vaterSchonHintergrund: 'The category already has a background.',
+  vaterSchonBlass: 'The category is dimmed anyway.',
   vaterOhneSymbol: 'An icon has to be set above for this.',
-  vaterSymbolSchlaegt: 'While an icon is set, parent and children carry the same mark.',
+  vaterSymbolSchlaegt: 'With an icon, both carry the same mark.',
   vorschau: 'Preview',
   symbol: 'Icon',
   symbolWaehlen: 'Choose icon …',
@@ -1699,42 +1700,48 @@ class KategorienFenster extends Modal {
       });
     }
 
-    /* Says what "inherit" reaches here: not this one folder, but every
-       folder carrying this category. That is the whole difference to
-       the switch that used to sit in the context menu. */
-    this.detailEl.createDiv({ cls: 'fc-hinweis', text: TEXTE.vererbungHinweis });
-
     /* --- telling the parent apart ---------------------------------- */
-    /* One choice out of six, not six switches: two of them at once
-       would be fighting over the same row.
+    /* Only there while something actually inherits. Without children
+       there is nobody for the parent to stand out from, and the row
+       would be three lines of window explaining that it does nothing.
+       The window is at Obsidian's maximum height already -- what does
+       not earn its place costs a scrollbar.
 
-       Built like the switches above rather than as one joined block:
-       six of them do not fit on a line, and a joined block cannot wrap
-       without the rounded ends landing in the middle. */
-    this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.vaterHervorheben });
+       Moving it in and out shifts what is below it, which is exactly
+       what 0.9.16 fixed elsewhere. The difference: this only moves on a
+       deliberate press of the switch right above it, and it moves the
+       footer down, away from the hand -- not up under it.
 
-    const vaterWahl = this.detailEl.createDiv({ cls: 'fc-schalter' });
+       One choice out of six, not six switches: two of them at once
+       would be fighting over the same row. Built like the switches
+       above rather than as one joined block -- six do not fit on a
+       line, and a joined block cannot wrap without the rounded ends
+       landing in the middle. */
     const vaterArt = stil.vaterHervor || 'keine';
-
-    for (const art of VATER_ARTEN) {
-      const knopf = vaterWahl.createEl('button', { text: art.name });
-      if (art.id === vaterArt) knopf.addClass('mod-cta');
-      knopf.addEventListener('click', async () => {
-        await this.plugin.stilAendern(kat.id, { vaterHervor: art.id });
-        this.detailFuellen();
-      });
-    }
-
-    /* Every way this setting can end up doing nothing gets said out
-       loud. Without that it looks broken: the switch is on, the tree
-       does not change, and there is nothing to go by. */
     let vaterHinweis = '';
-    if (vaterArt !== 'keine') {
-      if (!stil.vererbt && !stil.vererbtDateien) {
-        vaterHinweis = TEXTE.vaterOhneVererbung;
-      } else if (vaterArt === 'fett' && stil.fett) {
-        vaterHinweis = TEXTE.vaterSchonFett;
-      } else if (vaterArt === 'hintergrund' && stil.hintergrund) {
+
+    if (stil.vererbt || stil.vererbtDateien) {
+      this.detailEl.createDiv({
+        cls: 'fc-untertitel',
+        text: TEXTE.vaterHervorheben,
+      });
+
+      const vaterWahl = this.detailEl.createDiv({ cls: 'fc-schalter' });
+
+      for (const art of VATER_ARTEN) {
+        const knopf = vaterWahl.createEl('button', { text: art.name });
+        if (art.id === vaterArt) knopf.addClass('mod-cta');
+        knopf.addEventListener('click', async () => {
+          await this.plugin.stilAendern(kat.id, { vaterHervor: art.id });
+          this.detailFuellen();
+        });
+      }
+
+      /* Every way this setting can end up doing nothing gets said out
+         loud. Without that it looks broken: the choice is made, the tree
+         does not change, and there is nothing to go by. */
+      if (vaterArt === 'fett' && stil.fett) vaterHinweis = TEXTE.vaterSchonFett;
+      else if (vaterArt === 'hintergrund' && stil.hintergrund) {
         vaterHinweis = TEXTE.vaterSchonHintergrund;
       } else if (vaterArt === 'blass' && stil.gedimmt) {
         vaterHinweis = TEXTE.vaterSchonBlass;
@@ -1743,12 +1750,22 @@ class KategorienFenster extends Modal {
       } else if (vaterArt === 'markierung' && kat.icon) {
         vaterHinweis = TEXTE.vaterSymbolSchlaegt;
       }
-    }
-    if (vaterHinweis) vaterWahl.addClass('fc-wirkungslos');
 
+      if (vaterHinweis) vaterWahl.addClass('fc-wirkungslos');
+    }
+
+    /* One reserved line for both, not two.
+     *
+     * The standing sentence says what "inherit" reaches: not this one
+     * folder, but every folder carrying this category -- the whole
+     * difference to the switch that used to sit in the context menu.
+     *
+     * A situational hint takes its place while there is one. It is the
+     * more useful of the two at that moment, and a second reserved line
+     * is a line the window does not have. */
     this.detailEl.createDiv({
-      cls: 'fc-hinweis fc-hinweis-zwei',
-      text: vaterHinweis,
+      cls: 'fc-hinweis',
+      text: vaterHinweis || TEXTE.vererbungHinweis,
     });
 
     /* --- Loeschen -------------------------------------------------- */
