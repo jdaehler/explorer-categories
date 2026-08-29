@@ -25,9 +25,33 @@
 
    The phone sets both on ".is-phone .modal-container", one level up, so
    overriding them here would reach the phone too. The media query at the
-   bottom hands the width back. */
+   bottom hands the width back.
+
+   WHY 860 AND NOT 720
+   At 720px the four switches under "Additional" wrapped to a second row,
+   and the window is already at its maximum height, so the extra row
+   turned into a scrollbar (reported 2026-08-29). Measured, not guessed:
+
+     detail column inside a 720px window        452px
+     minus the scrollbar, when macOS is set
+     to show scrollbars always                  -15px
+     minus the 7em heading column and its gap   -94px
+     left for the switch row                    343px
+     the four switches need, in one row         424px
+
+   The switch row is measured with the widths the buttons really take:
+   12px text, 4px/10px padding, 6px gap. It depends on the interface
+   font -- Obsidian's own Inter needs 402px, a wider face such as
+   Hiragino Sans needs 424px. Both are wider than 343px, so narrowing
+   the heading column cannot fix it: even at zero width it would only
+   just fit, and "MARKIERUNG" alone is 97px.
+
+   860px leaves 483px for the row, about 60px of headroom -- enough for a
+   wider interface font. Obsidian trims to "--dialog-max-width: 80vw", so
+   860 needs a window of at least 1075px; below that the dialog is merely
+   narrower, not broken. */
 .fc-fenster {
-  --dialog-width: 720px;
+  --dialog-width: 860px;
   /* As tall as Obsidian allows, instead of a number it silently trims.
      The fallback covers a version that does not know the variable: the
      window is then merely as tall as its content, which is the old
@@ -350,7 +374,7 @@
 
 /* Apple asks for 44 pixels for anything a finger has to hit, and these
    are hit repeatedly. Tied to Obsidian's own body class rather than to a
-   width: the iPad runs this window at its full 720 pixels, so the phone
+   width: the iPad runs this window at its full width, so the phone
    query below would miss exactly the device this is meant for. */
 .is-mobile .fc-fenster .fc-schiebepaar button.fc-schieben {
   min-width: 44px;
@@ -431,7 +455,14 @@
    The heading column is 7em because that is where it stops costing more
    than it saves: from 7.5em on, the switches under "Zusaetzlich" and
    "Vererbung" wrap to a second row, and the wrap is taller than the
-   heading row it replaced. Measured 2026-08-29, not estimated. */
+   heading row it replaced. Measured 2026-08-29, not estimated.
+
+   CORRECTION, same day: that 7.5em limit held only for Obsidian's own
+   Inter in a 720px window with no scrollbar taking room. With a wider
+   interface font, or with macOS set to show scrollbars always, the row
+   wrapped at 7em too. The window is 860px wide since then, which is
+   where the headroom comes from -- see the note at the top of this
+   file. 7em is now comfortably inside the limit, not on its edge. */
 .fc-abschnitt {
   display: flex;
   align-items: flex-start;
@@ -541,8 +572,9 @@
   min-height: 1.4em;
 }
 
-/* The hint under the switches needs two rows: at 720 pixels the
-   sentence about the automatic text colour wraps. */
+/* The hint under the switches needs two rows: at the old 720 pixels the
+   sentence about the automatic text colour wrapped. Kept at 860, so the
+   row does not change height when the sentence appears and goes. */
 .fc-hinweis-zwei {
   min-height: 2.8em;
 }
@@ -643,9 +675,9 @@
 /* There is not enough width on a phone for two columns. The list goes
    on top and the settings below it. */
 @media (max-width: 600px) {
-  /* Hands the width back to Obsidian. The 720px at the top of this file
+  /* Hands the width back to Obsidian. The 860px at the top of this file
      is meant for the desktop; on a phone Obsidian runs its dialogs at
-     the full screen width, and a fixed 720 would stick out of it. */
+     the full screen width, and a fixed 860 would stick out of it. */
   .fc-fenster {
     --dialog-width: 100vw;
   }
