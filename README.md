@@ -14,10 +14,17 @@ A category is a name plus an appearance, and the appearance is complete:
 - a color
 - a marker in front of the name — a bar, a dot, or an icon
 - an optional background, colored text, bold text
+- or the opposite: dim, which makes the whole row step back
 
 Each category carries its own. One can be a quiet gray bar, the next a
 solid red background, a third just a bold blue name. You are not choosing
 one style for the whole vault.
+
+**Dim is there for the folders you are done with.** "Archive", "Finished",
+"Old clients" — turning them louder is not what you want; turning them
+quieter is. The whole row fades together, marker and icon included, so a
+dot in full color cannot pull your eye back to the line that is meant to
+step aside.
 
 ## One legend per part of the vault
 
@@ -61,7 +68,7 @@ single folder. Everything a category decides is decided in one place.
 **Manage categories.** Right-click any folder and choose "Manage
 categories …", or run the command from the command palette. The window
 lists your categories on the left and the settings of the selected one on
-the right: color, name, marker, icon, the three extra switches, a live
+the right: color, name, marker, icon, the four extra switches, a live
 preview of how a folder will look, and the two inheritance switches.
 
 **Icons come from Obsidian.** Any icon Obsidian ships with, searchable,
@@ -70,6 +77,44 @@ dot rather than adding to it.
 
 **Renaming keeps the category.** Move a folder, rename it, rename a folder
 above it — the assignment follows.
+
+**Set the parent apart.** A folder that carries the category itself can
+look different from the folders inheriting below it: bold, a background,
+colored text, its own icon, its own marker, or the children a shade
+fainter. Where a choice would have no effect — the category is bold
+throughout anyway, or a background already decides the text color — the
+button says so and is struck through instead of quietly doing nothing.
+
+**Put the list in the order you want.** Two arrows below the list move the
+selected category one place; two more sort the open group by name, A to Z
+or back. The same pair of arrows sits next to the group tabs and moves the
+whole group left or right. Sorting touches the open group only — the other
+legends keep their places.
+
+**Duplicate a category** to start a new one from an appearance that
+already works, instead of setting seven things again.
+
+**Move a category to another group** when a legend turns out to be the
+wrong one. The folders keep their color.
+
+## Nothing is written until you save
+
+The window works on a draft. Change a color, rename, delete, restore a
+backup — none of it reaches your vault until you press **Save**. **Cancel**
+puts everything back the way it was, and closing the window counts as
+cancelling.
+
+**Back up your work.** "Backup" writes your categories, groups and folder
+assignments to a readable JSON file: into your downloads folder on the
+desktop, into `explorer-categories-backup/` inside the vault on a phone or
+tablet, where no downloads folder worth the name exists. "Restore" reads
+one back — through the system file dialog on the desktop, from a list of
+what is in that folder on mobile.
+
+A restore replaces everything at once, so it lands in the draft like any
+other change: **Save** keeps it, **Cancel** drops it. The file is checked
+before you are asked to confirm, so picking the wrong one costs a message,
+not your colors.
 
 ## Interface language
 
