@@ -53,13 +53,25 @@
    has something to say or not. Obsidian trims to
    "--dialog-max-width: 80vw", so 900 needs a window of at least 1125px;
    below that the dialog is merely narrower, not broken. */
+/* NO HEIGHT SET HERE, ON PURPOSE
+   From 0.9.44 the window is as tall as its content and grows with the
+   list, up to the "--dialog-max-height: 85vh" Obsidian puts on every
+   dialog; past that the modal scrolls as a whole, which Obsidian
+   handles itself.
+
+   A deliberate decision on 2026-08-29, with the cost stated first: the
+   window now changes height when a group has more categories than
+   another, and when a hint appears or goes. That was the reason for the
+   fixed height between 0.9.16 and 0.9.43 -- and the reason the list and
+   the settings column each scrolled inside themselves. Both scroll no
+   more; there is one scrollbar left, Obsidian's own on the modal, and it
+   only appears once the content really passes 85vh.
+
+   Two earlier versions lost the height by accident, which is why a check
+   in test.js watches this rule. That check now says the opposite: no
+   height here. */
 .fc-fenster {
   --dialog-width: 900px;
-  /* As tall as Obsidian allows, instead of a number it silently trims.
-     The fallback covers a version that does not know the variable: the
-     window is then merely as tall as its content, which is the old
-     cosmetic problem, not a broken window. */
-  height: var(--dialog-max-height, 85vh);
 }
 
 .fc-fenster .modal-content {
@@ -82,12 +94,10 @@
   display: grid;
   grid-template-columns: 200px 1fr;
   gap: 18px;
-  /* Fills the space between the tabs and the footer. min-height keeps
-     the children from pushing it open: without it a flex child refuses
-     to shrink below its content, and the whole window would grow again
-     instead of the columns scrolling inside themselves. */
-  flex: 1 1 auto;
-  min-height: 0;
+  /* Takes what its content needs. Until 0.9.43 this filled the leftover
+     height of a window pinned to 85vh, and the columns scrolled inside
+     it; now the window follows the content instead. */
+  flex: 0 0 auto;
 }
 
 /* --- Groups -------------------------------------------------------- */
@@ -200,9 +210,9 @@
   color: var(--text-error);
 }
 
-/* Both columns fill the window's height and scroll inside themselves.
-   The height comes from .fc-fenster above, so neither column can push
-   the window open. */
+/* Both columns take the height their content needs, and the window
+   follows them. Until 0.9.43 it was the other way round: the window was
+   pinned to 85vh and the columns scrolled inside it. */
 /* Each column on a surface of its own, the same recipe as the group box
    at the top of the window: a surface says "this belongs together"
    where a line only separates. The line between the columns goes with
@@ -227,15 +237,10 @@
   min-height: 0;
 }
 
+/* No scrollbar of its own since 0.9.44: the rows take the height they
+   need and the window grows with them. */
 .fc-listenrollen {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.fc-detail {
-  min-height: 0;
-  overflow-y: auto;
+  flex: 0 0 auto;
 }
 
 .fc-listenzeile {
@@ -470,12 +475,15 @@
    normal text colour and some weight -- they are what you scan for when
    looking for a setting. */
 /* Tightened on 2026-08-29 from 14/6. Six headings stand in the settings
-   column, so every pixel here counts six times over -- and the window
-   cannot grow, it is at Obsidian's maximum height. */
+   column, so every pixel here counts six times over. Height was scarce
+   then, with the window pinned to 85vh; since 0.9.44 it grows with its
+   content, but a tall column still pushes the window towards the cap,
+   so the tightening keeps earning its place. */
 /* Heading on the left, what it controls on the right. Six headings on
    six rows of their own came to 168px of the column; measured at the
    real width of 430px the whole panel went from 405px to 297. The window
-   is at Obsidian's maximum height, so those rows were the scrollbar.
+   was pinned to its maximum height then, so those rows were the
+   scrollbar.
 
    The heading column is 7em because that is where it stops costing more
    than it saves: from 7.5em on, the switches under "Zusaetzlich" and
@@ -676,8 +684,7 @@
   }
 
   /* Stacked, not side by side: the list takes what it needs up to its
-     cap, the settings take the rest. Both still scroll inside
-     themselves, so the window's height stays the window's business. */
+     cap, the settings take the rest. */
   .fc-spalten {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
@@ -689,6 +696,18 @@
      stacked, the two boxes already read as two areas. */
   .fc-liste {
     max-height: 180px;
+  }
+
+  /* The one place the list still scrolls inside itself. On the desktop
+     the window grows with the rows since 0.9.44, but here the two boxes
+     sit on top of each other: an unbounded list would push the settings
+     off the screen, and reaching them would mean scrolling past every
+     category first. The cap above needs a scrollbar to go with it, or
+     the rows below it would simply be cut off. */
+  .fc-listenrollen {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   /* Once the arrows are 44 pixels wide, nothing else fits beside them.

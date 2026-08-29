@@ -69,8 +69,8 @@ const TEXTE_DE = {
   vaterMarkierung: 'Markierung',
   vaterBlass: 'Kinder blasser',
   /* Short on purpose: these share one reserved line with the sentence
-     above them, and a second line would push the window into a
-     scrollbar. */
+     above them, and a second line would push the window a step taller
+     for everyone, not just for the case that needs it. */
   vaterSchonFett: 'Die Kategorie ist ohnehin ganz fett.',
   vaterSchonHintergrund: 'Die Kategorie hat ohnehin einen Hintergrund.',
   vaterSchonSchrift: 'Die Kategorie hat ohnehin farbige Schrift.',
@@ -1947,9 +1947,10 @@ class KategorienFenster extends Modal {
    *
    * Six headings used to sit on six rows of their own. Measured at the
    * real column width of 430px, that layout came to 405px where this one
-   * comes to 297 -- the heading rows were 168 of them. A scrollbar in a
-   * window that is already at Obsidian's maximum height is what that
-   * cost.
+   * comes to 297 -- the heading rows were 168 of them. The window was
+   * pinned to Obsidian's maximum height then, so that cost a scrollbar;
+   * since 0.9.44 it costs window height instead, which is not much
+   * better.
    *
    * The 7em for the heading column is measured, not picked: wider and
    * the switches under "Zusaetzlich" and "Vererbung" start wrapping,
@@ -1970,6 +1971,17 @@ class KategorienFenster extends Modal {
     }
 
     const stil = this.plugin.stilVon(kat.id);
+
+    /* The row in the list is the preview since 0.9.43, so it has to
+       follow every change made here -- not only the ones with a handler
+       of their own. Every switch redraws this column through
+       detailFuellen, so redrawing the row here catches all of them at
+       once.
+
+       Reported 2026-08-29: pressing "Background" left the row in the
+       list uncoloured until something else was changed. */
+    const listenzeile = this.zeilen && this.zeilen.get(kat.id);
+    if (listenzeile) this.listenStilZeichnen(listenzeile, kat.farbe, stil, kat.icon);
 
     /* --- Colour and name ------------------------------------------ */
     const kopf = this.detailEl.createDiv({ cls: 'fc-zeile' });
@@ -2207,8 +2219,8 @@ class KategorienFenster extends Modal {
     /* Only there while something actually inherits. Without children
        there is nobody for the parent to stand out from, and the row
        would be three lines of window explaining that it does nothing.
-       The window is at Obsidian's maximum height already -- what does
-       not earn its place costs a scrollbar.
+       What does not earn its place still costs height, and the window
+       grows with it since 0.9.44.
 
        Moving it in and out shifts what is below it, which is exactly
        what 0.9.16 fixed elsewhere. The difference: this only moves on a
