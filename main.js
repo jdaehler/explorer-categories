@@ -63,6 +63,7 @@ const TEXTE_DE = {
   vaterKeine: 'Ohne',
   vaterFett: 'Fett',
   vaterHintergrund: 'Hintergrund',
+  vaterSchrift: 'Schrift farbig',
   vaterSymbol: 'Symbol',
   vaterMarkierung: 'Markierung',
   vaterBlass: 'Kinder blasser',
@@ -71,6 +72,8 @@ const TEXTE_DE = {
      scrollbar. */
   vaterSchonFett: 'Die Kategorie ist ohnehin ganz fett.',
   vaterSchonHintergrund: 'Die Kategorie hat ohnehin einen Hintergrund.',
+  vaterSchonSchrift: 'Die Kategorie hat ohnehin farbige Schrift.',
+  vaterSchriftUnterHintergrund: 'Mit Hintergrund wählt das Plugin die Schriftfarbe selbst.',
   vaterSchonBlass: 'Die Kategorie ist ohnehin abgedunkelt.',
   vaterOhneSymbol: 'Dafür muss oben ein Symbol gesetzt sein.',
   vaterSymbolSchlaegt: 'Mit Symbol tragen beide dasselbe Zeichen.',
@@ -180,11 +183,14 @@ const TEXTE_EN = {
   vaterKeine: 'None',
   vaterFett: 'Bold',
   vaterHintergrund: 'Background',
+  vaterSchrift: 'Colored text',
   vaterSymbol: 'Icon',
   vaterMarkierung: 'Marker',
   vaterBlass: 'Children fainter',
   vaterSchonFett: 'The category is bold throughout anyway.',
   vaterSchonHintergrund: 'The category already has a background.',
+  vaterSchonSchrift: 'The category already has colored text.',
+  vaterSchriftUnterHintergrund: 'With a background, the plugin picks the text color itself.',
   vaterSchonBlass: 'The category is dimmed anyway.',
   vaterOhneSymbol: 'An icon has to be set above for this.',
   vaterSymbolSchlaegt: 'With an icon, both carry the same mark.',
@@ -304,6 +310,7 @@ const VATER_ARTEN = [
   { id: 'keine', name: TEXTE.vaterKeine },
   { id: 'fett', name: TEXTE.vaterFett },
   { id: 'hintergrund', name: TEXTE.vaterHintergrund },
+  { id: 'schrift', name: TEXTE.vaterSchrift },
   { id: 'symbol', name: TEXTE.vaterSymbol },
   { id: 'markierung', name: TEXTE.vaterMarkierung },
   { id: 'blass', name: TEXTE.vaterBlass },
@@ -2031,6 +2038,15 @@ class KategorienFenster extends Modal {
       if (vaterArt === 'fett' && stil.fett) vaterHinweis = TEXTE.vaterSchonFett;
       else if (vaterArt === 'hintergrund' && stil.hintergrund) {
         vaterHinweis = TEXTE.vaterSchonHintergrund;
+      } else if (vaterArt === 'schrift' && stil.hintergrund) {
+        /* Checked before the "already coloured" case: under a background
+           the plugin works out the text colour itself, so colouring the
+           parent's text does nothing whether or not the category itself
+           has coloured text switched on. The background is the reason,
+           and the reason is what has to be said. */
+        vaterHinweis = TEXTE.vaterSchriftUnterHintergrund;
+      } else if (vaterArt === 'schrift' && stil.schriftFarbig) {
+        vaterHinweis = TEXTE.vaterSchonSchrift;
       } else if (vaterArt === 'blass' && stil.gedimmt) {
         vaterHinweis = TEXTE.vaterSchonBlass;
       } else if (vaterArt === 'symbol' && !kat.icon) {
@@ -2643,6 +2659,9 @@ function zieleBauen(daten, nachschlagen) {
     }
     if (stil.vaterHervor === 'hintergrund') {
       return Object.assign({}, stil, { hintergrund: true });
+    }
+    if (stil.vaterHervor === 'schrift') {
+      return Object.assign({}, stil, { schriftFarbig: true });
     }
     if (stil.vaterHervor === 'markierung') {
       return Object.assign({}, stil, { markierung: andereMarke(stil.markierung) });
