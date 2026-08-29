@@ -1751,6 +1751,12 @@ class KategorienFenster extends Modal {
   vorschauZeichnen(ziel, farbe, stil, icon) {
     const zeile = ziel.createDiv({ cls: 'fc-vorschau-zeile' });
 
+    /* Same rule as in the stylesheet: on a coloured background the
+       marker takes the readable colour, or it would be standing on
+       itself. The preview is only worth having if it shows what the
+       tree will do. */
+    const markenFarbe = stil.hintergrund ? lesbareSchrift(farbe) : farbe;
+
     if (stil.markierung !== 'keine') {
       if (icon) {
         /* In the tree this is a tinted mask; here it is a real icon
@@ -1758,11 +1764,11 @@ class KategorienFenster extends Modal {
            preview avoids the detour through a data: URI. */
         const marke = zeile.createSpan({ cls: 'fc-vorschau-symbol' });
         setIcon(marke, icon);
-        marke.style.color = farbe;
+        marke.style.color = markenFarbe;
       } else {
         const marke = zeile.createSpan({ cls: 'fc-vorschau-marke' });
         marke.addClass(stil.markierung === 'punkt' ? 'fc-punkt' : 'fc-lasche');
-        marke.style.backgroundColor = farbe;
+        marke.style.backgroundColor = markenFarbe;
       }
     }
 
@@ -2227,6 +2233,19 @@ function regelnBauen(eintraege, maskeVon) {
     `${e.selektor} .${e.inhalt || 'nav-folder-title-content'}`;
   const bloecke = [];
 
+  /* What colour the marker is painted in.
+   *
+   * Normally the category colour. But with the background switched on,
+   * that is the very colour the marker is standing on -- dot, bar and
+   * icon all vanished into it, while the text beside them was readable
+   * because it gets black or white worked out for it. So on a background
+   * the marker follows the text.
+   *
+   * Not a new setting: the same decision as for the text colour on
+   * 2026-08-26, worked out rather than chosen by hand. */
+  const markenFarbe = (e) =>
+    e.stil.hintergrund ? lesbareSchrift(e.farbe) : e.farbe;
+
   /* Which entries actually show an icon? Only those that have one, that
      show a marker at all, and whose icon can be resolved. Worked out
      once so the blocks below agree with each other. */
@@ -2253,7 +2272,7 @@ function regelnBauen(eintraege, maskeVon) {
   for (const [id, passend] of nachSymbol) {
     const form = passend.map((e) => `${inhalt(e)}::before`).join(',\n');
     const farben = passend
-      .map((e) => `${inhalt(e)}::before { background-color: ${e.farbe}; }`)
+      .map((e) => `${inhalt(e)}::before { background-color: ${markenFarbe(e)}; }`)
       .join('\n');
 
     /* The colour comes from the background, the icon only supplies the
@@ -2291,7 +2310,7 @@ ${farben}`);
     const rund = art === 'punkt';
     const form = passend.map((e) => `${inhalt(e)}::before`).join(',\n');
     const farben = passend
-      .map((e) => `${inhalt(e)}::before { background-color: ${e.farbe}; }`)
+      .map((e) => `${inhalt(e)}::before { background-color: ${markenFarbe(e)}; }`)
       .join('\n');
 
     bloecke.push(`${form} {
