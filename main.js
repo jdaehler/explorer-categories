@@ -107,6 +107,12 @@ const TEXTE_DE = {
   gruppeGeloescht: (name) => `Gruppe „${name}" gelöscht.`,
   gruppeZahl: (n) => (n === 1 ? '1 Kategorie' : `${n} Kategorien`),
   keineKategorienInGruppe: 'In dieser Gruppe ist noch keine Kategorie.',
+  /* Order. The list stands upright, the tabs lie down -- hence up/down
+     for one and left/right for the other. */
+  hochSchieben: 'Nach oben',
+  runterSchieben: 'Nach unten',
+  gruppeLinks: 'Gruppe nach links',
+  gruppeRechts: 'Gruppe nach rechts',
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
@@ -177,6 +183,10 @@ const TEXTE_EN = {
   gruppeGeloescht: (name) => `Group "${name}" deleted.`,
   gruppeZahl: (n) => (n === 1 ? '1 category' : `${n} categories`),
   keineKategorienInGruppe: 'No category in this group yet.',
+  hochSchieben: 'Move up',
+  runterSchieben: 'Move down',
+  gruppeLinks: 'Move group left',
+  gruppeRechts: 'Move group right',
 };
 
 const SPRACHEN = { de: TEXTE_DE, en: TEXTE_EN };
@@ -408,6 +418,28 @@ class ExplorerCategoriesPlugin extends Plugin {
     if (!gruppe) return;
     gruppe.name = name;
     await this.speichern();
+  }
+
+  /* Moves a group one place along the strip of tabs. The array is the
+     order -- nothing sorts anywhere else, so swapping two entries is the
+     whole job.
+
+     Says whether anything moved, so the window can leave itself alone
+     when the group is already at the end. */
+  async gruppeVerschieben(gruppenId, richtung) {
+    const gruppen = this.daten.gruppen;
+    const von = gruppen.findIndex((g) => g.id === gruppenId);
+    if (von < 0) return false;
+
+    const nach = von + richtung;
+    if (nach < 0 || nach >= gruppen.length) return false;
+
+    const merk = gruppen[von];
+    gruppen[von] = gruppen[nach];
+    gruppen[nach] = merk;
+
+    await this.speichern();
+    return true;
   }
 
   /* Deletes the group and everything in it. The categories cannot stay
@@ -733,6 +765,36 @@ class ExplorerCategoriesPlugin extends Plugin {
     await this.speichern();
   }
 
+  /* Moves a category one place within its own group.
+   *
+   * All categories of all groups lie in ONE array; kategorienIn() only
+   * filters it. So the neighbour to swap with is not the next entry in
+   * the array but the next one carrying the same group -- everything in
+   * between belongs to other groups and is skipped.
+   *
+   * Swapping the two absolute positions leaves every skipped entry
+   * exactly where it was, so the order inside the other groups cannot be
+   * disturbed by moving something here. */
+  async kategorieVerschieben(katId, richtung) {
+    const alle = this.daten.kategorien;
+    const von = alle.findIndex((k) => k.id === katId);
+    if (von < 0) return false;
+
+    const gruppe = alle[von].gruppe;
+    let nach = von + richtung;
+    while (nach >= 0 && nach < alle.length && alle[nach].gruppe !== gruppe) {
+      nach += richtung;
+    }
+    if (nach < 0 || nach >= alle.length) return false;
+
+    const merk = alle[von];
+    alle[von] = alle[nach];
+    alle[nach] = merk;
+
+    await this.speichern();
+    return true;
+  }
+
   /* Renaming or moving a folder changes the paths of everything inside
      it too. So not just the one key, but every key below it. */
   async pfadUmschreiben(alt, neu) {
@@ -1016,7 +1078,35 @@ class KategorienFenster extends Modal {
       this.zeilen.set(kat.id, { marke, name });
     }
 
-    const neu = this.listeEl.createEl('button', {
+    /* Under the rows: move the selected category, and add a new one.
+       Both in one line, so the list keeps its height for the rows.
+
+       The arrows sit in a fixed place instead of on every row. Moving
+       something several places means tapping several times, and a button
+       riding along with the row would walk out from under the finger
+       after every tap -- on the iPad, where the finger covers what it is
+       aiming at, that is the difference between working and fiddling. */
+    const fuss = this.listeEl.createDiv({ cls: 'fc-listenfuss' });
+    const paar = fuss.createDiv({ cls: 'fc-schiebepaar' });
+
+    /* Where the selected category stands WITHIN ITS GROUP -- that is the
+       order shown, and the only one the arrows may go by. Without a
+       selection this is -1, and both arrows are dead, which is right:
+       there is nothing to move. */
+    const stelle = kategorien.findIndex((k) => k.id === this.gewaehlt);
+
+    this.schiebeKnopf(paar, 'chevron-up', TEXTE.hochSchieben, stelle > 0, () =>
+      this.kategorieSchieben(-1)
+    );
+    this.schiebeKnopf(
+      paar,
+      'chevron-down',
+      TEXTE.runterSchieben,
+      stelle >= 0 && stelle < kategorien.length - 1,
+      () => this.kategorieSchieben(1)
+    );
+
+    const neu = fuss.createEl('button', {
       cls: 'fc-neu',
       text: '+ ' + TEXTE.neue,
     });
@@ -1025,6 +1115,50 @@ class KategorienFenster extends Modal {
       this.listeFuellen();
       this.detailFuellen();
     });
+  }
+
+  /* ---------------- Reihenfolge ----------------------------------- */
+
+  /* One arrow button.
+   *
+   * It deliberately carries Obsidian's own class "clickable-icon". Not
+   * for the looks: the rule .is-tablet button:not(.clickable-icon) puts
+   * 20 pixels of padding on either side of every other kind of button,
+   * and that is what squashed the icon picker flat on the iPad in
+   * 0.9.20. A button that is an icon button says so.
+   *
+   * At the end of the list the button stays put and goes dead rather
+   * than disappearing -- the other one would jump sideways, and a target
+   * that moves is worse than one that says no. */
+  schiebeKnopf(ziel, symbol, beschriftung, moeglich, tun) {
+    const knopf = ziel.createEl('button', { cls: 'clickable-icon fc-schieben' });
+    setIcon(knopf, symbol);
+    knopf.setAttribute('aria-label', beschriftung);
+
+    if (!moeglich) {
+      knopf.disabled = true;
+      return knopf;
+    }
+    knopf.addEventListener('click', tun);
+    return knopf;
+  }
+
+  /* Only the list is redrawn. The category stays selected, so its
+     settings on the right have not changed -- redrawing them would throw
+     away the caret in the name field for nothing. */
+  async kategorieSchieben(richtung) {
+    if (!this.gewaehlt) return;
+    const bewegt = await this.plugin.kategorieVerschieben(this.gewaehlt, richtung);
+    if (!bewegt) return;
+    this.listeFuellen();
+  }
+
+  /* Only the tabs. Which categories the group holds does not change by
+     moving it, so list and settings stay as they are. */
+  async gruppeSchieben(richtung) {
+    const bewegt = await this.plugin.gruppeVerschieben(this.gruppeGewaehlt, richtung);
+    if (!bewegt) return;
+    this.reiterFuellen();
   }
 
   /* ---------------- Gruppen --------------------------------------- */
@@ -1084,6 +1218,30 @@ class KategorienFenster extends Modal {
       (g) => g.id === this.gruppeGewaehlt
     );
     if (!gruppe) return;
+
+    /* The order of the tabs, at the left end of the row and directly
+       under the strip it belongs to. Same mechanic as under the list,
+       only lying down, because the tabs lie down.
+
+       Hidden while there is only one group, for the same reason the
+       delete button is: nothing to move it past. */
+    if (this.plugin.daten.gruppen.length > 1) {
+      const paar = zeile.createDiv({ cls: 'fc-schiebepaar' });
+      const stelle = this.plugin.daten.gruppen.findIndex(
+        (g) => g.id === gruppe.id
+      );
+
+      this.schiebeKnopf(paar, 'chevron-left', TEXTE.gruppeLinks, stelle > 0, () =>
+        this.gruppeSchieben(-1)
+      );
+      this.schiebeKnopf(
+        paar,
+        'chevron-right',
+        TEXTE.gruppeRechts,
+        stelle < this.plugin.daten.gruppen.length - 1,
+        () => this.gruppeSchieben(1)
+      );
+    }
 
     const name = zeile.createEl('input', {
       type: 'text',

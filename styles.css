@@ -216,8 +216,69 @@
 }
 
 .fc-neu {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* --- Order --------------------------------------------------------- */
+
+/* Two arrows move the selected group or category one place. They sit in
+   a fixed spot -- under the list, and under the tabs -- rather than on
+   each row: the button stays where it is while the entry moves, so
+   tapping three times in a row does not mean chasing it down the
+   screen. */
+.fc-listenfuss {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 8px;
+}
+
+.fc-schiebepaar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+/* Three classes and an element, on purpose. Obsidian's tablet rule
+   .is-tablet button:not(.clickable-icon) counts the same as two classes
+   and an element, and a tie is decided by whoever loads last -- which is
+   not something to rely on. The extra class settles it. */
+.fc-fenster .fc-schiebepaar button.fc-schieben {
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* Fixed size and no shrinking: as a flex child the icon would give way
+   before any padding did, and what is left of it is the round button
+   background. That is the picker bug of 0.9.20, and it applies here
+   just the same. */
+.fc-fenster .fc-schiebepaar button.fc-schieben svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.fc-fenster .fc-schiebepaar button.fc-schieben:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background-color: transparent;
+}
+
+/* Apple asks for 44 pixels for anything a finger has to hit, and these
+   are hit repeatedly. Tied to Obsidian's own body class rather than to a
+   width: the iPad runs this window at its full 720 pixels, so the phone
+   query below would miss exactly the device this is meant for. */
+.is-mobile .fc-fenster .fc-schiebepaar button.fc-schieben {
+  min-width: 44px;
+  height: 44px;
+}
+
+.is-mobile .fc-fenster .fc-schiebepaar button.fc-schieben svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* --- Settings of the selected category ---------------------------- */
@@ -407,6 +468,18 @@
     border-bottom: 1px solid var(--background-modifier-border);
     padding-right: 0;
     padding-bottom: 10px;
+  }
+
+  /* Arrows, name and delete no longer fit on one line once the arrows
+     are 44 pixels wide. The name field takes a line of its own; arrows
+     and delete stay together above it. */
+  .fc-gruppenzeile {
+    flex-wrap: wrap;
+  }
+
+  .fc-gruppenname {
+    flex: 1 1 100%;
+    order: 1;
   }
 }
 
