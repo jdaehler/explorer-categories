@@ -53,6 +53,21 @@ const TEXTE_DE = {
   zusaetzlich: 'Zusätzlich',
   vererbung: 'Vererbung',
   vererbungHinweis: 'Gilt für alle Ordner dieser Kategorie.',
+  /* Telling the folder that carries the assignment apart from the ones
+     that only inherit from it. */
+  vaterHervorheben: 'Vater hervorheben',
+  vaterKeine: 'Ohne',
+  vaterFett: 'Fett',
+  vaterHintergrund: 'Hintergrund',
+  vaterSymbol: 'Symbol',
+  vaterMarkierung: 'Markierung',
+  vaterBlass: 'Kinder blasser',
+  vaterOhneVererbung: 'Wirkt erst, wenn oben eine Vererbung eingeschaltet ist.',
+  vaterSchonFett: 'Die ganze Kategorie ist schon fett — so hebt sich der Vater nicht ab.',
+  vaterSchonHintergrund: 'Die ganze Kategorie hat schon einen Hintergrund — so hebt sich der Vater nicht ab.',
+  vaterSchonBlass: 'Die ganze Kategorie ist schon abgedunkelt — so treten die Kinder nicht zurück.',
+  vaterOhneSymbol: 'Dafür muss oben ein Symbol gesetzt sein.',
+  vaterSymbolSchlaegt: 'Solange ein Symbol gesetzt ist, tragen Vater und Kinder dasselbe Zeichen.',
   vorschau: 'Vorschau',
   symbol: 'Symbol',
   symbolWaehlen: 'Symbol wählen …',
@@ -139,6 +154,19 @@ const TEXTE_EN = {
   zusaetzlich: 'Additional',
   vererbung: 'Inheritance',
   vererbungHinweis: 'Applies to every folder in this category.',
+  vaterHervorheben: 'Set the parent apart',
+  vaterKeine: 'None',
+  vaterFett: 'Bold',
+  vaterHintergrund: 'Background',
+  vaterSymbol: 'Icon',
+  vaterMarkierung: 'Marker',
+  vaterBlass: 'Children fainter',
+  vaterOhneVererbung: 'Takes effect once inheritance is switched on above.',
+  vaterSchonFett: 'The whole category is bold already, so the parent does not stand out.',
+  vaterSchonHintergrund: 'The whole category has a background already, so the parent does not stand out.',
+  vaterSchonBlass: 'The whole category is dimmed already, so the children do not step back.',
+  vaterOhneSymbol: 'An icon has to be set above for this.',
+  vaterSymbolSchlaegt: 'While an icon is set, parent and children carry the same mark.',
   vorschau: 'Preview',
   symbol: 'Icon',
   symbolWaehlen: 'Choose icon …',
@@ -229,6 +257,23 @@ const MARKIERUNGEN = [
   { id: 'punkt', name: TEXTE.markierungPunkt },
 ];
 
+/* How the folder carrying the assignment is told apart from the ones
+ * that only inherit from it. One choice, not a set of switches: two of
+ * these at once would fight each other for the same row.
+ *
+ * "blass" is the odd one out -- it does not touch the parent at all, it
+ * takes the children down. The result is the same, the parent is the
+ * row that stands out, and it is the only way to do that without making
+ * anything louder. */
+const VATER_ARTEN = [
+  { id: 'keine', name: TEXTE.vaterKeine },
+  { id: 'fett', name: TEXTE.vaterFett },
+  { id: 'hintergrund', name: TEXTE.vaterHintergrund },
+  { id: 'symbol', name: TEXTE.vaterSymbol },
+  { id: 'markierung', name: TEXTE.vaterMarkierung },
+  { id: 'blass', name: TEXTE.vaterBlass },
+];
+
 /* What a freshly created category starts out with. */
 const STIL_VORGABE = {
   markierung: 'lasche',
@@ -250,6 +295,9 @@ const STIL_VORGABE = {
      because subfolders do. */
   vererbt: false,
   vererbtDateien: false,
+  /* Nothing by default: a folder and what inherits from it look the
+     same, the way they always did. */
+  vaterHervor: 'keine',
 };
 
 /* Neutral examples, deliberately meaningless -- users rename them. The
@@ -1656,6 +1704,53 @@ class KategorienFenster extends Modal {
        the switch that used to sit in the context menu. */
     this.detailEl.createDiv({ cls: 'fc-hinweis', text: TEXTE.vererbungHinweis });
 
+    /* --- telling the parent apart ---------------------------------- */
+    /* One choice out of six, not six switches: two of them at once
+       would be fighting over the same row.
+
+       Built like the switches above rather than as one joined block:
+       six of them do not fit on a line, and a joined block cannot wrap
+       without the rounded ends landing in the middle. */
+    this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.vaterHervorheben });
+
+    const vaterWahl = this.detailEl.createDiv({ cls: 'fc-schalter' });
+    const vaterArt = stil.vaterHervor || 'keine';
+
+    for (const art of VATER_ARTEN) {
+      const knopf = vaterWahl.createEl('button', { text: art.name });
+      if (art.id === vaterArt) knopf.addClass('mod-cta');
+      knopf.addEventListener('click', async () => {
+        await this.plugin.stilAendern(kat.id, { vaterHervor: art.id });
+        this.detailFuellen();
+      });
+    }
+
+    /* Every way this setting can end up doing nothing gets said out
+       loud. Without that it looks broken: the switch is on, the tree
+       does not change, and there is nothing to go by. */
+    let vaterHinweis = '';
+    if (vaterArt !== 'keine') {
+      if (!stil.vererbt && !stil.vererbtDateien) {
+        vaterHinweis = TEXTE.vaterOhneVererbung;
+      } else if (vaterArt === 'fett' && stil.fett) {
+        vaterHinweis = TEXTE.vaterSchonFett;
+      } else if (vaterArt === 'hintergrund' && stil.hintergrund) {
+        vaterHinweis = TEXTE.vaterSchonHintergrund;
+      } else if (vaterArt === 'blass' && stil.gedimmt) {
+        vaterHinweis = TEXTE.vaterSchonBlass;
+      } else if (vaterArt === 'symbol' && !kat.icon) {
+        vaterHinweis = TEXTE.vaterOhneSymbol;
+      } else if (vaterArt === 'markierung' && kat.icon) {
+        vaterHinweis = TEXTE.vaterSymbolSchlaegt;
+      }
+    }
+    if (vaterHinweis) vaterWahl.addClass('fc-wirkungslos');
+
+    this.detailEl.createDiv({
+      cls: 'fc-hinweis fc-hinweis-zwei',
+      text: vaterHinweis,
+    });
+
     /* --- Loeschen -------------------------------------------------- */
     const fuss = this.detailEl.createDiv({ cls: 'fc-detailfuss' });
 
@@ -2109,6 +2204,54 @@ function zieleBauen(daten, nachschlagen) {
 
   const tiefe = (pfad) => pfad.split('/').length;
 
+  /* --- telling the parent apart ----------------------------------- */
+
+  /* Does this category set the folder carrying the assignment apart
+     from the ones inheriting from it? Only where something inherits at
+     all -- with nothing below, there is nobody to stand out from, and
+     every coloured folder would silently turn bold. */
+  const hebtAb = (stil) =>
+    Boolean(
+      (stil.vererbt || stil.vererbtDateien) &&
+        stil.vaterHervor &&
+        stil.vaterHervor !== 'keine'
+    );
+
+  /* The other one of the two markers. Used when the parent should carry
+     a different mark from its children: whichever the category shows,
+     the parent shows the other. With no marker at all the parent gets
+     the dot -- it has to show something, that is the whole point. */
+  const andereMarke = (art) => (art === 'punkt' ? 'lasche' : 'punkt');
+
+  /* The style the parent itself is drawn with. */
+  const vaterStil = (stil) => {
+    if (!hebtAb(stil)) return stil;
+    if (stil.vaterHervor === 'fett') {
+      return Object.assign({}, stil, { fett: true });
+    }
+    if (stil.vaterHervor === 'hintergrund') {
+      return Object.assign({}, stil, { hintergrund: true });
+    }
+    if (stil.vaterHervor === 'markierung') {
+      return Object.assign({}, stil, { markierung: andereMarke(stil.markierung) });
+    }
+    return stil;
+  };
+
+  /* The style the inherited rows are drawn with. Only "blass" changes
+     anything here -- it is the one setting that works on the children
+     instead of the parent. */
+  const erbStil = (stil) => {
+    if (!hebtAb(stil) || stil.vaterHervor !== 'blass') return stil;
+    return Object.assign({}, stil, { gedimmt: true });
+  };
+
+  /* The icon the inherited rows are drawn with. With "icon" chosen for
+     the parent they give it up and fall back to bar or dot -- that is
+     exactly what leaves the parent as the only row carrying it. */
+  const erbSymbol = (stil, icon) =>
+    hebtAb(stil) && stil.vaterHervor === 'symbol' ? null : icon || null;
+
   /* Which folders pass their colour down? Every folder whose category
      says so. There is no table of its own for this any more -- the
      switch sits on the category, so this is a lookup. */
@@ -2154,8 +2297,8 @@ function zieleBauen(daten, nachschlagen) {
         .map((a) => `:not(${a})`)
         .join('')}`,
       farbe,
-      stil,
-      icon: icon || null,
+      stil: erbStil(stil),
+      icon: erbSymbol(stil, icon),
     });
   }
 
@@ -2166,7 +2309,7 @@ function zieleBauen(daten, nachschlagen) {
     ziele.push({
       selektor: `.nav-folder-title[data-path="${maskieren(pfad)}"]`,
       farbe,
-      stil,
+      stil: vaterStil(stil),
       icon: icon || null,
     });
   }
@@ -2203,8 +2346,8 @@ function zieleBauen(daten, nachschlagen) {
         .join('')}`,
       inhalt: 'nav-file-title-content',
       farbe,
-      stil,
-      icon: icon || null,
+      stil: erbStil(stil),
+      icon: erbSymbol(stil, icon),
     });
   }
 
