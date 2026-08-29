@@ -412,8 +412,9 @@ const zeitstempel = () => {
  * repository name.
  *
  * An empty string means no help link at all -- a link that goes nowhere
- * is worse than none. */
-const HILFE_ADRESSE = 'https://github.com/jdaehler/obsidian-explorer-categories';
+ * is worse than none. That is why it is empty right now: the repository
+ * does not exist yet. Fill it in when the plugin is published. */
+const HILFE_ADRESSE = '';
 
 class ExplorerCategoriesPlugin extends Plugin {
   async onload() {
@@ -2271,7 +2272,13 @@ class KategorienFenster extends Modal {
         vaterHinweis = TEXTE.vaterSchonBlass;
       } else if (vaterArt === 'symbol' && !kat.icon) {
         vaterHinweis = TEXTE.vaterOhneSymbol;
-      } else if (vaterArt === 'markierung' && kat.icon) {
+      } else if (vaterArt === 'markierung' && kat.icon && stil.markierung !== 'keine') {
+        /* The marker check has to come along: with "None" the icon is
+           not drawn either (see "zeigtSymbol"), so the parent -- which
+           gets the other marker, and that is "punkt" -- is the only row
+           showing anything at all. The choice works, and saying it does
+           not would send the user looking for a fault that is not
+           there. Reported 2026-08-29. */
         vaterHinweis = TEXTE.vaterSymbolSchlaegt;
       }
 
