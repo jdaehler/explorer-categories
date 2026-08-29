@@ -1207,9 +1207,23 @@ class ExplorerCategoriesPlugin extends Plugin {
   async rewritePath(old, fresh) {
     /* One table to carry along. Inheritance needs no rewriting since it
        moved to the category -- it knows no paths. */
-    if (rewriteKeys(this.data.zuordnung, old, fresh)) {
-      await this.save();
+    let changed = rewriteKeys(this.data.zuordnung, old, fresh);
+
+    /* The safety copy has to follow along. A rename can arrive while
+       the window is open -- not by right-click, the modal blocks that,
+       but from outside: a sync from the phone, a move in Finder. It is
+       not one of the edits made in this window, so Cancel must not take
+       it back. Without this, Cancel puts back the copy taken when the
+       window opened, still holding the old path, and the assignment
+       points at a folder that no longer exists.
+       Rewriting both keeps draftChanged() quiet as well: a rename from
+       outside is nothing the user typed here, so it must not make the
+       window ask "throw away your changes?". */
+    if (this.draftRunning && this.original) {
+      if (rewriteKeys(this.original.zuordnung, old, fresh)) changed = true;
     }
+
+    if (changed) await this.save();
   }
 
   /* ---------------------------------------------------------------- */
