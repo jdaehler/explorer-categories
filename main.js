@@ -105,16 +105,8 @@ const TEXTE_DE = {
   gesichert: (name) => `Gesichert als „${name}".`,
   sicherungFehlgeschlagen: 'Die Sicherung konnte nicht geschrieben werden.',
   sicherungTitel: 'Sicherung laden',
-  sicherungSchreibenTitel: 'Sichern',
-  ordnerWaehlenTitel: 'Ordner wählen',
-  ordnerWaehlen: 'Ändern',
-  ordnerSuchen: 'Ordner suchen',
-  ordnerWurzel: '(oberste Ebene des Vaults)',
-  ordnerKeiner: 'Kein Ordner passt zur Suche.',
-  sicherungZiel: 'Ziel',
-  sicherungQuelle: 'Ordner',
-  sicherungJetzt: 'Jetzt sichern',
   sicherungLeer: 'Es liegt noch keine Sicherung vor. „Sichern" legt die erste an.',
+  sicherungOrt: (ordner) => `Die Sicherungen liegen im Vault unter „${ordner}".`,
   sicherungFrage: (name) =>
     `„${name}" laden? Ersetzt den Stand im Fenster — geschrieben wird er erst mit „Speichern".`,
   sicherungGeladen: 'Geladen. Mit „Speichern" übernehmen, mit „Abbrechen" verwerfen.',
@@ -232,16 +224,8 @@ const TEXTE_EN = {
   gesichert: (name) => `Backed up as "${name}".`,
   sicherungFehlgeschlagen: 'The backup could not be written.',
   sicherungTitel: 'Restore a backup',
-  sicherungSchreibenTitel: 'Back up',
-  ordnerWaehlenTitel: 'Choose a folder',
-  ordnerWaehlen: 'Change',
-  ordnerSuchen: 'Search folders',
-  ordnerWurzel: '(top level of the vault)',
-  ordnerKeiner: 'No folder matches the search.',
-  sicherungZiel: 'Into',
-  sicherungQuelle: 'Folder',
-  sicherungJetzt: 'Back up now',
   sicherungLeer: 'There is no backup yet. "Back up" makes the first one.',
+  sicherungOrt: (ordner) => `Backups live in the vault under "${ordner}".`,
   sicherungFrage: (name) =>
     `Restore "${name}"? It replaces what is in the window -- nothing is written until you press Save.`,
   sicherungGeladen: 'Restored. Press Save to keep it, Cancel to drop it.',
@@ -407,11 +391,6 @@ const STIL_ID = 'explorer-categories-stil';
  * Lower case and no spaces, so the name survives every filesystem and
  * every sync in one piece. */
 const SICHERUNG_ORDNER = 'explorer-categories-backup';
-
-/* Joins a folder and a file name. The top level of the vault is the
-   empty string for the adapter, and "" + "/" + name would make an
-   absolute path that writes outside the vault on some platforms. */
-const pfadBauen = (ordner, name) => (ordner ? `${ordner}/${name}` : name);
 
 /* Sorts by name, so the file name has to carry the date in an order
    that sorts: year, month, day, hour, minute. */
@@ -935,27 +914,10 @@ class ExplorerCategoriesPlugin extends Plugin {
    * somebody pressing "Back up" is looking at, and backing up a
    * different one than the visible one would be a trap. It does mean a
    * backup can outlive a Cancel: the file stays, the edits do not. */
-  /* Where backups go. Remembered with the rest of the data, so the
-     choice survives a restart, and falling back to the default folder if
-     nothing was ever chosen. */
-  sicherungOrdner() {
-    const gemerkt = this.daten.sicherungOrdner;
-    return typeof gemerkt === 'string' ? gemerkt : SICHERUNG_ORDNER;
-  }
-
-  async sicherungOrdnerSetzen(ordner) {
-    this.daten.sicherungOrdner = ordner;
-    await this.speichern();
-  }
-
-  async sicherungSchreiben(ordner) {
+  async sicherungSchreiben() {
     const adapter = this.app.vault.adapter;
-    const ziel = typeof ordner === 'string' ? ordner : this.sicherungOrdner();
-
-    /* Only for a named folder. The top level is the vault itself and is
-       always there; mkdir("") would fail. */
-    if (ziel && !(await adapter.exists(ziel))) {
-      await adapter.mkdir(ziel);
+    if (!(await adapter.exists(SICHERUNG_ORDNER))) {
+      await adapter.mkdir(SICHERUNG_ORDNER);
     }
 
     const name = `kategorien-${zeitstempel()}.json`;
@@ -970,21 +932,17 @@ class ExplorerCategoriesPlugin extends Plugin {
       2
     );
 
-    await adapter.write(pfadBauen(ziel, name), inhalt);
+    await adapter.write(`${SICHERUNG_ORDNER}/${name}`, inhalt);
     return name;
   }
 
   /* Newest first -- the name sorts by date, so reversing the plain sort
      is enough and no file has to be opened to order the list. */
-  async sicherungenFinden(ordner) {
+  async sicherungenFinden() {
     const adapter = this.app.vault.adapter;
-    const quelle = typeof ordner === 'string' ? ordner : this.sicherungOrdner();
+    if (!(await adapter.exists(SICHERUNG_ORDNER))) return [];
 
-    /* An empty string is the vault itself and always exists; a named
-       folder may have been renamed or thrown away since it was chosen. */
-    if (quelle && !(await adapter.exists(quelle))) return [];
-
-    const inhalt = await adapter.list(quelle);
+    const inhalt = await adapter.list(SICHERUNG_ORDNER);
     return (inhalt.files || [])
       .filter((pfad) => pfad.endsWith('.json'))
       .sort()
@@ -1390,8 +1348,13 @@ class KategorienFenster extends Modal {
     const sicherungen = fuss.createDiv({ cls: 'fc-fussnebenan' });
 
     const sicherungKnopf = sicherungen.createEl('button', { text: TEXTE.sichern });
-    sicherungKnopf.addEventListener('click', () => {
-      new SicherungSchreibenFenster(this.app, this.plugin).open();
+    sicherungKnopf.addEventListener('click', async () => {
+      try {
+        const name = await this.plugin.sicherungSchreiben();
+        new Notice(TEXTE.gesichert(name));
+      } catch (e) {
+        new Notice(TEXTE.sicherungFehlgeschlagen);
+      }
     });
 
     const ladenKnopf = sicherungen.createEl('button', { text: TEXTE.laden });
@@ -2355,161 +2318,6 @@ class KategorienFenster extends Modal {
   }
 }
 
-/* Picks a folder out of the vault.
- *
- * With a search field, not a bare list: a vault has as many folders as
- * it has, and scrolling past two hundred of them to find one is not
- * choosing, it is hunting. Same reason the icon picker has one.
- *
- * The top level is an entry like any other, at the top, because it is
- * a legitimate answer and otherwise unreachable -- it has no name to
- * search for. */
-class OrdnerFenster extends Modal {
-  constructor(app, aktuell, beiWahl) {
-    super(app);
-    this.aktuell = aktuell;
-    this.beiWahl = beiWahl;
-  }
-
-  onOpen() {
-    const { contentEl, titleEl } = this;
-    if (titleEl) titleEl.setText(TEXTE.ordnerWaehlenTitel);
-
-    this.alle = this.app.vault
-      .getAllLoadedFiles()
-      .filter((d) => d instanceof TFolder)
-      .map((d) => d.path)
-      /* The root arrives as "/" from the vault and has to be the empty
-         string everywhere else -- see pfadBauen. */
-      .filter((pfad) => pfad && pfad !== '/')
-      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-
-    const suche = contentEl.createEl('input', {
-      type: 'text',
-      cls: 'fc-ordnersuche',
-      placeholder: TEXTE.ordnerSuchen,
-    });
-
-    this.listeEl = contentEl.createDiv({ cls: 'fc-sicherungliste' });
-    this.fuellen('');
-
-    suche.addEventListener('input', () => this.fuellen(suche.value));
-    suche.focus();
-  }
-
-  fuellen(text) {
-    this.listeEl.empty();
-
-    const suchtext = (text || '').toLowerCase();
-    const treffer = this.alle.filter((pfad) => pfad.toLowerCase().includes(suchtext));
-
-    /* The root is offered whenever the search is empty. Filtering it by
-       a typed word would mean matching its label, and the label is not
-       its name. */
-    if (!suchtext) this.zeileBauen('', TEXTE.ordnerWurzel);
-
-    for (const pfad of treffer) this.zeileBauen(pfad, pfad);
-
-    if (!treffer.length && suchtext) {
-      this.listeEl.createDiv({ cls: 'fc-leer', text: TEXTE.ordnerKeiner });
-    }
-  }
-
-  zeileBauen(pfad, beschriftung) {
-    const zeile = this.listeEl.createEl('button', {
-      cls: 'fc-sicherungzeile',
-      text: beschriftung,
-    });
-    if (pfad === this.aktuell) zeile.addClass('mod-cta');
-    zeile.addEventListener('click', () => {
-      this.close();
-      this.beiWahl(pfad);
-    });
-  }
-
-  onClose() {
-    this.contentEl.empty();
-  }
-}
-
-/* Writing a backup: says where it goes before it goes there.
- *
- * A single button that wrote somewhere without saying where was the
- * first version of this. Reported the same day: the folder is a choice,
- * and a choice needs somewhere to be made. */
-class SicherungSchreibenFenster extends Modal {
-  constructor(app, plugin) {
-    super(app);
-    this.plugin = plugin;
-    this.ordner = plugin.sicherungOrdner();
-  }
-
-  onOpen() {
-    const { titleEl } = this;
-    if (titleEl) titleEl.setText(TEXTE.sicherungSchreibenTitel);
-    this.zeichnen();
-  }
-
-  zeichnen() {
-    const { contentEl } = this;
-    contentEl.empty();
-
-    ordnerZeileBauen(contentEl, this.app, TEXTE.sicherungZiel, this.ordner, (gewaehlt) => {
-      this.ordner = gewaehlt;
-      this.zeichnen();
-    });
-
-    const fuss = contentEl.createDiv({ cls: 'fc-fuss' });
-
-    const abbrechen = fuss.createEl('button', { text: TEXTE.abbrechen });
-    abbrechen.addEventListener('click', () => this.close());
-
-    const los = fuss.createEl('button', {
-      text: TEXTE.sicherungJetzt,
-      cls: 'mod-cta',
-    });
-    los.addEventListener('click', async () => {
-      try {
-        const name = await this.plugin.sicherungSchreiben(this.ordner);
-        /* Remembered only after it worked. A folder that could not be
-           written to is not a folder to come back to. */
-        await this.plugin.sicherungOrdnerSetzen(this.ordner);
-        this.close();
-        new Notice(TEXTE.gesichert(name));
-      } catch (e) {
-        new Notice(TEXTE.sicherungFehlgeschlagen);
-      }
-    });
-  }
-
-  onClose() {
-    this.contentEl.empty();
-  }
-}
-
-/* The folder line both windows carry: what is set, and a way to change
-   it. Written once because the two must not drift apart -- the folder
-   you back up into is the folder you restore from. */
-const ordnerZeileBauen = (ziel, app, beschriftung, ordner, beiWahl) => {
-  const zeile = ziel.createDiv({ cls: 'fc-ordnerzeile' });
-
-  zeile.createSpan({ cls: 'fc-bereichname', text: beschriftung });
-  zeile.createSpan({
-    cls: 'fc-ordnerpfad',
-    text: ordner || TEXTE.ordnerWurzel,
-  });
-
-  const knopf = zeile.createEl('button', {
-    cls: 'fc-ordnerknopf',
-    text: TEXTE.ordnerWaehlen,
-  });
-  knopf.addEventListener('click', () => {
-    new OrdnerFenster(app, ordner, beiWahl).open();
-  });
-
-  return zeile;
-};
-
 /* Picks a backup to restore.
  *
  * A list of what is in the vault, not a file dialog. Obsidian has no
@@ -2527,26 +2335,11 @@ class SicherungFenster extends Modal {
     this.beiErfolg = beiErfolg;
   }
 
-  onOpen() {
-    const { titleEl } = this;
+  async onOpen() {
+    const { contentEl, titleEl } = this;
     if (titleEl) titleEl.setText(TEXTE.sicherungTitel);
-    this.ordner = this.plugin.sicherungOrdner();
-    this.zeichnen();
-  }
 
-  /* Redrawn whenever the folder changes, because the list of files is
-     the answer to which folder is set -- the two cannot be updated
-     separately without one of them lying. */
-  async zeichnen() {
-    const { contentEl } = this;
-    contentEl.empty();
-
-    ordnerZeileBauen(contentEl, this.app, TEXTE.sicherungQuelle, this.ordner, (gewaehlt) => {
-      this.ordner = gewaehlt;
-      this.zeichnen();
-    });
-
-    const dateien = await this.plugin.sicherungenFinden(this.ordner);
+    const dateien = await this.plugin.sicherungenFinden();
 
     if (!dateien.length) {
       contentEl.createDiv({ cls: 'fc-leer', text: TEXTE.sicherungLeer });
@@ -2569,10 +2362,6 @@ class SicherungFenster extends Modal {
             try {
               const daten = await this.plugin.sicherungLesen(pfad);
               this.plugin.sicherungUebernehmen(daten);
-              /* Restoring replaces the data, and with it the remembered
-                 folder from the file. Set again afterwards, or the next
-                 backup would silently go somewhere else. */
-              this.plugin.daten.sicherungOrdner = this.ordner;
               this.close();
               this.beiErfolg();
             } catch (e) {
@@ -2586,6 +2375,10 @@ class SicherungFenster extends Modal {
       });
     }
 
+    contentEl.createDiv({
+      cls: 'fc-hinweis',
+      text: TEXTE.sicherungOrt(SICHERUNG_ORDNER),
+    });
   }
 
   onClose() {
