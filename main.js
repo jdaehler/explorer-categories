@@ -1505,17 +1505,21 @@ class KategorienFenster extends Modal {
      selected category, and that highlight is what tells you where you
      are.
 
-     With "no marker" the dot stands in rather than nothing. The list is
-     also how the categories are told apart, and a row carrying no colour
-     at all could not do that. Same reason the preview is still there:
-     that one shows the truth, this one shows which category is which.
+     With "no marker" the row stays empty, because that is what the tree
+     does. Until 0.9.33 a dot stood in, so that a category without a
+     marker still showed its colour somewhere -- but a dot the tree does
+     not have reads as a setting that did not take, which is the very
+     thing this marker was added to fix. The holder keeps its width
+     either way, so the names still line up.
 
      Deliberately not shared with vorschauZeichnen -- the preview builds
      a whole example row, this is a marker in a fixed-width holder. */
   listenMarkeZeichnen(ziel, farbe, stil, icon) {
     ziel.empty();
 
-    if (stil.markierung !== 'keine' && icon) {
+    if (stil.markierung === 'keine') return;
+
+    if (icon) {
       const symbol = ziel.createSpan({ cls: 'fc-listensymbol' });
       setIcon(symbol, icon);
       symbol.style.color = farbe;

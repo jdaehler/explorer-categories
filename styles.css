@@ -53,7 +53,7 @@
 
 .fc-spalten {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 200px 1fr;
   gap: 18px;
   /* Fills the space between the tabs and the footer. min-height keeps
      the children from pushing it open: without it a flex child refuses
@@ -176,12 +176,28 @@
 /* Both columns fill the window's height and scroll inside themselves.
    The height comes from .fc-fenster above, so neither column can push
    the window open. */
+/* Each column on a surface of its own, the same recipe as the group box
+   at the top of the window: a surface says "this belongs together"
+   where a line only separates. The line between the columns goes with
+   it -- a border and a box side by side would be two separators for one
+   seam.
+
+   The padding costs width, and width turns into wrapped switch rows,
+   which cost more height than the surface is worth. Measured 2026-08-29
+   at 8px: the settings column needs 450px on the outside for nothing to
+   wrap, which is where the 200px for the list above comes from. */
+.fc-liste,
+.fc-detail {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 8px;
+}
+
 .fc-liste {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid var(--background-modifier-border);
-  padding-right: 10px;
 }
 
 .fc-listenrollen {
@@ -597,12 +613,11 @@
     gap: 12px;
   }
 
+  /* The surface brings its own border all the way round, so the divider
+     that used to stand between the columns is not needed here either --
+     stacked, the two boxes already read as two areas. */
   .fc-liste {
     max-height: 180px;
-    border-right: none;
-    border-bottom: 1px solid var(--background-modifier-border);
-    padding-right: 0;
-    padding-bottom: 10px;
   }
 
   /* Once the arrows are 44 pixels wide, nothing else fits beside them.
