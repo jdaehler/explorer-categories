@@ -65,6 +65,44 @@
 
 /* --- Groups -------------------------------------------------------- */
 
+/* Everything to do with groups on one raised surface: the tabs and the
+   row of controls under them. Reported on 2026-08-29 -- at first sight
+   the window ran together, and nothing said where groups ended and
+   categories began.
+
+   A surface rather than a line, because a line only separates while a
+   surface also says "these two belong together". */
+.fc-reiter {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 8px 10px 0 10px;
+  margin-bottom: 12px;
+}
+
+/* Names an area, quietly. Same size and weight as the sub-headings in
+   the settings column, so the window has one way of labelling things
+   and not two. */
+.fc-bereichname {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Beside the tabs it needs air on the right; above the list it needs it
+   underneath. */
+.fc-reiterleiste .fc-bereichname {
+  margin-right: 8px;
+  align-self: center;
+}
+
+.fc-bereichzeile {
+  margin-bottom: 6px;
+}
+
 /* One tab per legend. The row scrolls sideways instead of wrapping:
    with eight legends a wrapping row would change height as you switch
    between them, and everything below would jump. */
@@ -114,7 +152,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 8px 0 12px 0;
+  /* No bottom margin any more -- the surface around it brings its own
+     padding, and both together would look like a gap. */
+  margin: 8px 0;
 }
 
 .fc-gruppenname {

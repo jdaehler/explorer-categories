@@ -52,6 +52,10 @@ const TEXTE_DE = {
   markierung: 'Markierung',
   zusaetzlich: 'Zusätzlich',
   vererbung: 'Vererbung',
+  /* Names the two areas that had none. What the third area is, its own
+     first row says: a colour and a name. */
+  bereichGruppen: 'Gruppen',
+  bereichKategorien: 'Kategorien',
   vererbungHinweis: 'Gilt für alle Ordner dieser Kategorie.',
   /* Telling the folder that carries the assignment apart from the ones
      that only inherit from it. */
@@ -155,6 +159,8 @@ const TEXTE_EN = {
   markierung: 'Marker',
   zusaetzlich: 'Additional',
   vererbung: 'Inheritance',
+  bereichGruppen: 'Groups',
+  bereichKategorien: 'Categories',
   vererbungHinweis: 'Applies to every folder in this category.',
   vaterHervorheben: 'Set the parent apart',
   vaterKeine: 'None',
@@ -1180,6 +1186,14 @@ class KategorienFenster extends Modal {
 
     /* The rows scroll, the button below stays put -- otherwise it drops
        out of sight once there are many categories. */
+    /* Says what the list is. This one can sit above its column: the
+       height it costs comes out of the list, not out of the settings
+       column that has none to spare. */
+    this.listeEl.createDiv({
+      cls: 'fc-bereichname fc-bereichzeile',
+      text: TEXTE.bereichKategorien,
+    });
+
     const rollen = this.listeEl.createDiv({ cls: 'fc-listenrollen' });
 
     /* Only the active group. That is the whole point of groups: the same
@@ -1311,7 +1325,11 @@ class KategorienFenster extends Modal {
   reiterFuellen() {
     this.reiterEl.empty();
 
+    /* Says what the tabs are, on the same line as the tabs themselves.
+       Above them it would cost a row of height, and the settings column
+       below has none to give -- the window is at Obsidian's ceiling. */
     const leiste = this.reiterEl.createDiv({ cls: 'fc-reiterleiste' });
+    leiste.createSpan({ cls: 'fc-bereichname', text: TEXTE.bereichGruppen });
 
     for (const gruppe of this.plugin.daten.gruppen) {
       const knopf = leiste.createEl('button', {
