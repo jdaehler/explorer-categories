@@ -1804,9 +1804,13 @@ class KategorienFenster extends Modal {
 
       const vaterWahl = this.detailEl.createDiv({ cls: 'fc-schalter' });
 
+      let gewaehlterKnopf = null;
       for (const art of VATER_ARTEN) {
         const knopf = vaterWahl.createEl('button', { text: art.name });
-        if (art.id === vaterArt) knopf.addClass('mod-cta');
+        if (art.id === vaterArt) {
+          knopf.addClass('mod-cta');
+          gewaehlterKnopf = knopf;
+        }
         knopf.addEventListener('click', async () => {
           await this.plugin.stilAendern(kat.id, { vaterHervor: art.id });
           this.detailFuellen();
@@ -1827,7 +1831,13 @@ class KategorienFenster extends Modal {
         vaterHinweis = TEXTE.vaterSymbolSchlaegt;
       }
 
-      if (vaterHinweis) vaterWahl.addClass('fc-wirkungslos');
+      /* Only the chosen button is struck through, never the whole row.
+         The other five still work, and striking all six out reads as if
+         the setting were dead altogether -- exactly the wrong message,
+         because switching to one of them is the way out. */
+      if (vaterHinweis && gewaehlterKnopf) {
+        gewaehlterKnopf.addClass('fc-wirkungslos');
+      }
     }
 
     /* One reserved line for both, not two.
