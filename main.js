@@ -48,6 +48,7 @@ const TEXTE_DE = {
   neueVorgabe: 'Neue Kategorie',
   loeschen: 'Löschen',
   namePlatzhalter: 'Name',
+  farbeWaehlen: 'Farbe wählen',
   nichtsGewaehlt: 'Links eine Kategorie auswählen.',
   markierung: 'Markierung',
   zusaetzlich: 'Zusätzlich',
@@ -157,6 +158,7 @@ const TEXTE_EN = {
   neueVorgabe: 'New category',
   loeschen: 'Delete',
   namePlatzhalter: 'Name',
+  farbeWaehlen: 'Choose the colour',
   nichtsGewaehlt: 'Select a category on the left.',
   markierung: 'Marker',
   zusaetzlich: 'Additional',
@@ -1561,8 +1563,34 @@ class KategorienFenster extends Modal {
     /* --- Colour and name ------------------------------------------ */
     const kopf = this.detailEl.createDiv({ cls: 'fc-zeile' });
 
-    const farbe = kopf.createEl('input', { type: 'color', cls: 'fc-farbe' });
+    /* A coloured square is a coloured square -- nothing about it says it
+       can be pressed. Reported on 2026-08-29: the colour was there to be
+       seen, not to be found.
+
+       So a pipette lies on top of it. The field keeps showing the
+       colour, the icon says what pressing it does. The icon itself
+       cannot be pressed -- pointer-events are off, every click goes
+       through to the field underneath, which is still the real colour
+       input. Replacing that input was never on the table: the picker
+       behind it belongs to the system, and no plugin builds a better
+       one. */
+    const farbfeld = kopf.createDiv({ cls: 'fc-farbfeld' });
+
+    const farbe = farbfeld.createEl('input', { type: 'color', cls: 'fc-farbe' });
     farbe.value = kat.farbe;
+    farbe.setAttribute('aria-label', TEXTE.farbeWaehlen);
+    farbe.setAttribute('title', TEXTE.farbeWaehlen);
+
+    const pipette = farbfeld.createSpan({ cls: 'fc-farbpipette' });
+    setIcon(pipette, 'pipette');
+
+    /* Black or white, whichever reads on the colour underneath -- the
+       same sum the tree uses for its text. One fixed colour would
+       disappear on half the palette. */
+    const pipetteFaerben = () => {
+      pipette.style.color = lesbareSchrift(farbe.value);
+    };
+    pipetteFaerben();
 
     const name = kopf.createEl('input', {
       type: 'text',
@@ -1876,6 +1904,7 @@ class KategorienFenster extends Modal {
        list and the preview are redrawn. */
     farbe.addEventListener('input', () => {
       this.plugin.kategorieAendern(kat.id, { farbe: farbe.value });
+      pipetteFaerben();
       const zeile = this.zeilen.get(kat.id);
       if (zeile) this.listenMarkeZeichnen(zeile.marke, farbe.value, stil, kat.icon);
       vorschau.empty();

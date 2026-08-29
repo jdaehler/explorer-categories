@@ -339,6 +339,13 @@
 
 /* The system colour picker brings its own frame, which looks alien in
    Obsidian. Hence rounded and borderless. */
+/* Holds the colour field and the pipette lying on top of it. */
+.fc-farbfeld {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
 .fc-farbe {
   flex: 0 0 auto;
   width: 34px;
@@ -348,6 +355,27 @@
   border-radius: 6px;
   background: none;
   cursor: pointer;
+}
+
+/* Lies on the field and lets every click through to it. Without
+   pointer-events: none the icon would swallow exactly the press it is
+   there to invite. */
+.fc-farbpipette {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.fc-farbpipette svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  /* A thin outline gets lost on a mid-tone colour. A shadow underneath
+     holds it up on any of them. */
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.35));
 }
 
 .fc-name {
