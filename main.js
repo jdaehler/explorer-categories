@@ -23,6 +23,7 @@ const {
   Modal,
   TFolder,
   Notice,
+  Platform,
   setIcon,
   getIconIds,
   getLanguage,
@@ -102,10 +103,11 @@ const TEXTE_DE = {
   verwerfenFrage: 'Die Änderungen verwerfen? Sie gehen dabei verloren.',
   sichern: 'Sichern',
   laden: 'Laden',
-  gesichert: (name) => `Gesichert als „${name}".`,
+  gesichertGeladen: (name) => `„${name}" liegt im Download-Ordner.`,
+  gesichertImVault: (name) => `Gesichert als „${name}" im Vault.`,
   sicherungFehlgeschlagen: 'Die Sicherung konnte nicht geschrieben werden.',
   sicherungTitel: 'Sicherung laden',
-  sicherungLeer: 'Es liegt noch keine Sicherung vor. „Sichern" legt die erste an.',
+  sicherungLeer: 'Im Vault liegt noch keine Sicherung.',
   sicherungOrt: (ordner) => `Die Sicherungen liegen im Vault unter „${ordner}".`,
   sicherungFrage: (name) =>
     `„${name}" laden? Ersetzt den Stand im Fenster — geschrieben wird er erst mit „Speichern".`,
@@ -221,10 +223,11 @@ const TEXTE_EN = {
   verwerfenFrage: 'Discard the changes? They will be lost.',
   sichern: 'Back up',
   laden: 'Restore',
-  gesichert: (name) => `Backed up as "${name}".`,
+  gesichertGeladen: (name) => `"${name}" is in your downloads folder.`,
+  gesichertImVault: (name) => `Backed up as "${name}" in the vault.`,
   sicherungFehlgeschlagen: 'The backup could not be written.',
   sicherungTitel: 'Restore a backup',
-  sicherungLeer: 'There is no backup yet. "Back up" makes the first one.',
+  sicherungLeer: 'No backup in the vault yet.',
   sicherungOrt: (ordner) => `Backups live in the vault under "${ordner}".`,
   sicherungFrage: (name) =>
     `Restore "${name}"? It replaces what is in the window -- nothing is written until you press Save.`,
@@ -380,13 +383,15 @@ const STANDARD_DATEN = {
 
 const STIL_ID = 'explorer-categories-stil';
 
-/* Backups go into the vault, not next to data.json.
+/* The phone's backup folder, and only the phone's.
  *
- * A copy in the plugin's own folder would share the fate of the file it
- * is meant to survive -- the same folder, the same sync, the same
- * mishap. In the vault the folder shows up in the file explorer, which
- * is the point: a backup nobody can see is one nobody copies off the
- * machine.
+ * On the desktop a backup leaves the vault altogether and goes to the
+ * downloads folder -- see sicherungSchreiben. A copy inside the vault
+ * shares the fate of the file it is meant to survive: the same folder
+ * tree, the same sync, the same mishap.
+ *
+ * The phone has no downloads folder worth the name, so there the backup
+ * stays here, where at least it can be reached and shared out.
  *
  * Lower case and no spaces, so the name survives every filesystem and
  * every sync in one piece. */
@@ -915,11 +920,6 @@ class ExplorerCategoriesPlugin extends Plugin {
    * different one than the visible one would be a trap. It does mean a
    * backup can outlive a Cancel: the file stays, the edits do not. */
   async sicherungSchreiben() {
-    const adapter = this.app.vault.adapter;
-    if (!(await adapter.exists(SICHERUNG_ORDNER))) {
-      await adapter.mkdir(SICHERUNG_ORDNER);
-    }
-
     const name = `kategorien-${zeitstempel()}.json`;
     const inhalt = JSON.stringify(
       {
@@ -932,8 +932,38 @@ class ExplorerCategoriesPlugin extends Plugin {
       2
     );
 
+    /* On the desktop the file leaves the vault entirely.
+     *
+     * A copy inside the vault shares everything with the file it is
+     * meant to survive -- the same folder tree, the same sync, the same
+     * mishap. In the downloads folder it is a genuine second copy, on
+     * disk, outside iCloud.
+     *
+     * Verified in Obsidian on 2026-08-29: a link with a download
+     * attribute writes straight into the downloads folder, no prompt,
+     * no Electron internals involved. */
+    if (Platform.isDesktopApp) {
+      const url = URL.createObjectURL(new Blob([inhalt], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      /* Released a moment later, not at once: revoking while the write
+         is still running can cut the file short. */
+      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+      return { name, imVault: false };
+    }
+
+    /* The phone has no downloads folder to speak of, so there the backup
+       stays in the vault -- reachable rather than nowhere. */
+    const adapter = this.app.vault.adapter;
+    if (!(await adapter.exists(SICHERUNG_ORDNER))) {
+      await adapter.mkdir(SICHERUNG_ORDNER);
+    }
     await adapter.write(`${SICHERUNG_ORDNER}/${name}`, inhalt);
-    return name;
+    return { name, imVault: true };
   }
 
   /* Newest first -- the name sorts by date, so reversing the plain sort
@@ -959,10 +989,14 @@ class ExplorerCategoriesPlugin extends Plugin {
    * Categories are the one thing checked for. Without them there is
    * nothing to restore, and quietly replacing a working set of colours
    * with an empty one is the worst outcome this window has. */
-  async sicherungLesen(pfad) {
+  /* The check itself, on text. Split off from reading so the file picker
+     and the vault list run through exactly the same one -- a file chosen
+     from the downloads folder deserves no less scrutiny than one lying
+     inside the vault. */
+  sicherungAusText(text) {
     let roh;
     try {
-      roh = JSON.parse(await this.app.vault.adapter.read(pfad));
+      roh = JSON.parse(text);
     } catch (e) {
       throw new Error(TEXTE.sicherungUnlesbar);
     }
@@ -972,6 +1006,16 @@ class ExplorerCategoriesPlugin extends Plugin {
       throw new Error(TEXTE.sicherungOhneKategorien);
     }
     return daten;
+  }
+
+  async sicherungLesen(pfad) {
+    let text;
+    try {
+      text = await this.app.vault.adapter.read(pfad);
+    } catch (e) {
+      throw new Error(TEXTE.sicherungUnlesbar);
+    }
+    return this.sicherungAusText(text);
   }
 
   /* Puts a backup in place of what is on screen -- in the draft, so Save
@@ -1350,8 +1394,12 @@ class KategorienFenster extends Modal {
     const sicherungKnopf = sicherungen.createEl('button', { text: TEXTE.sichern });
     sicherungKnopf.addEventListener('click', async () => {
       try {
-        const name = await this.plugin.sicherungSchreiben();
-        new Notice(TEXTE.gesichert(name));
+        const stand = await this.plugin.sicherungSchreiben();
+        new Notice(
+          stand.imVault
+            ? TEXTE.gesichertImVault(stand.name)
+            : TEXTE.gesichertGeladen(stand.name)
+        );
       } catch (e) {
         new Notice(TEXTE.sicherungFehlgeschlagen);
       }
@@ -1359,17 +1407,8 @@ class KategorienFenster extends Modal {
 
     const ladenKnopf = sicherungen.createEl('button', { text: TEXTE.laden });
     ladenKnopf.addEventListener('click', () => {
-      new SicherungFenster(this.app, this.plugin, () => {
-        /* Everything on screen came from the old data -- which group is
-           open, which category is selected. Both are re-derived instead
-           of kept, or the window would point at entries the restored
-           file does not have. */
-        this.gruppeGewaehlt = this.plugin.daten.gruppen[0].id;
-        const erste = this.plugin.kategorienIn(this.gruppeGewaehlt)[0];
-        this.gewaehlt = erste ? erste.id : null;
-        this.zeichnen();
-        new Notice(TEXTE.sicherungGeladen);
-      }).open();
+      if (Platform.isDesktopApp) this.sicherungAusDateiWaehlen();
+      else this.sicherungAusVaultWaehlen();
     });
 
     const abbrechen = fuss.createEl('button', { text: TEXTE.abbrechen });
@@ -1574,6 +1613,62 @@ class KategorienFenster extends Modal {
     const bewegt = await this.plugin.kategorieVerschieben(this.gewaehlt, richtung);
     if (!bewegt) return;
     this.listeFuellen();
+  }
+
+  /* --- Restoring --------------------------------------------------- */
+
+  /* The system's own open dialog. A plain file input, nothing to do with
+     Electron -- verified in Obsidian on 2026-08-29. Whatever the person
+     can reach in Finder they can reach here, which is the whole point of
+     writing the backup outside the vault in the first place.
+   *
+     Read and checked before anything is asked, so a file that turns out
+     not to be a backup is refused without a pointless question first. */
+  sicherungAusDateiWaehlen() {
+    const eingabe = document.createElement('input');
+    eingabe.type = 'file';
+    eingabe.accept = '.json,application/json';
+
+    eingabe.addEventListener('change', async () => {
+      const datei = eingabe.files && eingabe.files[0];
+      if (!datei) return;
+
+      let daten;
+      try {
+        daten = this.plugin.sicherungAusText(await datei.text());
+      } catch (e) {
+        new Notice(e.message || TEXTE.sicherungUnlesbar);
+        return;
+      }
+
+      new BestaetigenFenster(
+        this.app,
+        TEXTE.sicherungFrage(datei.name),
+        () => this.sicherungAnwenden(daten),
+        TEXTE.laden
+      ).open();
+    });
+
+    eingabe.click();
+  }
+
+  sicherungAusVaultWaehlen() {
+    new SicherungFenster(this.app, this.plugin, (daten) =>
+      this.sicherungAnwenden(daten)
+    ).open();
+  }
+
+  /* Everything on screen came from the old data -- which group is open,
+     which category is selected. Both are worked out again rather than
+     kept, or the window would point at entries the restored file does
+     not have. */
+  sicherungAnwenden(daten) {
+    this.plugin.sicherungUebernehmen(daten);
+    this.gruppeGewaehlt = this.plugin.daten.gruppen[0].id;
+    const erste = this.plugin.kategorienIn(this.gruppeGewaehlt)[0];
+    this.gewaehlt = erste ? erste.id : null;
+    this.zeichnen();
+    new Notice(TEXTE.sicherungGeladen);
   }
 
   /* Only the list is redrawn, same as for the arrows: sorting changes
@@ -2361,9 +2456,8 @@ class SicherungFenster extends Modal {
           async () => {
             try {
               const daten = await this.plugin.sicherungLesen(pfad);
-              this.plugin.sicherungUebernehmen(daten);
               this.close();
-              this.beiErfolg();
+              this.beiErfolg(daten);
             } catch (e) {
               /* The message comes from sicherungLesen and already says
                  which of the two things went wrong. */
