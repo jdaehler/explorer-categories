@@ -1624,9 +1624,16 @@ class KategorienFenster extends Modal {
     const markierungFeld = this.abschnitt(TEXTE.markierung);
 
     const gruppe = markierungFeld.createDiv({ cls: 'fc-gruppe' });
+
+    /* Collected because the icon field strikes them through as you type
+       -- see symbolStandZeigen below. "None" is not in here: it keeps
+       working with an icon set, it is what leaves the folder unmarked. */
+    const markenKnoepfe = [];
+
     for (const m of MARKIERUNGEN) {
       const knopf = gruppe.createEl('button', { text: m.name });
       if (stil.markierung === m.id) knopf.addClass('mod-cta');
+      if (m.id !== 'keine') markenKnoepfe.push(knopf);
       knopf.addEventListener('click', async () => {
         await this.plugin.stilAendern(kat.id, { markierung: m.id });
         /* The list carries the marker too, so it has to follow. */
@@ -1704,6 +1711,18 @@ class KategorienFenster extends Modal {
       const wirkungslos = Boolean(kat.icon) && stil.markierung === 'keine';
       symbolZeile.classList.toggle('fc-wirkungslos', wirkungslos);
       symbolFeld.classList.toggle('fc-unbekannt', Boolean(unbekannt));
+
+      /* The other direction of the same dependency: with an icon set,
+         the bar and the dot both draw the icon, so the choice between
+         them changes nothing and is struck through. Reported 2026-08-29
+         -- "Lasche" looked selected and active while an icon was named
+         right below it. Done here rather than where the buttons are
+         built, because typing a name must not redraw the panel (the
+         caret would jump out of the field), and this line runs on every
+         keystroke. */
+      for (const knopf of markenKnoepfe) {
+        knopf.classList.toggle('fc-wirkungslos', Boolean(kat.icon));
+      }
 
       if (unbekannt) symbolHinweisEl.setText(TEXTE.symbolUnbekannt);
       else if (wirkungslos) symbolHinweisEl.setText(TEXTE.symbolOhneWirkung);
