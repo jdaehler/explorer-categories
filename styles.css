@@ -475,7 +475,15 @@
   overflow-y: auto;
 }
 
-.fc-symbolfeld {
+/* THE LONG SELECTOR IS THE POINT -- DO NOT SHORTEN IT
+   On a tablet Obsidian adds 20px of padding either side of every
+   button: ".is-tablet button:not(.clickable-icon)". A plain
+   ".fc-symbolfeld" is the weaker selector and loses. The 40px of
+   padding then eat a cell that is only 38px wide, the icon inside is
+   squeezed to nothing, and all that is left is the round button
+   background -- a grid of circles with no icons, on the iPad only.
+   Three classes plus the element name beat the app rule for good. */
+.fc-symbolfenster .fc-symbolraster button.fc-symbolfeld {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -483,20 +491,24 @@
   padding: 0;
 }
 
-.fc-symbolfeld svg {
+/* And the icon itself must not give way either: as a flex child it
+   would shrink before the padding does. */
+.fc-symbolfenster .fc-symbolraster button.fc-symbolfeld svg {
   width: 18px;
   height: 18px;
+  flex: 0 0 auto;
 }
 
 /* Less room on a phone, and tapping is done with a finger: bigger
-   cells, fewer of them side by side. */
+   cells, fewer of them side by side. The cell selector has to match
+   the one above, or the height set there would win over this one. */
 @media (max-width: 600px) {
   .fc-symbolraster {
     grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
     max-height: 260px;
   }
 
-  .fc-symbolfeld {
+  .fc-symbolfenster .fc-symbolraster button.fc-symbolfeld {
     height: 44px;
   }
 }
