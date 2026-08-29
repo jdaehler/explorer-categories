@@ -57,7 +57,6 @@ const TEXTE_DE = {
      first row says: a colour and a name. */
   bereichGruppen: 'Gruppen',
   bereichKategorien: 'Kategorien',
-  vererbungHinweis: 'Gilt für alle Ordner dieser Kategorie.',
   /* Telling the folder that carries the assignment apart from the ones
      that only inherit from it. */
   vaterHervorheben: 'Vater hervorheben',
@@ -165,7 +164,6 @@ const TEXTE_EN = {
   vererbung: 'Inheritance',
   bereichGruppen: 'Groups',
   bereichKategorien: 'Categories',
-  vererbungHinweis: 'Applies to every folder in this category.',
   vaterHervorheben: 'Set the parent apart',
   vaterKeine: 'None',
   vaterFett: 'Bold',
@@ -1816,15 +1814,8 @@ class KategorienFenster extends Modal {
     const vaterArt = stil.vaterHervor || 'keine';
     let vaterHinweis = '';
 
-    /* The hint belongs to whichever section is last on screen: with
-       nothing inheriting there is no parent section, and the sentence
-       has to sit under the inheritance switches instead. */
-    let hinweisFeld = vererbungFeld;
-
     if (stil.vererbt || stil.vererbtDateien) {
       const vaterFeld = this.abschnitt(TEXTE.vaterHervorheben);
-      hinweisFeld = vaterFeld;
-
       const vaterWahl = vaterFeld.createDiv({ cls: 'fc-schalter' });
 
       let gewaehlterKnopf = null;
@@ -1861,21 +1852,19 @@ class KategorienFenster extends Modal {
       if (vaterHinweis && gewaehlterKnopf) {
         gewaehlterKnopf.addClass('fc-wirkungslos');
       }
-    }
 
-    /* One reserved line for both, not two.
-     *
-     * The standing sentence says what "inherit" reaches: not this one
-     * folder, but every folder carrying this category -- the whole
-     * difference to the switch that used to sit in the context menu.
-     *
-     * A situational hint takes its place while there is one. It is the
-     * more useful of the two at that moment, and a second reserved line
-     * is a line the window does not have. */
-    hinweisFeld.createDiv({
-      cls: 'fc-hinweis',
-      text: vaterHinweis || TEXTE.vererbungHinweis,
-    });
+      /* The row appears only when a choice really has no effect. There
+         used to be a standing sentence about what inheriting reaches,
+         and a reserved row so nothing jumped when the hint replaced it.
+         Both went in 0.9.32: sitting under "Set the parent apart", that
+         sentence read as a statement about that setting and made no
+         sense there. Nothing below this but the footer, so the row
+         coming and going moves only the footer -- downwards, away from
+         the hand. */
+      if (vaterHinweis) {
+        vaterFeld.createDiv({ cls: 'fc-hinweis', text: vaterHinweis });
+      }
+    }
 
     /* --- Loeschen -------------------------------------------------- */
     const fuss = this.detailEl.createDiv({ cls: 'fc-detailfuss' });
