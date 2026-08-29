@@ -56,6 +56,8 @@ const TEXTE_DE = {
   vorschau: 'Vorschau',
   symbol: 'Symbol',
   symbolWaehlen: 'Symbol wählen …',
+  symbolName: 'Name des Symbols',
+  symbolUnbekannt: 'Ein Symbol dieses Namens gibt es nicht.',
   symbolEntfernen: 'Entfernen',
   symbolSuche: 'Symbol suchen',
   symbolNichtsGefunden: 'Kein Symbol gefunden.',
@@ -137,6 +139,8 @@ const TEXTE_EN = {
   vorschau: 'Preview',
   symbol: 'Icon',
   symbolWaehlen: 'Choose icon …',
+  symbolName: 'Icon name',
+  symbolUnbekannt: 'There is no icon of that name.',
   symbolEntfernen: 'Remove',
   symbolSuche: 'Search icons',
   symbolNichtsGefunden: 'No icon found.',
@@ -1322,6 +1326,24 @@ class KategorienFenster extends Modal {
 
   /* ---------------- Detail ---------------------------------------- */
 
+  /* Every valid icon id, fetched once per open window. The typing
+     handler asks after every keystroke, and getIconIds() builds the
+     whole list of over a thousand each time it is called.
+
+     If it fails, the list stays empty -- then no typed name is
+     recognised, and the grid button is still there. Better than a
+     window that will not open. */
+  symbolListe() {
+    if (!this.symbole) {
+      try {
+        this.symbole = getIconIds() || [];
+      } catch (e) {
+        this.symbole = [];
+      }
+    }
+    return this.symbole;
+  }
+
   detailFuellen() {
     this.detailEl.empty();
 
@@ -1367,20 +1389,33 @@ class KategorienFenster extends Modal {
        more, but the icon in the category colour. */
     this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.symbol });
 
+    /* The name of the icon stands in a field you can type and paste
+       into. Through the grid alone, setting one category after another
+       meant opening a window, searching and closing it again for every
+       single one.
+
+       The grid did not go away, it moved into the small button beside
+       the field. Browsing is still how you find an icon you cannot
+       name. */
     const symbolZeile = this.detailEl.createDiv({ cls: 'fc-symbolzeile' });
-    const waehlen = symbolZeile.createEl('button', { cls: 'fc-symbolknopf' });
 
-    if (kat.icon) {
-      const bild = waehlen.createSpan({ cls: 'fc-symbolbild' });
-      setIcon(bild, kat.icon);
-      bild.style.color = kat.farbe;
-      waehlen.createSpan({ text: kat.icon });
-    } else {
-      waehlen.setText(TEXTE.symbolWaehlen);
-      waehlen.addClass('fc-symbolleer');
-    }
+    /* Keeps its width whether or not there is an icon, so the field
+       does not shift sideways the moment one is set. */
+    const symbolBild = symbolZeile.createSpan({ cls: 'fc-symbolbild' });
 
-    waehlen.addEventListener('click', () => {
+    const symbolFeld = symbolZeile.createEl('input', {
+      type: 'text',
+      cls: 'fc-symboltext',
+      placeholder: TEXTE.symbolName,
+    });
+    symbolFeld.value = symbolKurz(kat.icon);
+
+    const blaettern = symbolZeile.createEl('button', {
+      cls: 'clickable-icon fc-symbolblaettern',
+    });
+    setIcon(blaettern, 'layout-grid');
+    blaettern.setAttribute('aria-label', TEXTE.symbolWaehlen);
+    blaettern.addEventListener('click', () => {
       new SymbolFenster(this.app, kat.icon || null, async (gewaehlt) => {
         await this.plugin.kategorieAendern(kat.id, { icon: gewaehlt });
         this.listeFuellen();
@@ -1401,21 +1436,39 @@ class KategorienFenster extends Modal {
       this.detailFuellen();
     });
 
-    /* With "None" the folder stays unmarked -- the explicit choice
-       beats the icon. Rather than disabling the picker it is only
-       visibly dimmed, so a chosen icon survives and takes effect again
-       as soon as a marker comes back. Same pattern as "coloured text"
-       underneath a background. */
     /* Same reason as the button above: the line keeps its space even
        when it has nothing to say. .fc-hinweis reserves one row. */
-    let symbolHinweis = '';
-    if (kat.icon && stil.markierung === 'keine') {
-      waehlen.addClass('fc-wirkungslos');
-      symbolHinweis = TEXTE.symbolOhneWirkung;
-    } else if (kat.icon) {
-      symbolHinweis = TEXTE.symbolErsetzt;
-    }
-    this.detailEl.createDiv({ cls: 'fc-hinweis', text: symbolHinweis });
+    const symbolHinweisEl = this.detailEl.createDiv({ cls: 'fc-hinweis' });
+
+    /* The one place that decides what the icon line says and looks like.
+       Called on drawing and again after every keystroke, so the two can
+       never drift apart.
+
+       With "None" the folder stays unmarked -- the explicit choice beats
+       the icon. The line is only dimmed, not disabled, so a chosen icon
+       survives and takes effect again as soon as a marker comes back.
+       Same pattern as "coloured text" underneath a background. */
+    const symbolStandZeigen = (unbekannt) => {
+      const wirkungslos = Boolean(kat.icon) && stil.markierung === 'keine';
+      symbolZeile.classList.toggle('fc-wirkungslos', wirkungslos);
+      symbolFeld.classList.toggle('fc-unbekannt', Boolean(unbekannt));
+
+      if (unbekannt) symbolHinweisEl.setText(TEXTE.symbolUnbekannt);
+      else if (wirkungslos) symbolHinweisEl.setText(TEXTE.symbolOhneWirkung);
+      else symbolHinweisEl.setText(kat.icon ? TEXTE.symbolErsetzt : '');
+    };
+
+    /* Draws the icon in front of the field, in the category colour --
+       the same picture the tree will show. */
+    const symbolBildZeigen = () => {
+      symbolBild.empty();
+      if (!kat.icon) return;
+      setIcon(symbolBild, kat.icon);
+      symbolBild.style.color = kat.farbe;
+    };
+
+    symbolBildZeigen();
+    symbolStandZeigen(false);
 
     /* --- the four independent switches ------------------------------ */
     this.detailEl.createDiv({ cls: 'fc-untertitel', text: TEXTE.zusaetzlich });
@@ -1512,6 +1565,27 @@ class KategorienFenster extends Modal {
       if (zeile) this.listenMarkeZeichnen(zeile.marke, farbe.value, stil, kat.icon);
       vorschau.empty();
       this.vorschauZeichnen(vorschau, farbe.value, stil, kat.icon);
+    });
+
+    /* Same as the name field: no redraw while typing, only the pieces
+       that show the icon. A name that matches nothing changes nothing --
+       it says so and leaves the saved icon alone, so a half-typed word
+       does not wipe out what was there. */
+    symbolFeld.addEventListener('input', () => {
+      const id = symbolAufloesen(symbolFeld.value, this.symbolListe());
+      if (id === null) {
+        symbolStandZeigen(true);
+        return;
+      }
+
+      this.plugin.kategorieAendern(kat.id, { icon: id || null });
+      symbolBildZeigen();
+      symbolStandZeigen(false);
+
+      const zeile = this.zeilen.get(kat.id);
+      if (zeile) this.listenMarkeZeichnen(zeile.marke, kat.farbe, stil, kat.icon);
+      vorschau.empty();
+      this.vorschauZeichnen(vorschau, kat.farbe, stil, kat.icon);
     });
 
     /* Deliberately no redraw while typing, or the field would lose the
@@ -1678,10 +1752,6 @@ class SymbolFenster extends Modal {
     window.setTimeout(() => suche.focus(), 0);
   }
 
-  kurz(id) {
-    return id.replace(/^lucide-/, '');
-  }
-
   rasterFuellen(suchtext) {
     this.rasterEl.empty();
     this.hinweisEl.empty();
@@ -1698,8 +1768,8 @@ class SymbolFenster extends Modal {
 
     for (const id of passend.slice(0, SYMBOL_HOECHSTENS)) {
       const knopf = this.rasterEl.createEl('button', { cls: 'fc-symbolfeld' });
-      knopf.setAttribute('aria-label', this.kurz(id));
-      knopf.setAttribute('title', this.kurz(id));
+      knopf.setAttribute('aria-label', symbolKurz(id));
+      knopf.setAttribute('title', symbolKurz(id));
       if (id === this.aktuell) knopf.addClass('mod-cta');
 
       setIcon(knopf, id);
@@ -1780,6 +1850,38 @@ function gruppenNachziehen(daten, vorgabeName) {
   }
 
   return daten;
+}
+
+/* The id without the prefix. Almost all of them read "lucide-folder";
+ * what a person types, pastes or looks up is "folder". */
+function symbolKurz(id) {
+  return (id || '').replace(/^lucide-/, '');
+}
+
+/* Turns whatever someone typed into the icon line into a real id.
+ *
+ *   ''    the field is empty -- no icon
+ *   id    an icon of that name exists
+ *   null  there is none, so nothing may be saved
+ *
+ * Both spellings are accepted, "folder" and "lucide-folder": the window
+ * shows the short one, the file holds the full one, and a name copied
+ * from somewhere else can be either. Spaces become hyphens, because the
+ * icon pages write "folder open" where the id says "folder-open".
+ *
+ * The list of valid ids is handed in rather than fetched here, so this
+ * can be tested without Obsidian. */
+function symbolAufloesen(text, alle) {
+  const roh = (text || '').trim().toLowerCase().replace(/\s+/g, '-');
+  if (!roh) return '';
+
+  const liste = alle || [];
+  if (liste.includes(roh)) return roh;
+
+  const mitVorsatz = 'lucide-' + roh;
+  if (liste.includes(mitVorsatz)) return mitVorsatz;
+
+  return null;
 }
 
 /* Sorts index entries by plain code-point order. Never localeCompare

@@ -506,20 +506,14 @@
   gap: 8px;
 }
 
-/* The picker should show what is picked: icon on the left in the
-   category colour, id beside it. Hence two parts in one button rather
-   than a plain label. */
-.fc-symbolknopf {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
+/* The icon as a picture, in front of the field. Fixed width and centred
+   so the field does not shift sideways when an icon appears. */
 .fc-symbolbild {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
+  width: 16px;
 }
 
 .fc-symbolbild svg {
@@ -527,8 +521,45 @@
   height: 16px;
 }
 
-.fc-symbolleer {
-  color: var(--text-muted);
+/* The id as text, so it can be pasted. Working through many categories
+   with the grid alone was a window per category. */
+.fc-symboltext {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* A name that matches no icon. Only the frame turns, no extra line
+   appears -- the sentence below is reserved either way, and a line
+   jumping in would move everything under it. */
+.fc-symboltext.fc-unbekannt {
+  border-color: var(--text-error);
+}
+
+/* Opens the grid. Same build as the arrows for the order: Obsidian's
+   own clickable-icon class, so the tablet padding rule leaves it alone,
+   and three classes plus an element so nothing else can. */
+.fc-fenster .fc-symbolzeile button.fc-symbolblaettern {
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  box-shadow: none;
+  flex: 0 0 auto;
+}
+
+.fc-fenster .fc-symbolzeile button.fc-symbolblaettern svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.is-mobile .fc-fenster .fc-symbolzeile button.fc-symbolblaettern {
+  min-width: 44px;
+  height: 44px;
+}
+
+.is-mobile .fc-fenster .fc-symbolzeile button.fc-symbolblaettern svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* --- Icon picker --------------------------------------------------- */
