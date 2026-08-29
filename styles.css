@@ -472,11 +472,29 @@
 
 .fc-detailfuss {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: 18px;
   padding-top: 12px;
   border-top: 1px solid var(--background-modifier-border);
+}
+
+/* The word in front of the group field. Quiet on purpose -- it names
+   the field, it is not a control. */
+.fc-fussname {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+/* Gives way before the buttons do, and never grows past its share of
+   the row -- a long group name would otherwise push Delete off it. */
+.fc-gruppenwahl {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  font-size: var(--font-ui-smaller);
 }
 
 /* Delete keeps to the far right of the row, whatever stands beside it.

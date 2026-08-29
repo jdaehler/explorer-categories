@@ -125,6 +125,8 @@ const TEXTE_DE = {
   gruppeLoeschen: 'Gruppe löschen',
   gruppeDuplizieren: 'Gruppe duplizieren',
   duplizieren: 'Duplizieren',
+  gruppeFeld: 'Gruppe',
+  gruppeWechseln: 'In eine andere Gruppe verschieben',
   kopieName: (name) => `${name} (Kopie)`,
   gruppeLoeschFrage: (name, n) =>
     n === 0
@@ -220,6 +222,8 @@ const TEXTE_EN = {
   gruppeLoeschen: 'Delete group',
   gruppeDuplizieren: 'Duplicate group',
   duplizieren: 'Duplicate',
+  gruppeFeld: 'Group',
+  gruppeWechseln: 'Move to another group',
   kopieName: (name) => `${name} copy`,
   gruppeLoeschFrage: (name, n) =>
     n === 0
@@ -573,6 +577,32 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     await this.speichern();
     return id;
+  }
+
+  /* Moves a category into another group.
+   *
+   * Only the field changes -- the folders keep their colour, because
+   * they point at the category and the category still exists. A group
+   * says which categories are shown together, nothing more.
+   *
+   * It goes to the end of the array so it lands last in its new group.
+   * Left where it was, its place among the others would depend on which
+   * entries of that group happen to sit before or after it -- arriving
+   * at the bottom is at least predictable. */
+  async kategorieUmhaengen(katId, gruppenId) {
+    const alle = this.daten.kategorien;
+    const von = alle.findIndex((k) => k.id === katId);
+    if (von < 0) return false;
+    if (alle[von].gruppe === gruppenId) return false;
+    if (!this.daten.gruppen.some((g) => g.id === gruppenId)) return false;
+
+    const kat = alle[von];
+    kat.gruppe = gruppenId;
+    alle.splice(von, 1);
+    alle.push(kat);
+
+    await this.speichern();
+    return true;
   }
 
   /* One category, copied. The style is copied over STIL_VORGABE rather
@@ -1802,6 +1832,40 @@ class KategorienFenster extends Modal {
       this.listeFuellen();
       this.detailFuellen();
     });
+
+    /* Moving to another group, in the row that is already there rather
+       than in a line of its own: the settings column has no height to
+       give away.
+
+       Only with somewhere to move to. With one group the field would
+       have exactly one entry -- a control that can only say what is
+       already true. */
+    if (this.plugin.daten.gruppen.length > 1) {
+      fuss.createSpan({ cls: 'fc-fussname', text: TEXTE.gruppeFeld });
+
+      const wahl = fuss.createEl('select', { cls: 'dropdown fc-gruppenwahl' });
+      wahl.setAttribute('aria-label', TEXTE.gruppeWechseln);
+      wahl.setAttribute('title', TEXTE.gruppeWechseln);
+
+      for (const g of this.plugin.daten.gruppen) {
+        const eintrag = wahl.createEl('option', { text: g.name });
+        eintrag.value = g.id;
+        if (g.id === kat.gruppe) eintrag.selected = true;
+      }
+
+      wahl.addEventListener('change', async () => {
+        const ziel = wahl.value;
+        if (!(await this.plugin.kategorieUmhaengen(kat.id, ziel))) return;
+
+        /* The window follows it. Staying put would make the category
+           vanish from the list with nothing to show where it went. */
+        this.gruppeGewaehlt = ziel;
+        this.gewaehlt = kat.id;
+        this.reiterFuellen();
+        this.listeFuellen();
+        this.detailFuellen();
+      });
+    }
 
     const weg = fuss.createEl('button', { cls: 'fc-weg', text: TEXTE.loeschen });
 
