@@ -592,6 +592,35 @@
   margin-top: 1.2em;
 }
 
+/* Pushed to the far left of the footer, as far from Save as the row
+   allows. Backing up and restoring belong to the file on disk, not to
+   the edits in this window, and Restore in particular must not sit
+   where a hand goes looking for Save. */
+.fc-fussnebenan {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+
+/* One backup per row, full width, so the file names line up and the
+   whole row is the target -- these get tapped on a phone too. */
+.fc-sicherungliste {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+
+.fc-sicherungzeile {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+}
+
 /* --- Phone --------------------------------------------------------- */
 
 /* There is not enough width on a phone for two columns. The list goes

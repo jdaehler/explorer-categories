@@ -97,6 +97,18 @@ const TEXTE_DE = {
   speichern: 'Speichern',
   verwerfen: 'Verwerfen',
   verwerfenFrage: 'Die Änderungen verwerfen? Sie gehen dabei verloren.',
+  sichern: 'Sichern',
+  laden: 'Laden',
+  gesichert: (name) => `Gesichert als „${name}".`,
+  sicherungFehlgeschlagen: 'Die Sicherung konnte nicht geschrieben werden.',
+  sicherungTitel: 'Sicherung laden',
+  sicherungLeer: 'Es liegt noch keine Sicherung vor. „Sichern" legt die erste an.',
+  sicherungOrt: (ordner) => `Die Sicherungen liegen im Vault unter „${ordner}".`,
+  sicherungFrage: (name) =>
+    `„${name}" laden? Ersetzt den Stand im Fenster — geschrieben wird er erst mit „Speichern".`,
+  sicherungGeladen: 'Geladen. Mit „Speichern" übernehmen, mit „Abbrechen" verwerfen.',
+  sicherungUnlesbar: 'Die Datei lässt sich nicht lesen.',
+  sicherungOhneKategorien: 'In der Datei stehen keine Kategorien.',
   markierungKeine: 'Ohne',
   markierungLasche: 'Lasche',
   markierungPunkt: 'Punkt',
@@ -199,6 +211,18 @@ const TEXTE_EN = {
   speichern: 'Save',
   verwerfen: 'Discard',
   verwerfenFrage: 'Discard the changes? They will be lost.',
+  sichern: 'Back up',
+  laden: 'Restore',
+  gesichert: (name) => `Backed up as "${name}".`,
+  sicherungFehlgeschlagen: 'The backup could not be written.',
+  sicherungTitel: 'Restore a backup',
+  sicherungLeer: 'There is no backup yet. "Back up" makes the first one.',
+  sicherungOrt: (ordner) => `Backups live in the vault under "${ordner}".`,
+  sicherungFrage: (name) =>
+    `Restore "${name}"? It replaces what is in the window -- nothing is written until you press Save.`,
+  sicherungGeladen: 'Restored. Press Save to keep it, Cancel to drop it.',
+  sicherungUnlesbar: 'The file cannot be read.',
+  sicherungOhneKategorien: 'The file holds no categories.',
   markierungKeine: 'None',
   markierungLasche: 'Bar',
   markierungPunkt: 'Dot',
@@ -344,6 +368,29 @@ const STANDARD_DATEN = {
 };
 
 const STIL_ID = 'explorer-categories-stil';
+
+/* Backups go into the vault, not next to data.json.
+ *
+ * A copy in the plugin's own folder would share the fate of the file it
+ * is meant to survive -- the same folder, the same sync, the same
+ * mishap. In the vault the folder shows up in the file explorer, which
+ * is the point: a backup nobody can see is one nobody copies off the
+ * machine.
+ *
+ * Lower case and no spaces, so the name survives every filesystem and
+ * every sync in one piece. */
+const SICHERUNG_ORDNER = 'explorer-categories-backup';
+
+/* Sorts by name, so the file name has to carry the date in an order
+   that sorts: year, month, day, hour, minute. */
+const zeitstempel = () => {
+  const jetzt = new Date();
+  const zwei = (n) => String(n).padStart(2, '0');
+  return (
+    `${jetzt.getFullYear()}${zwei(jetzt.getMonth() + 1)}${zwei(jetzt.getDate())}` +
+    `-${zwei(jetzt.getHours())}${zwei(jetzt.getMinutes())}`
+  );
+};
 
 /* Where the help link in the footer points.
  *
@@ -840,6 +887,99 @@ class ExplorerCategoriesPlugin extends Plugin {
     this.stilSchreiben();
   }
 
+  /* --- Backups ----------------------------------------------------- */
+
+  /* Writes the whole of the data as one readable JSON file.
+   *
+   * Indented rather than packed: this file exists to be looked at and
+   * carried off, and a category list is a few kilobytes either way.
+   *
+   * The wrapper around the data carries the version that wrote it. A
+   * file restored two years from now runs through altbestandUmstellen()
+   * like any other old shape, and the number says what to expect.
+   *
+   * What gets written is what is on screen, unsaved edits and all --
+   * this.daten is the draft while the window is open. That is the state
+   * somebody pressing "Back up" is looking at, and backing up a
+   * different one than the visible one would be a trap. It does mean a
+   * backup can outlive a Cancel: the file stays, the edits do not. */
+  async sicherungSchreiben() {
+    const adapter = this.app.vault.adapter;
+    if (!(await adapter.exists(SICHERUNG_ORDNER))) {
+      await adapter.mkdir(SICHERUNG_ORDNER);
+    }
+
+    const name = `kategorien-${zeitstempel()}.json`;
+    const inhalt = JSON.stringify(
+      {
+        plugin: 'explorer-categories',
+        version: this.manifest ? this.manifest.version : '',
+        geschrieben: new Date().toISOString(),
+        daten: this.daten,
+      },
+      null,
+      2
+    );
+
+    await adapter.write(`${SICHERUNG_ORDNER}/${name}`, inhalt);
+    return name;
+  }
+
+  /* Newest first -- the name sorts by date, so reversing the plain sort
+     is enough and no file has to be opened to order the list. */
+  async sicherungenFinden() {
+    const adapter = this.app.vault.adapter;
+    if (!(await adapter.exists(SICHERUNG_ORDNER))) return [];
+
+    const inhalt = await adapter.list(SICHERUNG_ORDNER);
+    return (inhalt.files || [])
+      .filter((pfad) => pfad.endsWith('.json'))
+      .sort()
+      .reverse();
+  }
+
+  /* Reads one and hands back its data, or throws with a sentence that
+     can go straight in front of a person.
+   *
+   * Both shapes are accepted: the wrapper this plugin writes, and a bare
+   * data object -- somebody exporting by copying data.json by hand ends
+   * up with the second one, and refusing it would be pedantry.
+   *
+   * Categories are the one thing checked for. Without them there is
+   * nothing to restore, and quietly replacing a working set of colours
+   * with an empty one is the worst outcome this window has. */
+  async sicherungLesen(pfad) {
+    let roh;
+    try {
+      roh = JSON.parse(await this.app.vault.adapter.read(pfad));
+    } catch (e) {
+      throw new Error(TEXTE.sicherungUnlesbar);
+    }
+
+    const daten = roh && roh.daten ? roh.daten : roh;
+    if (!daten || !Array.isArray(daten.kategorien) || !daten.kategorien.length) {
+      throw new Error(TEXTE.sicherungOhneKategorien);
+    }
+    return daten;
+  }
+
+  /* Puts a backup in place of what is on screen -- in the draft, so Save
+     confirms it and Cancel puts the old one back. Restoring is the one
+     action in this window that replaces everything at once, which makes
+     the way back matter more here than anywhere else.
+   *
+     Runs through the same defaults and the same migration as a normal
+     start, so a file from an older version arrives in today's shape
+     instead of half-filled. */
+  sicherungUebernehmen(daten) {
+    this.daten = Object.assign(
+      JSON.parse(JSON.stringify(STANDARD_DATEN)),
+      JSON.parse(JSON.stringify(daten))
+    );
+    this.altbestandUmstellen();
+    this.stilSchreiben();
+  }
+
   /* The safety copy is taken once, when the window opens. Everything
      below works on this.daten as before -- not a single other method
      had to change for this. Cancelling means putting the copy back. */
@@ -1151,6 +1291,37 @@ class KategorienFenster extends Modal {
        Obsidian uses in its own dialogs, so the finishing button sits
        where the hand already expects it. */
     const fuss = contentEl.createDiv({ cls: 'fc-fuss' });
+
+    /* Backing up and restoring sit apart from Cancel and Save, on the
+       left. They are about the file on disk, not about this session's
+       edits, and a hand reaching for Save should not find Restore next
+       to it. */
+    const sicherungen = fuss.createDiv({ cls: 'fc-fussnebenan' });
+
+    const sicherungKnopf = sicherungen.createEl('button', { text: TEXTE.sichern });
+    sicherungKnopf.addEventListener('click', async () => {
+      try {
+        const name = await this.plugin.sicherungSchreiben();
+        new Notice(TEXTE.gesichert(name));
+      } catch (e) {
+        new Notice(TEXTE.sicherungFehlgeschlagen);
+      }
+    });
+
+    const ladenKnopf = sicherungen.createEl('button', { text: TEXTE.laden });
+    ladenKnopf.addEventListener('click', () => {
+      new SicherungFenster(this.app, this.plugin, () => {
+        /* Everything on screen came from the old data -- which group is
+           open, which category is selected. Both are re-derived instead
+           of kept, or the window would point at entries the restored
+           file does not have. */
+        this.gruppeGewaehlt = this.plugin.daten.gruppen[0].id;
+        const erste = this.plugin.kategorienIn(this.gruppeGewaehlt)[0];
+        this.gewaehlt = erste ? erste.id : null;
+        this.zeichnen();
+        new Notice(TEXTE.sicherungGeladen);
+      }).open();
+    });
 
     const abbrechen = fuss.createEl('button', { text: TEXTE.abbrechen });
     abbrechen.addEventListener('click', () => this.close());
@@ -2057,6 +2228,74 @@ class KategorienFenster extends Modal {
        tree will do. The hover exception is left out here: nobody points
        at the preview to read it. */
     if (stil.gedimmt) zeile.style.opacity = '0.45';
+  }
+}
+
+/* Picks a backup to restore.
+ *
+ * A list of what is in the vault, not a file dialog. Obsidian has no
+ * file picker of its own, and the browser one is a desktop thing --
+ * this window has to work on the phone as well, where the whole vault
+ * lives behind the same adapter either way.
+ *
+ * Restoring goes through the same confirmation as deleting: it throws
+ * away everything currently on screen, and unlike a deleted category
+ * there is no single thing to point at afterwards and say what went. */
+class SicherungFenster extends Modal {
+  constructor(app, plugin, beiErfolg) {
+    super(app);
+    this.plugin = plugin;
+    this.beiErfolg = beiErfolg;
+  }
+
+  async onOpen() {
+    const { contentEl, titleEl } = this;
+    if (titleEl) titleEl.setText(TEXTE.sicherungTitel);
+
+    const dateien = await this.plugin.sicherungenFinden();
+
+    if (!dateien.length) {
+      contentEl.createDiv({ cls: 'fc-leer', text: TEXTE.sicherungLeer });
+      return;
+    }
+
+    const liste = contentEl.createDiv({ cls: 'fc-sicherungliste' });
+
+    for (const pfad of dateien) {
+      const name = pfad.split('/').pop();
+      const zeile = liste.createEl('button', {
+        cls: 'fc-sicherungzeile',
+        text: name,
+      });
+      zeile.addEventListener('click', () => {
+        new BestaetigenFenster(
+          this.app,
+          TEXTE.sicherungFrage(name),
+          async () => {
+            try {
+              const daten = await this.plugin.sicherungLesen(pfad);
+              this.plugin.sicherungUebernehmen(daten);
+              this.close();
+              this.beiErfolg();
+            } catch (e) {
+              /* The message comes from sicherungLesen and already says
+                 which of the two things went wrong. */
+              new Notice(e.message || TEXTE.sicherungUnlesbar);
+            }
+          },
+          TEXTE.laden
+        ).open();
+      });
+    }
+
+    contentEl.createDiv({
+      cls: 'fc-hinweis',
+      text: TEXTE.sicherungOrt(SICHERUNG_ORDNER),
+    });
+  }
+
+  onClose() {
+    this.contentEl.empty();
   }
 }
 
