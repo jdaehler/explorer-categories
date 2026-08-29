@@ -37,238 +37,238 @@ const {
 const TEXTS_DE = {
   /* "Category" on its own would be lost in the context menu -- there are
      a dozen other entries competing with it. */
-  menue: 'Farbkategorie',
-  keine: 'Farbe entfernen',
-  verwalten: 'Kategorien verwalten …',
-  aufUnterordner: 'Gilt auch für Unterordner',
-  aufDateien: 'Gilt auch für Notizen darin',
-  inheritsFrom: (folder, kategorie) => `Erbt „${kategorie}" von „${folder}"`,
-  fensterTitel: 'Farbkategorien',
+  menuTitle: 'Farbkategorie',
+  removeColour: 'Farbe entfernen',
+  manage: 'Kategorien verwalten …',
+  toSubfolders: 'Gilt auch für Unterordner',
+  toNotes: 'Gilt auch für Notizen darin',
+  inheritsFrom: (folder, category) => `Erbt „${category}" von „${folder}"`,
+  windowTitle: 'Farbkategorien',
   openWindow: 'Farbkategorien verwalten',
-  neue: 'Neue Kategorie',
-  neueVorgabe: 'Neue Kategorie',
+  newCategory: 'Neue Kategorie',
+  newCategoryDefault: 'Neue Kategorie',
   remove: 'Löschen',
-  namePlatzhalter: 'Name',
-  farbeWaehlen: 'Farbe wählen',
-  nichtsGewaehlt: 'Links eine Kategorie auswählen.',
+  namePlaceholder: 'Name',
+  pickColour: 'Farbe wählen',
+  nothingChosen: 'Links eine Kategorie auswählen.',
   markierung: 'Markierung',
-  zusaetzlich: 'Zusätzlich',
-  vererbung: 'Vererbung',
+  extra: 'Zusätzlich',
+  inheritance: 'Vererbung',
   /* Names the two areas that had none. What the third area is, its own
      first row says: a colour and a name. */
-  bereichGruppen: 'Gruppen',
-  bereichKategorien: 'Kategorien',
+  areaGroups: 'Gruppen',
+  areaCategories: 'Kategorien',
   /* Telling the folder that carries the assignment apart from the ones
      that only inherit from it. */
-  vaterHervorheben: 'Vater hervorheben',
-  vaterKeine: 'Ohne',
-  vaterFett: 'Fett',
-  vaterHintergrund: 'Hintergrund',
-  vaterSchrift: 'Schrift farbig',
-  vaterSymbol: 'Symbol',
-  vaterMarkierung: 'Markierung',
-  vaterBlass: 'Kinder blasser',
+  parentApart: 'Vater hervorheben',
+  parentNone: 'Ohne',
+  parentBold: 'Fett',
+  parentBackground: 'Hintergrund',
+  parentText: 'Schrift farbig',
+  parentIcon: 'Symbol',
+  parentMarker: 'Markierung',
+  parentDim: 'Kinder blasser',
   /* Short on purpose: these share one reserved line with the sentence
      above them, and a second line would push the window a step taller
      for everyone, not just for the case that needs it. */
-  vaterSchonFett: 'Die Kategorie ist ohnehin ganz fett.',
-  vaterSchonHintergrund: 'Die Kategorie hat ohnehin einen Hintergrund.',
-  vaterSchonSchrift: 'Die Kategorie hat ohnehin farbige Schrift.',
-  vaterSchriftUnterHintergrund: 'Mit Hintergrund wählt das Plugin die Schriftfarbe selbst.',
-  vaterSchonBlass: 'Die Kategorie ist ohnehin abgedunkelt.',
-  vaterOhneSymbol: 'Dafür muss oben ein Symbol gesetzt sein.',
-  vaterSymbolSchlaegt: 'Mit Symbol tragen beide dasselbe Zeichen.',
+  parentAlreadyBold: 'Die Kategorie ist ohnehin ganz fett.',
+  parentAlreadyBackground: 'Die Kategorie hat ohnehin einen Hintergrund.',
+  parentAlreadyText: 'Die Kategorie hat ohnehin farbige Schrift.',
+  parentTextUnderBackground: 'Mit Hintergrund wählt das Plugin die Schriftfarbe selbst.',
+  parentAlreadyDim: 'Die Kategorie ist ohnehin abgedunkelt.',
+  parentWithoutIcon: 'Dafür muss oben ein Symbol gesetzt sein.',
+  parentIconBeats: 'Mit Symbol tragen beide dasselbe Zeichen.',
   iconName: 'Symbol',
-  symbolWaehlen: 'Symbol wählen …',
-  symbolName: 'Name des Symbols',
-  symbolUnbekannt: 'Ein Symbol dieses Namens gibt es nicht.',
-  symbolEntfernen: 'Entfernen',
-  symbolSuche: 'Symbol suchen',
-  symbolNichtsGefunden: 'Kein Symbol gefunden.',
-  symbolFensterTitel: 'Symbol wählen',
-  symbolErsetzt: 'Das Symbol tritt an die Stelle von Lasche und Punkt.',
-  symbolOhneWirkung: 'Bei „Ohne" bleibt der Ordner unmarkiert, auch mit Symbol.',
-  symbolMehr: (gezeigt, gesamt) => `${gezeigt} von ${gesamt} — weiter eingrenzen.`,
-  ordnerZahl: (n) => (n === 1 ? '1 Ordner' : `${n} Ordner`),
-  loeschFrage: (name, n) =>
+  pickIcon: 'Symbol wählen …',
+  iconLabel: 'Name des Symbols',
+  iconUnknown: 'Ein Symbol dieses Namens gibt es nicht.',
+  removeIcon: 'Entfernen',
+  iconSearch: 'Symbol suchen',
+  iconNothingFound: 'Kein Symbol gefunden.',
+  iconWindowTitle: 'Symbol wählen',
+  iconReplaces: 'Das Symbol tritt an die Stelle von Lasche und Punkt.',
+  iconNoEffect: 'Bei „Ohne" bleibt der Ordner unmarkiert, auch mit Symbol.',
+  iconMore: (gezeigt, gesamt) => `${gezeigt} von ${gesamt} — weiter eingrenzen.`,
+  folderCountText: (n) => (n === 1 ? '1 Ordner' : `${n} Ordner`),
+  deleteQuestion: (name, n) =>
     n === 0
       ? `„${name}" löschen?`
       : `„${name}" löschen? ${n === 1 ? 'Ein Ordner verliert' : `${n} Ordner verlieren`} damit die Farbe.`,
-  geloescht: (name) => `„${name}" gelöscht.`,
+  deleted: (name) => `„${name}" gelöscht.`,
   cancel: 'Abbrechen',
   save: 'Speichern',
-  verwerfen: 'Verwerfen',
-  verwerfenFrage: 'Die Änderungen verwerfen? Sie gehen dabei verloren.',
+  discard: 'Verwerfen',
+  discardQuestion: 'Die Änderungen verwerfen? Sie gehen dabei verloren.',
   backup: 'Sichern',
-  laden: 'Laden',
-  gesichertGeladen: (name) => `„${name}" liegt im Download-Ordner.`,
-  gesichertImVault: (name) => `Gesichert als „${name}" im Vault.`,
-  sicherungFehlgeschlagen: 'Die Sicherung konnte nicht geschrieben werden.',
-  sicherungTitel: 'Sicherung laden',
-  sicherungLeer: 'Im Vault liegt noch keine Sicherung.',
-  sicherungOrt: (folder) => `Die Sicherungen liegen im Vault unter „${folder}".`,
-  sicherungFrage: (name) =>
+  load: 'Laden',
+  backupRestored: (name) => `„${name}" liegt im Download-Ordner.`,
+  backupInVault: (name) => `Gesichert als „${name}" im Vault.`,
+  backupFailed: 'Die Sicherung konnte nicht geschrieben werden.',
+  backupTitle: 'Sicherung laden',
+  backupEmpty: 'Im Vault liegt noch keine Sicherung.',
+  backupPlace: (folder) => `Die Sicherungen liegen im Vault unter „${folder}".`,
+  backupQuestion: (name) =>
     `„${name}" laden? Ersetzt den Stand im Fenster — geschrieben wird er erst mit „Speichern".`,
-  sicherungGeladen: 'Geladen. Mit „Speichern" übernehmen, mit „Abbrechen" verwerfen.',
-  sicherungUnlesbar: 'Die Datei lässt sich nicht lesen.',
-  sicherungOhneKategorien: 'In der Datei stehen keine Kategorien.',
-  markierungKeine: 'Ohne',
-  markierungLasche: 'Lasche',
-  markierungPunkt: 'Punkt',
+  backupLoaded: 'Geladen. Mit „Speichern" übernehmen, mit „Abbrechen" verwerfen.',
+  backupUnreadable: 'Die Datei lässt sich nicht lesen.',
+  backupWithoutCategories: 'In der Datei stehen keine Kategorien.',
+  markerNone: 'Ohne',
+  markerBar: 'Lasche',
+  markerDot: 'Punkt',
   hintergrund: 'Hintergrund',
   schriftFarbig: 'Schrift farbig',
   fett: 'Fett',
   gedimmt: 'Abdunkeln',
-  schriftAutomatisch: 'Bei Hintergrund wählt das Plugin die Schriftfarbe selbst, damit sie lesbar bleibt.',
-  gedimmtHinweis: 'Abgedunkelt tritt die ganze Zeile zurück, Markierung und Symbol werden blasser.',
+  textAutomatic: 'Bei Hintergrund wählt das Plugin die Schriftfarbe selbst, damit sie lesbar bleibt.',
+  dimmedHint: 'Abgedunkelt tritt die ganze Zeile zurück, Markierung und Symbol werden blasser.',
   /* With a multi-selection the count goes in the title. It counts
      folders, not selected items: select five folders and three notes and
      this reads "5 folders", making it obvious that notes are left
      alone. */
-  menueMehrere: (n) => `Farbkategorie (${n} Ordner)`,
-  zugewiesen: (n, name) =>
+  menuTitleMany: (n) => `Farbkategorie (${n} Ordner)`,
+  assigned: (n, name) =>
     n === 1 ? `1 Ordner → „${name}"` : `${n} Ordner → „${name}"`,
-  entfernt: (n) =>
+  removed: (n) =>
     n === 1 ? 'Farbe von 1 Ordner entfernt.' : `Farbe von ${n} Ordnern entfernt.`,
-  beispielName: (n) => `Kategorie ${n}`,
-  hilfe: 'Hilfe',
+  exampleName: (n) => `Kategorie ${n}`,
+  help: 'Hilfe',
   /* Groups: one legend per part of the vault. */
-  beispielGruppe: 'Legende 1',
-  gruppeNeu: 'Neue Gruppe',
-  gruppeNeuVorgabe: 'Neue Gruppe',
-  gruppeName: 'Name der Gruppe',
+  exampleGroup: 'Legende 1',
+  groupNew: 'Neue Gruppe',
+  groupNewDefault: 'Neue Gruppe',
+  groupName: 'Name der Gruppe',
   deleteGroup: 'Gruppe löschen',
   duplicateGroup: 'Gruppe duplizieren',
-  duplizieren: 'Duplizieren',
-  gruppeFeld: 'Gruppe',
-  gruppeWechseln: 'In eine andere Gruppe verschieben',
-  kopieName: (name) => `${name} (Kopie)`,
-  gruppeLoeschFrage: (name, n) =>
+  duplicateLabel: 'Duplizieren',
+  groupField: 'Gruppe',
+  groupSwitch: 'In eine andere Gruppe verschieben',
+  copyName: (name) => `${name} (Kopie)`,
+  groupDeleteQuestion: (name, n) =>
     n === 0
       ? `Gruppe „${name}" löschen?`
       : `Gruppe „${name}" löschen? ${n === 1 ? 'Die Kategorie darin wird' : `Die ${n} Kategorien darin werden`} mitgelöscht, und Ordner mit diesen Farben verlieren sie.`,
-  gruppeGeloescht: (name) => `Gruppe „${name}" gelöscht.`,
-  gruppeZahl: (n) => (n === 1 ? '1 Kategorie' : `${n} Kategorien`),
-  keineKategorienInGruppe: 'In dieser Gruppe ist noch keine Kategorie.',
+  groupDeleted: (name) => `Gruppe „${name}" gelöscht.`,
+  groupCount: (n) => (n === 1 ? '1 Kategorie' : `${n} Kategorien`),
+  noCategoriesInGroup: 'In dieser Gruppe ist noch keine Kategorie.',
   /* Order. The list stands upright, the tabs lie down -- hence up/down
      for one and left/right for the other. */
-  hochSchieben: 'Nach oben',
-  runterSchieben: 'Nach unten',
-  sortierenAuf: 'Nach Namen sortieren, A bis Z',
-  sortierenAb: 'Nach Namen sortieren, Z bis A',
-  gruppeLinks: 'Gruppe nach links',
-  gruppeRechts: 'Gruppe nach rechts',
+  moveUp: 'Nach oben',
+  moveDown: 'Nach unten',
+  sortAscending: 'Nach Namen sortieren, A bis Z',
+  sortDescending: 'Nach Namen sortieren, Z bis A',
+  groupLeft: 'Gruppe nach links',
+  groupRight: 'Gruppe nach rechts',
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
 const TEXTS_EN = {
-  menue: 'Color category',
-  keine: 'Remove color',
-  verwalten: 'Manage categories …',
-  aufUnterordner: 'Also applies to subfolders',
-  aufDateien: 'Also applies to the notes inside',
-  inheritsFrom: (folder, kategorie) => `Inherits "${kategorie}" from "${folder}"`,
-  fensterTitel: 'Color categories',
+  menuTitle: 'Color category',
+  removeColour: 'Remove color',
+  manage: 'Manage categories …',
+  toSubfolders: 'Also applies to subfolders',
+  toNotes: 'Also applies to the notes inside',
+  inheritsFrom: (folder, category) => `Inherits "${category}" from "${folder}"`,
+  windowTitle: 'Color categories',
   openWindow: 'Manage color categories',
-  neue: 'New category',
-  neueVorgabe: 'New category',
+  newCategory: 'New category',
+  newCategoryDefault: 'New category',
   remove: 'Delete',
-  namePlatzhalter: 'Name',
-  farbeWaehlen: 'Choose the colour',
-  nichtsGewaehlt: 'Select a category on the left.',
+  namePlaceholder: 'Name',
+  pickColour: 'Choose the colour',
+  nothingChosen: 'Select a category on the left.',
   markierung: 'Marker',
-  zusaetzlich: 'Additional',
-  vererbung: 'Inheritance',
-  bereichGruppen: 'Groups',
-  bereichKategorien: 'Categories',
-  vaterHervorheben: 'Set the parent apart',
-  vaterKeine: 'None',
-  vaterFett: 'Bold',
-  vaterHintergrund: 'Background',
-  vaterSchrift: 'Colored text',
-  vaterSymbol: 'Icon',
-  vaterMarkierung: 'Marker',
-  vaterBlass: 'Children fainter',
-  vaterSchonFett: 'The category is bold throughout anyway.',
-  vaterSchonHintergrund: 'The category already has a background.',
-  vaterSchonSchrift: 'The category already has colored text.',
-  vaterSchriftUnterHintergrund: 'With a background, the plugin picks the text color itself.',
-  vaterSchonBlass: 'The category is dimmed anyway.',
-  vaterOhneSymbol: 'An icon has to be set above for this.',
-  vaterSymbolSchlaegt: 'With an icon, both carry the same mark.',
+  extra: 'Additional',
+  inheritance: 'Inheritance',
+  areaGroups: 'Groups',
+  areaCategories: 'Categories',
+  parentApart: 'Set the parent apart',
+  parentNone: 'None',
+  parentBold: 'Bold',
+  parentBackground: 'Background',
+  parentText: 'Colored text',
+  parentIcon: 'Icon',
+  parentMarker: 'Marker',
+  parentDim: 'Children fainter',
+  parentAlreadyBold: 'The category is bold throughout anyway.',
+  parentAlreadyBackground: 'The category already has a background.',
+  parentAlreadyText: 'The category already has colored text.',
+  parentTextUnderBackground: 'With a background, the plugin picks the text color itself.',
+  parentAlreadyDim: 'The category is dimmed anyway.',
+  parentWithoutIcon: 'An icon has to be set above for this.',
+  parentIconBeats: 'With an icon, both carry the same mark.',
   iconName: 'Icon',
-  symbolWaehlen: 'Choose icon …',
-  symbolName: 'Icon name',
-  symbolUnbekannt: 'There is no icon of that name.',
-  symbolEntfernen: 'Remove',
-  symbolSuche: 'Search icons',
-  symbolNichtsGefunden: 'No icon found.',
-  symbolFensterTitel: 'Choose icon',
-  symbolErsetzt: 'The icon takes the place of the bar and the dot.',
-  symbolOhneWirkung: 'With "None" the folder stays unmarked, icon or not.',
-  symbolMehr: (gezeigt, gesamt) => `${gezeigt} of ${gesamt} — narrow the search.`,
-  ordnerZahl: (n) => (n === 1 ? '1 folder' : `${n} folders`),
-  loeschFrage: (name, n) =>
+  pickIcon: 'Choose icon …',
+  iconLabel: 'Icon name',
+  iconUnknown: 'There is no icon of that name.',
+  removeIcon: 'Remove',
+  iconSearch: 'Search icons',
+  iconNothingFound: 'No icon found.',
+  iconWindowTitle: 'Choose icon',
+  iconReplaces: 'The icon takes the place of the bar and the dot.',
+  iconNoEffect: 'With "None" the folder stays unmarked, icon or not.',
+  iconMore: (gezeigt, gesamt) => `${gezeigt} of ${gesamt} — narrow the search.`,
+  folderCountText: (n) => (n === 1 ? '1 folder' : `${n} folders`),
+  deleteQuestion: (name, n) =>
     n === 0
       ? `Delete "${name}"?`
       : `Delete "${name}"? ${n === 1 ? 'One folder loses' : `${n} folders lose`} their color.`,
-  geloescht: (name) => `"${name}" deleted.`,
+  deleted: (name) => `"${name}" deleted.`,
   cancel: 'Cancel',
   save: 'Save',
-  verwerfen: 'Discard',
-  verwerfenFrage: 'Discard the changes? They will be lost.',
+  discard: 'Discard',
+  discardQuestion: 'Discard the changes? They will be lost.',
   backup: 'Back up',
-  laden: 'Restore',
-  gesichertGeladen: (name) => `"${name}" is in your downloads folder.`,
-  gesichertImVault: (name) => `Backed up as "${name}" in the vault.`,
-  sicherungFehlgeschlagen: 'The backup could not be written.',
-  sicherungTitel: 'Restore a backup',
-  sicherungLeer: 'No backup in the vault yet.',
-  sicherungOrt: (folder) => `Backups live in the vault under "${folder}".`,
-  sicherungFrage: (name) =>
+  load: 'Restore',
+  backupRestored: (name) => `"${name}" is in your downloads folder.`,
+  backupInVault: (name) => `Backed up as "${name}" in the vault.`,
+  backupFailed: 'The backup could not be written.',
+  backupTitle: 'Restore a backup',
+  backupEmpty: 'No backup in the vault yet.',
+  backupPlace: (folder) => `Backups live in the vault under "${folder}".`,
+  backupQuestion: (name) =>
     `Restore "${name}"? It replaces what is in the window -- nothing is written until you press Save.`,
-  sicherungGeladen: 'Restored. Press Save to keep it, Cancel to drop it.',
-  sicherungUnlesbar: 'The file cannot be read.',
-  sicherungOhneKategorien: 'The file holds no categories.',
-  markierungKeine: 'None',
-  markierungLasche: 'Bar',
-  markierungPunkt: 'Dot',
+  backupLoaded: 'Restored. Press Save to keep it, Cancel to drop it.',
+  backupUnreadable: 'The file cannot be read.',
+  backupWithoutCategories: 'The file holds no categories.',
+  markerNone: 'None',
+  markerBar: 'Bar',
+  markerDot: 'Dot',
   hintergrund: 'Background',
   schriftFarbig: 'Colored text',
   fett: 'Bold',
   gedimmt: 'Dim',
-  schriftAutomatisch: 'With a background, the plugin picks the text color itself so it stays readable.',
-  gedimmtHinweis: 'Dimmed, the whole row steps back: marker and icon fade with it.',
-  menueMehrere: (n) => `Color category (${n} folders)`,
-  zugewiesen: (n, name) =>
+  textAutomatic: 'With a background, the plugin picks the text color itself so it stays readable.',
+  dimmedHint: 'Dimmed, the whole row steps back: marker and icon fade with it.',
+  menuTitleMany: (n) => `Color category (${n} folders)`,
+  assigned: (n, name) =>
     n === 1 ? `1 folder → "${name}"` : `${n} folders → "${name}"`,
-  entfernt: (n) =>
+  removed: (n) =>
     n === 1 ? 'Color removed from 1 folder.' : `Color removed from ${n} folders.`,
-  beispielName: (n) => `Category ${n}`,
-  hilfe: 'Help',
-  beispielGruppe: 'Legend 1',
-  gruppeNeu: 'New group',
-  gruppeNeuVorgabe: 'New group',
-  gruppeName: 'Group name',
+  exampleName: (n) => `Category ${n}`,
+  help: 'Help',
+  exampleGroup: 'Legend 1',
+  groupNew: 'New group',
+  groupNewDefault: 'New group',
+  groupName: 'Group name',
   deleteGroup: 'Delete group',
   duplicateGroup: 'Duplicate group',
-  duplizieren: 'Duplicate',
-  gruppeFeld: 'Group',
-  gruppeWechseln: 'Move to another group',
-  kopieName: (name) => `${name} copy`,
-  gruppeLoeschFrage: (name, n) =>
+  duplicateLabel: 'Duplicate',
+  groupField: 'Group',
+  groupSwitch: 'Move to another group',
+  copyName: (name) => `${name} copy`,
+  groupDeleteQuestion: (name, n) =>
     n === 0
       ? `Delete group "${name}"?`
       : `Delete group "${name}"? ${n === 1 ? 'The category in it goes' : `The ${n} categories in it go`} with it, and folders carrying those colors lose them.`,
-  gruppeGeloescht: (name) => `Group "${name}" deleted.`,
-  gruppeZahl: (n) => (n === 1 ? '1 category' : `${n} categories`),
-  keineKategorienInGruppe: 'No category in this group yet.',
-  hochSchieben: 'Move up',
-  runterSchieben: 'Move down',
-  sortierenAuf: 'Sort by name, A to Z',
-  sortierenAb: 'Sort by name, Z to A',
-  gruppeLinks: 'Move group left',
-  gruppeRechts: 'Move group right',
+  groupDeleted: (name) => `Group "${name}" deleted.`,
+  groupCount: (n) => (n === 1 ? '1 category' : `${n} categories`),
+  noCategoriesInGroup: 'No category in this group yet.',
+  moveUp: 'Move up',
+  moveDown: 'Move down',
+  sortAscending: 'Sort by name, A to Z',
+  sortDescending: 'Sort by name, Z to A',
+  groupLeft: 'Move group left',
+  groupRight: 'Move group right',
 };
 
 const LANGUAGES = { de: TEXTS_DE, en: TEXTS_EN };
@@ -296,9 +296,9 @@ function chooseLanguage() {
 const TEXTS = chooseLanguage();
 
 const MARKERS = [
-  { id: 'keine', name: TEXTS.markierungKeine },
-  { id: 'lasche', name: TEXTS.markierungLasche },
-  { id: 'punkt', name: TEXTS.markierungPunkt },
+  { id: 'keine', name: TEXTS.markerNone },
+  { id: 'lasche', name: TEXTS.markerBar },
+  { id: 'punkt', name: TEXTS.markerDot },
 ];
 
 /* How the folder carrying the assignment is told apart from the ones
@@ -310,13 +310,13 @@ const MARKERS = [
  * row that stands out, and it is the only way to do that without making
  * anything louder. */
 const PARENT_MODES = [
-  { id: 'keine', name: TEXTS.vaterKeine },
-  { id: 'fett', name: TEXTS.vaterFett },
-  { id: 'hintergrund', name: TEXTS.vaterHintergrund },
-  { id: 'schrift', name: TEXTS.vaterSchrift },
-  { id: 'symbol', name: TEXTS.vaterSymbol },
-  { id: 'markierung', name: TEXTS.vaterMarkierung },
-  { id: 'blass', name: TEXTS.vaterBlass },
+  { id: 'keine', name: TEXTS.parentNone },
+  { id: 'fett', name: TEXTS.parentBold },
+  { id: 'hintergrund', name: TEXTS.parentBackground },
+  { id: 'schrift', name: TEXTS.parentText },
+  { id: 'symbol', name: TEXTS.parentIcon },
+  { id: 'markierung', name: TEXTS.parentMarker },
+  { id: 'blass', name: TEXTS.parentDim },
 ];
 
 /* What a freshly created category starts out with. */
@@ -350,9 +350,9 @@ const STYLE_DEFAULT = {
    sees after installing, and an untranslated name would be a poor first
    impression. */
 const EXAMPLE_CATEGORIES = [
-  { id: 'kat-1', name: TEXTS.beispielName(1), farbe: '#4a90d9', gruppe: 'grp-1' },
-  { id: 'kat-2', name: TEXTS.beispielName(2), farbe: '#e05252', gruppe: 'grp-1' },
-  { id: 'kat-3', name: TEXTS.beispielName(3), farbe: '#3fb950', gruppe: 'grp-1' },
+  { id: 'kat-1', name: TEXTS.exampleName(1), farbe: '#4a90d9', gruppe: 'grp-1' },
+  { id: 'kat-2', name: TEXTS.exampleName(2), farbe: '#e05252', gruppe: 'grp-1' },
+  { id: 'kat-3', name: TEXTS.exampleName(3), farbe: '#3fb950', gruppe: 'grp-1' },
 ];
 
 /* Groups are the legend a set of categories belongs to.
@@ -365,7 +365,7 @@ const EXAMPLE_CATEGORIES = [
  * A group is pure order. It carries no colour, no marker, no icon --
  * only which categories are shown together. Which folder gets which
  * colour is still decided per folder, exactly as before. */
-const EXAMPLE_GROUPS = [{ id: 'grp-1', name: TEXTS.beispielGruppe }];
+const EXAMPLE_GROUPS = [{ id: 'grp-1', name: TEXTS.exampleGroup }];
 
 const DEFAULT_DATA = {
   gruppen: EXAMPLE_GROUPS,
@@ -425,9 +425,9 @@ class ExplorerCategoriesPlugin extends Plugin {
     this.data = Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), loaded);
     this.migrateOldData();
 
-    this.stilEl = document.createElement('style');
-    this.stilEl.id = STYLE_ID;
-    document.head.appendChild(this.stilEl);
+    this.styleEl = document.createElement('style');
+    this.styleEl.id = STYLE_ID;
+    document.head.appendChild(this.styleEl);
     this.writeStyle();
 
     /* Right-click on a single folder */
@@ -454,8 +454,8 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     /* Renaming and moving: the assignment follows the folder. */
     this.registerEvent(
-      this.app.vault.on('rename', (file, alterPfad) => {
-        this.rewritePath(alterPfad, file.path);
+      this.app.vault.on('rename', (file, oldPath) => {
+        this.rewritePath(oldPath, file.path);
       })
     );
 
@@ -471,11 +471,11 @@ class ExplorerCategoriesPlugin extends Plugin {
   }
 
   onunload() {
-    if (this.stilEl) this.stilEl.remove();
+    if (this.styleEl) this.styleEl.remove();
   }
 
   openWindow() {
-    new KategorienFenster(this.app, this).open();
+    new CategoriesModal(this.app, this).open();
   }
 
   /* Three older data shapes have to be carried over so nobody loses
@@ -501,7 +501,7 @@ class ExplorerCategoriesPlugin extends Plugin {
     }
 
     this.migrateInheritance();
-    catchUpGroups(this.data, TEXTS.beispielGruppe);
+    catchUpGroups(this.data, TEXTS.exampleGroup);
   }
 
   /* Inheritance used to be two tables of folder paths. It is a property
@@ -511,39 +511,39 @@ class ExplorerCategoriesPlugin extends Plugin {
      folder that quietly loses a colour it had yesterday, and that is
      harder to notice than one that has too much. */
   migrateInheritance() {
-    const applyStyle = (path, feld) => {
+    const applyStyle = (path, field) => {
       const catId = this.data.zuordnung[path];
       if (!catId) return;
       const cat = this.data.kategorien.find((k) => k.id === catId);
       if (!cat) return;
-      cat.stil = Object.assign({}, STYLE_DEFAULT, cat.stil || {}, { [feld]: true });
+      cat.stil = Object.assign({}, STYLE_DEFAULT, cat.stil || {}, { [field]: true });
     };
 
-    for (const path of Object.keys(this.data.vererbung || {})) {
-      if (this.data.vererbung[path]) applyStyle(path, 'vererbt');
+    for (const path of Object.keys(this.data.inheritance || {})) {
+      if (this.data.inheritance[path]) applyStyle(path, 'vererbt');
     }
     for (const path of Object.keys(this.data.dateiVererbung || {})) {
       if (this.data.dateiVererbung[path]) applyStyle(path, 'vererbtDateien');
     }
 
-    delete this.data.vererbung;
+    delete this.data.inheritance;
     delete this.data.dateiVererbung;
   }
 
   /* The categories of one group, in the order they are stored. */
-  categoriesIn(gruppenId) {
-    return this.data.kategorien.filter((k) => k.gruppe === gruppenId);
+  categoriesIn(groupId) {
+    return this.data.kategorien.filter((k) => k.gruppe === groupId);
   }
 
   async addGroup() {
     const id = newId('grp', this.data.gruppen.map((g) => g.id));
-    this.data.gruppen.push({ id, name: TEXTS.gruppeNeuVorgabe });
+    this.data.gruppen.push({ id, name: TEXTS.groupNewDefault });
     await this.save();
     return id;
   }
 
-  async renameGroup(gruppenId, name) {
-    const gruppe = this.data.gruppen.find((g) => g.id === gruppenId);
+  async renameGroup(groupId, name) {
+    const gruppe = this.data.gruppen.find((g) => g.id === groupId);
     if (!gruppe) return;
     gruppe.name = name;
     await this.save();
@@ -555,12 +555,12 @@ class ExplorerCategoriesPlugin extends Plugin {
 
      Says whether anything moved, so the window can leave itself alone
      when the group is already at the end. */
-  async moveGroup(gruppenId, richtung) {
+  async moveGroup(groupId, direction) {
     const gruppen = this.data.gruppen;
-    const from = gruppen.findIndex((g) => g.id === gruppenId);
+    const from = gruppen.findIndex((g) => g.id === groupId);
     if (from < 0) return false;
 
-    const to = from + richtung;
+    const to = from + direction;
     if (to < 0 || to >= gruppen.length) return false;
 
     const keep = gruppen[from];
@@ -590,15 +590,15 @@ class ExplorerCategoriesPlugin extends Plugin {
    * The folder assignments stay behind on purpose. A copy colouring the
    * same folders would put two categories on one folder, and the tree
    * can only show one. */
-  async duplicateGroup(gruppenId) {
+  async duplicateGroup(groupId) {
     const gruppen = this.data.gruppen;
-    const from = gruppen.findIndex((g) => g.id === gruppenId);
+    const from = gruppen.findIndex((g) => g.id === groupId);
     if (from < 0) return null;
 
     const template = gruppen[from];
     const fresh = {
       id: newId('grp', gruppen.map((g) => g.id)),
-      name: TEXTS.kopieName(template.name),
+      name: TEXTS.copyName(template.name),
     };
     gruppen.splice(from + 1, 0, fresh);
 
@@ -606,7 +606,7 @@ class ExplorerCategoriesPlugin extends Plugin {
        in the same millisecond, so asking the array once at the start
        would not be enough. */
     const assigned = this.data.kategorien.map((k) => k.id);
-    for (const cat of this.categoriesIn(gruppenId)) {
+    for (const cat of this.categoriesIn(groupId)) {
       const id = newId('kat', assigned);
       assigned.push(id);
       this.data.kategorien.push(this.categoryCopy(cat, id, fresh.id, cat.name));
@@ -632,7 +632,7 @@ class ExplorerCategoriesPlugin extends Plugin {
     all.splice(
       from + 1,
       0,
-      this.categoryCopy(template, id, template.gruppe, TEXTS.kopieName(template.name))
+      this.categoryCopy(template, id, template.gruppe, TEXTS.copyName(template.name))
     );
 
     await this.save();
@@ -649,15 +649,15 @@ class ExplorerCategoriesPlugin extends Plugin {
    * Left where it was, its place among the others would depend on which
    * entries of that group happen to sit before or after it -- arriving
    * at the bottom is at least predictable. */
-  async moveCategoryToGroup(catId, gruppenId) {
+  async moveCategoryToGroup(catId, groupId) {
     const all = this.data.kategorien;
     const from = all.findIndex((k) => k.id === catId);
     if (from < 0) return false;
-    if (all[from].gruppe === gruppenId) return false;
-    if (!this.data.gruppen.some((g) => g.id === gruppenId)) return false;
+    if (all[from].gruppe === groupId) return false;
+    if (!this.data.gruppen.some((g) => g.id === groupId)) return false;
 
     const cat = all[from];
-    cat.gruppe = gruppenId;
+    cat.gruppe = groupId;
     all.splice(from, 1);
     all.push(cat);
 
@@ -668,12 +668,12 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* One category, copied. The style is copied over STYLE_DEFAULT rather
      than handed on: sharing the object would tie the two categories
      together, and a switch flipped on one would move on the other. */
-  categoryCopy(template, id, gruppenId, name) {
+  categoryCopy(template, id, groupId, name) {
     return {
       id,
       name,
       farbe: template.farbe,
-      gruppe: gruppenId,
+      gruppe: groupId,
       icon: template.icon || null,
       stil: Object.assign({}, STYLE_DEFAULT, template.stil || {}),
     };
@@ -685,17 +685,17 @@ class ExplorerCategoriesPlugin extends Plugin {
 
      Never the last one. Without a group there is no place to put a new
      category, and the window would have nothing to show. */
-  async deleteGroup(gruppenId) {
+  async deleteGroup(groupId) {
     if (this.data.gruppen.length < 2) return false;
 
-    for (const cat of this.categoriesIn(gruppenId)) {
+    for (const cat of this.categoriesIn(groupId)) {
       this.removeAssignments(cat.id);
     }
 
     this.data.kategorien = this.data.kategorien.filter(
-      (k) => k.gruppe !== gruppenId
+      (k) => k.gruppe !== groupId
     );
-    this.data.gruppen = this.data.gruppen.filter((g) => g.id !== gruppenId);
+    this.data.gruppen = this.data.gruppen.filter((g) => g.id !== groupId);
 
     await this.save();
     return true;
@@ -731,7 +731,7 @@ class ExplorerCategoriesPlugin extends Plugin {
       const stil = this.styleOf(catId);
       if (!stil || !stil.vererbt) continue;
       const cat = this.data.kategorien.find((k) => k.id === catId);
-      if (cat) return { folder: parents, kategorie: cat.name };
+      if (cat) return { folder: parents, category: cat.name };
     }
 
     return null;
@@ -744,8 +744,8 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* Takes a list of folders, never a single one. Right-clicking one
      folder simply passes a list of one -- that way there is a single
      path through this code instead of two that drift apart. */
-  buildMenuEntry(menu, ordnerListe) {
-    const paths = ordnerListe.map((o) => o.path);
+  buildMenuEntry(menu, folderList) {
+    const paths = folderList.map((o) => o.path);
     const several = paths.length > 1;
 
     /* With several folders, a checkmark only when all of them really
@@ -778,7 +778,7 @@ class ExplorerCategoriesPlugin extends Plugin {
        known from the outer entry: if that one could not open a submenu,
        nothing below it can either. */
     const fillEntries = (target, mitPraefix, mitUnter) => {
-      const head = several ? TEXTS.menueMehrere(paths.length) : TEXTS.menue;
+      const head = several ? TEXTS.menuTitleMany(paths.length) : TEXTS.menuTitle;
       const title = (t) => (mitPraefix ? `${head}: ${t}` : t);
 
       const gruppen = this.data.gruppen;
@@ -821,7 +821,7 @@ class ExplorerCategoriesPlugin extends Plugin {
         if (typeof target.addSeparator === 'function') target.addSeparator();
         target.addItem((i) => {
           i.setTitle(
-            title(TEXTS.inheritsFrom(source.folder, source.kategorie))
+            title(TEXTS.inheritsFrom(source.folder, source.category))
           ).setIcon('git-branch');
           /* Information only, not a button. */
           if (typeof i.setDisabled === 'function') i.setDisabled(true);
@@ -841,7 +841,7 @@ class ExplorerCategoriesPlugin extends Plugin {
 
         target.addItem((i) =>
           i
-            .setTitle(title(TEXTS.keine))
+            .setTitle(title(TEXTS.removeColour))
             .setIcon('eraser')
             .onClick(() => this.assignMany(paths, null))
         );
@@ -852,7 +852,7 @@ class ExplorerCategoriesPlugin extends Plugin {
       if (typeof target.addSeparator === 'function') target.addSeparator();
       target.addItem((i) =>
         i
-          .setTitle(title(TEXTS.verwalten))
+          .setTitle(title(TEXTS.manage))
           .setIcon('settings')
           .onClick(() => this.openWindow())
       );
@@ -864,7 +864,7 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     menu.addItem((entry) => {
       entry
-        .setTitle(several ? TEXTS.menueMehrere(paths.length) : TEXTS.menue)
+        .setTitle(several ? TEXTS.menuTitleMany(paths.length) : TEXTS.menuTitle)
         .setIcon('palette');
       if (typeof entry.setSubmenu !== 'function') return;
 
@@ -922,7 +922,7 @@ class ExplorerCategoriesPlugin extends Plugin {
       {
         plugin: 'explorer-categories',
         version: this.manifest ? this.manifest.version : '',
-        geschrieben: new Date().toISOString(),
+        written: new Date().toISOString(),
         data: this.data,
       },
       null,
@@ -995,12 +995,12 @@ class ExplorerCategoriesPlugin extends Plugin {
     try {
       raw = JSON.parse(text);
     } catch (e) {
-      throw new Error(TEXTS.sicherungUnlesbar);
+      throw new Error(TEXTS.backupUnreadable);
     }
 
     const data = raw && raw.data ? raw.data : raw;
     if (!data || !Array.isArray(data.kategorien) || !data.kategorien.length) {
-      throw new Error(TEXTS.sicherungOhneKategorien);
+      throw new Error(TEXTS.backupWithoutCategories);
     }
     return data;
   }
@@ -1010,7 +1010,7 @@ class ExplorerCategoriesPlugin extends Plugin {
     try {
       text = await this.app.vault.adapter.read(path);
     } catch (e) {
-      throw new Error(TEXTS.sicherungUnlesbar);
+      throw new Error(TEXTS.backupUnreadable);
     }
     return this.backupFromText(text);
   }
@@ -1081,10 +1081,10 @@ class ExplorerCategoriesPlugin extends Plugin {
        be on screen. */
     if (paths.length > 1) {
       if (catId === null) {
-        new Notice(TEXTS.entfernt(paths.length));
+        new Notice(TEXTS.removed(paths.length));
       } else {
         const cat = this.data.kategorien.find((k) => k.id === catId);
-        if (cat) new Notice(TEXTS.zugewiesen(paths.length, cat.name));
+        if (cat) new Notice(TEXTS.assigned(paths.length, cat.name));
       }
     }
   }
@@ -1098,13 +1098,13 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* A new category always lands in a group -- the one the window is
      showing. There is no such thing as a category outside every group:
      it would appear nowhere and could never be reached again. */
-  async addCategory(gruppenId) {
+  async addCategory(groupId) {
     const id = newId('kat', this.data.kategorien.map((k) => k.id));
     this.data.kategorien.push({
       id,
-      name: TEXTS.neueVorgabe,
+      name: TEXTS.newCategoryDefault,
       farbe: randomColour(),
-      gruppe: gruppenId || this.data.gruppen[0].id,
+      gruppe: groupId || this.data.gruppen[0].id,
       stil: Object.assign({}, STYLE_DEFAULT),
     });
     await this.save();
@@ -1144,15 +1144,15 @@ class ExplorerCategoriesPlugin extends Plugin {
    * Swapping the two absolute positions leaves every skipped entry
    * exactly where it was, so the order inside the other groups cannot be
    * disturbed by moving something here. */
-  async moveCategory(catId, richtung) {
+  async moveCategory(catId, direction) {
     const all = this.data.kategorien;
     const from = all.findIndex((k) => k.id === catId);
     if (from < 0) return false;
 
     const gruppe = all[from].gruppe;
-    let to = from + richtung;
+    let to = from + direction;
     while (to >= 0 && to < all.length && all[to].gruppe !== gruppe) {
-      to += richtung;
+      to += direction;
     }
     if (to < 0 || to >= all.length) return false;
 
@@ -1178,12 +1178,12 @@ class ExplorerCategoriesPlugin extends Plugin {
    *
    * Below two entries there is nothing to sort, and the buttons are dead
    * anyway -- the check is here as well so the method holds on its own. */
-  async sortCategories(gruppeId, absteigend) {
+  async sortCategories(groupId, absteigend) {
     const all = this.data.kategorien;
 
     const slots = [];
     for (let i = 0; i < all.length; i++) {
-      if (all[i].gruppe === gruppeId) slots.push(i);
+      if (all[i].gruppe === groupId) slots.push(i);
     }
     if (slots.length < 2) return false;
 
@@ -1254,8 +1254,8 @@ class ExplorerCategoriesPlugin extends Plugin {
    * The result is cached because writeStyle runs on every change, and
    * the drawing would otherwise start from scratch each time. */
   maskOf(id) {
-    if (!this.maskenSpeicher) this.maskenSpeicher = new Map();
-    if (this.maskenSpeicher.has(id)) return this.maskenSpeicher.get(id);
+    if (!this.maskCache) this.maskCache = new Map();
+    if (this.maskCache.has(id)) return this.maskCache.get(id);
 
     let mask = null;
 
@@ -1291,12 +1291,12 @@ class ExplorerCategoriesPlugin extends Plugin {
       mask = null;
     }
 
-    this.maskenSpeicher.set(id, mask);
+    this.maskCache.set(id, mask);
     return mask;
   }
 
   writeStyle() {
-    this.stilEl.textContent = buildRules(
+    this.styleEl.textContent = buildRules(
       buildTargets(this.data, (catId) => ({
         farbe: this.colourOf(catId),
         stil: this.styleOf(catId),
@@ -1314,13 +1314,13 @@ class ExplorerCategoriesPlugin extends Plugin {
 /* List on the left, settings on the right. This keeps the window the
    same height whether there are three categories or thirty. On narrow
    screens the two stack instead. */
-class KategorienFenster extends Modal {
+class CategoriesModal extends Modal {
   constructor(app, plugin) {
     super(app);
     this.plugin = plugin;
 
-    this.gruppeGewaehlt = plugin.data.gruppen[0].id;
-    const first = plugin.categoriesIn(this.gruppeGewaehlt)[0];
+    this.chosenGroup = plugin.data.gruppen[0].id;
+    const first = plugin.categoriesIn(this.chosenGroup)[0];
     this.chosen = first ? first.id : null;
   }
 
@@ -1349,14 +1349,14 @@ class KategorienFenster extends Modal {
       super.close();
       return;
     }
-    new BestaetigenFenster(
+    new ConfirmModal(
       this.app,
-      TEXTS.verwerfenFrage,
+      TEXTS.discardQuestion,
       async () => {
         this.plugin.discardDraft();
         super.close();
       },
-      TEXTS.verwerfen
+      TEXTS.discard
     ).open();
   }
 
@@ -1365,13 +1365,13 @@ class KategorienFenster extends Modal {
   draw() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl('h2', { text: TEXTS.fensterTitel });
+    contentEl.createEl('h2', { text: TEXTS.windowTitle });
 
-    this.reiterEl = contentEl.createDiv({ cls: 'fc-tab' });
+    this.tabsEl = contentEl.createDiv({ cls: 'fc-tab' });
     this.fillTabs();
 
     const columns = contentEl.createDiv({ cls: 'fc-columns' });
-    this.listeEl = columns.createDiv({ cls: 'fc-list' });
+    this.listEl = columns.createDiv({ cls: 'fc-list' });
     this.detailEl = columns.createDiv({ cls: 'fc-detail' });
 
     this.fillList();
@@ -1394,15 +1394,15 @@ class KategorienFenster extends Modal {
         const state = await this.plugin.writeBackup();
         new Notice(
           state.imVault
-            ? TEXTS.gesichertImVault(state.name)
-            : TEXTS.gesichertGeladen(state.name)
+            ? TEXTS.backupInVault(state.name)
+            : TEXTS.backupRestored(state.name)
         );
       } catch (e) {
-        new Notice(TEXTS.sicherungFehlgeschlagen);
+        new Notice(TEXTS.backupFailed);
       }
     });
 
-    const loadButton = backups.createEl('button', { text: TEXTS.laden });
+    const loadButton = backups.createEl('button', { text: TEXTS.load });
     loadButton.addEventListener('click', () => {
       if (Platform.isDesktopApp) this.pickBackupFile();
       else this.pickBackupInVault();
@@ -1455,7 +1455,7 @@ class KategorienFenster extends Modal {
     if (HELP_URL) {
       row.createSpan({ text: ' · ' });
       row.createEl('a', {
-        text: TEXTS.hilfe,
+        text: TEXTS.help,
         href: HELP_URL,
         attr: { target: '_blank', rel: 'noopener' },
       });
@@ -1465,30 +1465,30 @@ class KategorienFenster extends Modal {
   /* ---------------- Liste ----------------------------------------- */
 
   fillList() {
-    this.listeEl.empty();
+    this.listEl.empty();
     /* Handles on the individual rows, so name and colour can be updated
        while typing without rebuilding everything. */
-    this.zeilen = new Map();
+    this.rows = new Map();
 
     /* The rows scroll, the button below stays put -- otherwise it drops
        out of sight once there are many categories. */
     /* Says what the list is. This one can sit above its column: the
        height it costs comes out of the list, not out of the settings
        column that has none to spare. */
-    this.listeEl.createDiv({
+    this.listEl.createDiv({
       cls: 'fc-groupingname fc-groupingrow',
-      text: TEXTS.bereichKategorien,
+      text: TEXTS.areaCategories,
     });
 
-    const scroller = this.listeEl.createDiv({ cls: 'fc-listscroll' });
+    const scroller = this.listEl.createDiv({ cls: 'fc-listscroll' });
 
     /* Only the active group. That is the whole point of groups: the same
        colour means different things in different parts of the vault, and
        all of them at once is what made the list unusable. */
-    const kategorien = this.plugin.categoriesIn(this.gruppeGewaehlt);
+    const kategorien = this.plugin.categoriesIn(this.chosenGroup);
 
     if (!kategorien.length) {
-      scroller.createDiv({ cls: 'fc-empty', text: TEXTS.keineKategorienInGruppe });
+      scroller.createDiv({ cls: 'fc-empty', text: TEXTS.noCategoriesInGroup });
     }
 
     for (const cat of kategorien) {
@@ -1521,7 +1521,7 @@ class KategorienFenster extends Modal {
         cls: 'fc-listcount',
         text: String(this.plugin.folderCount(cat.id)),
       });
-      count.setAttribute('aria-label', TEXTS.ordnerZahl(this.plugin.folderCount(cat.id)));
+      count.setAttribute('aria-label', TEXTS.folderCountText(this.plugin.folderCount(cat.id)));
 
       row.addEventListener('click', () => {
         this.chosen = cat.id;
@@ -1529,7 +1529,7 @@ class KategorienFenster extends Modal {
         this.fillDetail();
       });
 
-      this.zeilen.set(cat.id, { mark, name });
+      this.rows.set(cat.id, { mark, name });
     }
 
     /* Under the rows: move the selected category, and add a new one.
@@ -1540,7 +1540,7 @@ class KategorienFenster extends Modal {
        riding along with the row would walk out from under the finger
        after every tap -- on the iPad, where the finger covers what it is
        aiming at, that is the difference between working and fiddling. */
-    const footer = this.listeEl.createDiv({ cls: 'fc-listfooter' });
+    const footer = this.listEl.createDiv({ cls: 'fc-listfooter' });
     const pair = footer.createDiv({ cls: 'fc-shiftpair' });
 
     /* Where the selected category stands WITHIN ITS GROUP -- that is the
@@ -1549,13 +1549,13 @@ class KategorienFenster extends Modal {
        there is nothing to move. */
     const slot = kategorien.findIndex((k) => k.id === this.chosen);
 
-    this.shiftButton(pair, 'chevron-up', TEXTS.hochSchieben, slot > 0, () =>
+    this.shiftButton(pair, 'chevron-up', TEXTS.moveUp, slot > 0, () =>
       this.categoryShiftButton(-1)
     );
     this.shiftButton(
       pair,
       'chevron-down',
-      TEXTS.runterSchieben,
+      TEXTS.moveDown,
       slot >= 0 && slot < kategorien.length - 1,
       () => this.categoryShiftButton(1)
     );
@@ -1571,19 +1571,19 @@ class KategorienFenster extends Modal {
     const sortPair = footer.createDiv({ cls: 'fc-shiftpair fc-sortpair' });
     const enough = kategorien.length > 1;
 
-    this.shiftButton(sortPair, 'arrow-down-az', TEXTS.sortierenAuf, enough, () =>
+    this.shiftButton(sortPair, 'arrow-down-az', TEXTS.sortAscending, enough, () =>
       this.sortCategories(false)
     );
-    this.shiftButton(sortPair, 'arrow-up-az', TEXTS.sortierenAb, enough, () =>
+    this.shiftButton(sortPair, 'arrow-up-az', TEXTS.sortDescending, enough, () =>
       this.sortCategories(true)
     );
 
     const fresh = footer.createEl('button', {
       cls: 'fc-new',
-      text: '+ ' + TEXTS.neue,
+      text: '+ ' + TEXTS.newCategory,
     });
     fresh.addEventListener('click', async () => {
-      this.chosen = await this.plugin.addCategory(this.gruppeGewaehlt);
+      this.chosen = await this.plugin.addCategory(this.chosenGroup);
       this.fillList();
       this.fillDetail();
     });
@@ -1602,25 +1602,25 @@ class KategorienFenster extends Modal {
    * At the end of the list the button stays put and goes dead rather
    * than disappearing -- the other one would jump sideways, and a target
    * that moves is worse than one that says no. */
-  shiftButton(target, iconName, beschriftung, moeglich, tun) {
+  shiftButton(target, iconName, label, possible, act) {
     const button = target.createEl('button', { cls: 'clickable-icon fc-shift' });
     setIcon(button, iconName);
-    button.setAttribute('aria-label', beschriftung);
+    button.setAttribute('aria-label', label);
 
-    if (!moeglich) {
+    if (!possible) {
       button.disabled = true;
       return button;
     }
-    button.addEventListener('click', tun);
+    button.addEventListener('click', act);
     return button;
   }
 
   /* Only the list is redrawn. The category stays selected, so its
      settings on the right have not changed -- redrawing them would throw
      away the caret in the name field for nothing. */
-  async categoryShiftButton(richtung) {
+  async categoryShiftButton(direction) {
     if (!this.chosen) return;
-    const moved = await this.plugin.moveCategory(this.chosen, richtung);
+    const moved = await this.plugin.moveCategory(this.chosen, direction);
     if (!moved) return;
     this.fillList();
   }
@@ -1647,15 +1647,15 @@ class KategorienFenster extends Modal {
       try {
         data = this.plugin.backupFromText(await file.text());
       } catch (e) {
-        new Notice(e.message || TEXTS.sicherungUnlesbar);
+        new Notice(e.message || TEXTS.backupUnreadable);
         return;
       }
 
-      new BestaetigenFenster(
+      new ConfirmModal(
         this.app,
-        TEXTS.sicherungFrage(file.name),
+        TEXTS.backupQuestion(file.name),
         () => this.applyBackup(data),
-        TEXTS.laden
+        TEXTS.load
       ).open();
     });
 
@@ -1663,7 +1663,7 @@ class KategorienFenster extends Modal {
   }
 
   pickBackupInVault() {
-    new SicherungFenster(this.app, this.plugin, (data) =>
+    new BackupModal(this.app, this.plugin, (data) =>
       this.applyBackup(data)
     ).open();
   }
@@ -1674,18 +1674,18 @@ class KategorienFenster extends Modal {
      not have. */
   applyBackup(data) {
     this.plugin.restoreBackup(data);
-    this.gruppeGewaehlt = this.plugin.data.gruppen[0].id;
-    const first = this.plugin.categoriesIn(this.gruppeGewaehlt)[0];
+    this.chosenGroup = this.plugin.data.gruppen[0].id;
+    const first = this.plugin.categoriesIn(this.chosenGroup)[0];
     this.chosen = first ? first.id : null;
     this.draw();
-    new Notice(TEXTS.sicherungGeladen);
+    new Notice(TEXTS.backupLoaded);
   }
 
   /* Only the list is redrawn, same as for the arrows: sorting changes
      the order, not the settings of the category that stays selected. */
   async sortCategories(absteigend) {
     const changed = await this.plugin.sortCategories(
-      this.gruppeGewaehlt,
+      this.chosenGroup,
       absteigend
     );
     if (!changed) return;
@@ -1694,8 +1694,8 @@ class KategorienFenster extends Modal {
 
   /* Only the tabs. Which categories the group holds does not change by
      moving it, so list and settings stay as they are. */
-  async groupShiftButton(richtung) {
-    const moved = await this.plugin.moveGroup(this.gruppeGewaehlt, richtung);
+  async groupShiftButton(direction) {
+    const moved = await this.plugin.moveGroup(this.chosenGroup, direction);
     if (!moved) return;
     this.fillTabs();
   }
@@ -1707,29 +1707,29 @@ class KategorienFenster extends Modal {
      would change height as you switch, and everything below it would
      jump. */
   fillTabs() {
-    this.reiterEl.empty();
+    this.tabsEl.empty();
 
     /* Says what the tabs are, on the same line as the tabs themselves.
        Above them it would cost a row of height, and the settings column
        below has none to give -- the window is at Obsidian's ceiling. */
-    const bar = this.reiterEl.createDiv({ cls: 'fc-tabbar' });
-    bar.createSpan({ cls: 'fc-groupingname', text: TEXTS.bereichGruppen });
+    const bar = this.tabsEl.createDiv({ cls: 'fc-tabbar' });
+    bar.createSpan({ cls: 'fc-groupingname', text: TEXTS.areaGroups });
 
     for (const gruppe of this.plugin.data.gruppen) {
       const button = bar.createEl('button', {
         cls: 'fc-tabbutton',
         text: gruppe.name,
       });
-      if (gruppe.id === this.gruppeGewaehlt) button.addClass('fc-tabactive');
+      if (gruppe.id === this.chosenGroup) button.addClass('fc-tabactive');
 
       button.setAttribute(
         'aria-label',
-        TEXTS.gruppeZahl(this.plugin.categoriesIn(gruppe.id).length)
+        TEXTS.groupCount(this.plugin.categoriesIn(gruppe.id).length)
       );
 
       button.addEventListener('click', () => {
-        if (gruppe.id === this.gruppeGewaehlt) return;
-        this.gruppeGewaehlt = gruppe.id;
+        if (gruppe.id === this.chosenGroup) return;
+        this.chosenGroup = gruppe.id;
         /* The selection cannot survive a group change: the category it
            points at is not in the new group. */
         const first = this.plugin.categoriesIn(gruppe.id)[0];
@@ -1744,9 +1744,9 @@ class KategorienFenster extends Modal {
       cls: 'fc-tabnew',
       text: '+',
     });
-    fresh.setAttribute('aria-label', TEXTS.gruppeNeu);
+    fresh.setAttribute('aria-label', TEXTS.groupNew);
     fresh.addEventListener('click', async () => {
-      this.gruppeGewaehlt = await this.plugin.addGroup();
+      this.chosenGroup = await this.plugin.addGroup();
       this.chosen = null;
       this.fillTabs();
       this.fillList();
@@ -1756,9 +1756,9 @@ class KategorienFenster extends Modal {
     /* Name and delete for the group sit under the tabs, not in them: a
        tab you can type in is hard to hit, and the delete button has to
        be somewhere it cannot be pressed by accident while switching. */
-    const row = this.reiterEl.createDiv({ cls: 'fc-grouprow' });
+    const row = this.tabsEl.createDiv({ cls: 'fc-grouprow' });
     const gruppe = this.plugin.data.gruppen.find(
-      (g) => g.id === this.gruppeGewaehlt
+      (g) => g.id === this.chosenGroup
     );
     if (!gruppe) return;
 
@@ -1774,13 +1774,13 @@ class KategorienFenster extends Modal {
         (g) => g.id === gruppe.id
       );
 
-      this.shiftButton(pair, 'chevron-left', TEXTS.gruppeLinks, slot > 0, () =>
+      this.shiftButton(pair, 'chevron-left', TEXTS.groupLeft, slot > 0, () =>
         this.groupShiftButton(-1)
       );
       this.shiftButton(
         pair,
         'chevron-right',
-        TEXTS.gruppeRechts,
+        TEXTS.groupRight,
         slot < this.plugin.data.gruppen.length - 1,
         () => this.groupShiftButton(1)
       );
@@ -1789,7 +1789,7 @@ class KategorienFenster extends Modal {
     const name = row.createEl('input', {
       type: 'text',
       cls: 'fc-groupname',
-      placeholder: TEXTS.gruppeName,
+      placeholder: TEXTS.groupName,
     });
     name.value = gruppe.name;
 
@@ -1811,7 +1811,7 @@ class KategorienFenster extends Modal {
       const id = await this.plugin.duplicateGroup(gruppe.id);
       if (!id) return;
 
-      this.gruppeGewaehlt = id;
+      this.chosenGroup = id;
       const first = this.plugin.categoriesIn(id)[0];
       this.chosen = first ? first.id : null;
       this.fillTabs();
@@ -1832,14 +1832,14 @@ class KategorienFenster extends Modal {
       const count = this.plugin.categoriesIn(gruppe.id).length;
       const oldName = gruppe.name;
 
-      new BestaetigenFenster(
+      new ConfirmModal(
         this.app,
-        TEXTS.gruppeLoeschFrage(oldName, count),
+        TEXTS.groupDeleteQuestion(oldName, count),
         async () => {
           await this.plugin.deleteGroup(gruppe.id);
-          new Notice(TEXTS.gruppeGeloescht(oldName));
-          this.gruppeGewaehlt = this.plugin.data.gruppen[0].id;
-          const first = this.plugin.categoriesIn(this.gruppeGewaehlt)[0];
+          new Notice(TEXTS.groupDeleted(oldName));
+          this.chosenGroup = this.plugin.data.gruppen[0].id;
+          const first = this.plugin.categoriesIn(this.chosenGroup)[0];
           this.chosen = first ? first.id : null;
           this.fillTabs();
           this.fillList();
@@ -1932,14 +1932,14 @@ class KategorienFenster extends Modal {
      recognised, and the grid button is still there. Better than a
      window that will not open. */
   iconList() {
-    if (!this.symbole) {
+    if (!this.icons) {
       try {
-        this.symbole = getIconIds() || [];
+        this.icons = getIconIds() || [];
       } catch (e) {
-        this.symbole = [];
+        this.icons = [];
       }
     }
-    return this.symbole;
+    return this.icons;
   }
 
   /* One section: its heading on the left, everything it controls on the
@@ -1967,7 +1967,7 @@ class KategorienFenster extends Modal {
 
     const cat = this.plugin.data.kategorien.find((k) => k.id === this.chosen);
     if (!cat) {
-      this.detailEl.createDiv({ cls: 'fc-empty', text: TEXTS.nichtsGewaehlt });
+      this.detailEl.createDiv({ cls: 'fc-empty', text: TEXTS.nothingChosen });
       return;
     }
 
@@ -1981,7 +1981,7 @@ class KategorienFenster extends Modal {
 
        Reported 2026-08-29: pressing "Background" left the row in the
        list uncoloured until something else was changed. */
-    const listRow = this.zeilen && this.zeilen.get(cat.id);
+    const listRow = this.rows && this.rows.get(cat.id);
     if (listRow) this.drawRowStyle(listRow, cat.farbe, stil, cat.icon);
 
     /* --- Colour and name ------------------------------------------ */
@@ -2002,8 +2002,8 @@ class KategorienFenster extends Modal {
 
     const farbe = colourField.createEl('input', { type: 'color', cls: 'fc-colour' });
     farbe.value = cat.farbe;
-    farbe.setAttribute('aria-label', TEXTS.farbeWaehlen);
-    farbe.setAttribute('title', TEXTS.farbeWaehlen);
+    farbe.setAttribute('aria-label', TEXTS.pickColour);
+    farbe.setAttribute('title', TEXTS.pickColour);
 
     const picker = colourField.createSpan({ cls: 'fc-colourpicker' });
     setIcon(picker, 'pipette');
@@ -2019,7 +2019,7 @@ class KategorienFenster extends Modal {
     const name = head.createEl('input', {
       type: 'text',
       cls: 'fc-title',
-      placeholder: TEXTS.namePlatzhalter,
+      placeholder: TEXTS.namePlaceholder,
     });
     name.value = cat.name;
 
@@ -2068,7 +2068,7 @@ class KategorienFenster extends Modal {
     const iconField = iconRow.createEl('input', {
       type: 'text',
       cls: 'fc-icontext',
-      placeholder: TEXTS.symbolName,
+      placeholder: TEXTS.iconLabel,
     });
     iconField.value = shortIconName(cat.icon);
 
@@ -2076,9 +2076,9 @@ class KategorienFenster extends Modal {
       cls: 'clickable-icon fc-iconpaging',
     });
     setIcon(paging, 'layout-grid');
-    paging.setAttribute('aria-label', TEXTS.symbolWaehlen);
+    paging.setAttribute('aria-label', TEXTS.pickIcon);
     paging.addEventListener('click', () => {
-      new SymbolFenster(this.app, cat.icon || null, async (chosen) => {
+      new IconModal(this.app, cat.icon || null, async (chosen) => {
         await this.plugin.changeCategory(cat.id, { icon: chosen });
         this.fillList();
         this.fillDetail();
@@ -2089,7 +2089,7 @@ class KategorienFenster extends Modal {
        out entirely, everything below it moved up by a row as soon as you
        clicked a category without an icon -- including "Delete", which
        then slid under the pointer. Reported 2026-08-28. */
-    const iconRemove = iconRow.createEl('button', { text: TEXTS.symbolEntfernen });
+    const iconRemove = iconRow.createEl('button', { text: TEXTS.removeIcon });
     if (!cat.icon) iconRemove.addClass('fc-placeholder');
     iconRemove.addEventListener('click', async () => {
       if (!cat.icon) return;
@@ -2127,9 +2127,9 @@ class KategorienFenster extends Modal {
         button.classList.toggle('fc-noeffect', Boolean(cat.icon));
       }
 
-      if (unbekannt) iconHintEl.setText(TEXTS.symbolUnbekannt);
-      else if (noEffect) iconHintEl.setText(TEXTS.symbolOhneWirkung);
-      else iconHintEl.setText(cat.icon ? TEXTS.symbolErsetzt : '');
+      if (unbekannt) iconHintEl.setText(TEXTS.iconUnknown);
+      else if (noEffect) iconHintEl.setText(TEXTS.iconNoEffect);
+      else iconHintEl.setText(cat.icon ? TEXTS.iconReplaces : '');
     };
 
     /* Draws the icon in front of the field, in the category colour --
@@ -2145,7 +2145,7 @@ class KategorienFenster extends Modal {
     showIconState(false);
 
     /* --- the four independent switches ------------------------------ */
-    const extraField = this.section(TEXTS.zusaetzlich);
+    const extraField = this.section(TEXTS.extra);
 
     const switches = extraField.createDiv({ cls: 'fc-switches' });
     const toggle = [
@@ -2158,17 +2158,17 @@ class KategorienFenster extends Modal {
       ['gedimmt', TEXTS.gedimmt],
     ];
 
-    for (const [feld, beschriftung] of toggle) {
-      const button = switches.createEl('button', { text: beschriftung });
-      if (stil[feld]) button.addClass('mod-cta');
+    for (const [field, label] of toggle) {
+      const button = switches.createEl('button', { text: label });
+      if (stil[field]) button.addClass('mod-cta');
       /* Coloured text has no effect while a background is on -- there
          the plugin works out the text colour itself. The switch stays
          usable but is visibly dimmed, so the setting takes effect again
          once the background is turned off. */
-      if (feld === 'schriftFarbig' && stil.hintergrund) button.addClass('fc-noeffect');
+      if (field === 'schriftFarbig' && stil.hintergrund) button.addClass('fc-noeffect');
 
       button.addEventListener('click', async () => {
-        await this.plugin.changeStyle(cat.id, { [feld]: !stil[feld] });
+        await this.plugin.changeStyle(cat.id, { [field]: !stil[field] });
         this.fillDetail();
       });
     }
@@ -2186,8 +2186,8 @@ class KategorienFenster extends Modal {
        row for the rare case where both are on would move everything
        down for everyone else -- the very shifting that 0.9.16 fixed. */
     let switchHint = '';
-    if (stil.hintergrund) switchHint = TEXTS.schriftAutomatisch;
-    else if (stil.gedimmt) switchHint = TEXTS.gedimmtHinweis;
+    if (stil.hintergrund) switchHint = TEXTS.textAutomatic;
+    else if (stil.gedimmt) switchHint = TEXTS.dimmedHint;
 
     extraField.createDiv({
       cls: 'fc-hint',
@@ -2199,19 +2199,19 @@ class KategorienFenster extends Modal {
        carries. Used to be two entries in the context menu, set per
        folder -- hard to find, and the only thing about a category that
        was not set in this window. */
-    const inheritField = this.section(TEXTS.vererbung);
+    const inheritField = this.section(TEXTS.inheritance);
 
     const reach = inheritField.createDiv({ cls: 'fc-switches' });
     const inheritSwitches = [
-      ['vererbt', TEXTS.aufUnterordner],
-      ['vererbtDateien', TEXTS.aufDateien],
+      ['vererbt', TEXTS.toSubfolders],
+      ['vererbtDateien', TEXTS.toNotes],
     ];
 
-    for (const [feld, beschriftung] of inheritSwitches) {
-      const button = reach.createEl('button', { text: beschriftung });
-      if (stil[feld]) button.addClass('mod-cta');
+    for (const [field, label] of inheritSwitches) {
+      const button = reach.createEl('button', { text: label });
+      if (stil[field]) button.addClass('mod-cta');
       button.addEventListener('click', async () => {
-        await this.plugin.changeStyle(cat.id, { [feld]: !stil[feld] });
+        await this.plugin.changeStyle(cat.id, { [field]: !stil[field] });
         this.fillDetail();
       });
     }
@@ -2237,7 +2237,7 @@ class KategorienFenster extends Modal {
     let parentHint = '';
 
     if (stil.vererbt || stil.vererbtDateien) {
-      const parentField = this.section(TEXTS.vaterHervorheben);
+      const parentField = this.section(TEXTS.parentApart);
       const parentChoice = parentField.createDiv({ cls: 'fc-switches' });
 
       let chosenButton = null;
@@ -2256,22 +2256,22 @@ class KategorienFenster extends Modal {
       /* Every way this setting can end up doing nothing gets said out
          loud. Without that it looks broken: the choice is made, the tree
          does not change, and there is nothing to go by. */
-      if (parentMode === 'fett' && stil.fett) parentHint = TEXTS.vaterSchonFett;
+      if (parentMode === 'fett' && stil.fett) parentHint = TEXTS.parentAlreadyBold;
       else if (parentMode === 'hintergrund' && stil.hintergrund) {
-        parentHint = TEXTS.vaterSchonHintergrund;
+        parentHint = TEXTS.parentAlreadyBackground;
       } else if (parentMode === 'schrift' && stil.hintergrund) {
         /* Checked before the "already coloured" case: under a background
            the plugin works out the text colour itself, so colouring the
            parent's text does nothing whether or not the category itself
            has coloured text switched on. The background is the reason,
            and the reason is what has to be said. */
-        parentHint = TEXTS.vaterSchriftUnterHintergrund;
+        parentHint = TEXTS.parentTextUnderBackground;
       } else if (parentMode === 'schrift' && stil.schriftFarbig) {
-        parentHint = TEXTS.vaterSchonSchrift;
+        parentHint = TEXTS.parentAlreadyText;
       } else if (parentMode === 'blass' && stil.gedimmt) {
-        parentHint = TEXTS.vaterSchonBlass;
+        parentHint = TEXTS.parentAlreadyDim;
       } else if (parentMode === 'symbol' && !cat.icon) {
-        parentHint = TEXTS.vaterOhneSymbol;
+        parentHint = TEXTS.parentWithoutIcon;
       } else if (parentMode === 'markierung' && cat.icon && stil.markierung !== 'keine') {
         /* The marker check has to come along: with "None" the icon is
            not drawn either (see "showsIcon"), so the parent -- which
@@ -2279,7 +2279,7 @@ class KategorienFenster extends Modal {
            showing anything at all. The choice works, and saying it does
            not would send the user looking for a fault that is not
            there. Reported 2026-08-29. */
-        parentHint = TEXTS.vaterSymbolSchlaegt;
+        parentHint = TEXTS.parentIconBeats;
       }
 
       /* Only the chosen button is struck through, never the whole row.
@@ -2309,7 +2309,7 @@ class KategorienFenster extends Modal {
     /* Duplicating sits next to deleting because both act on the category
        shown above, and nowhere else does. Delete stays on the far right,
        away from the hand. */
-    const duplicate = footer.createEl('button', { text: TEXTS.duplizieren });
+    const duplicate = footer.createEl('button', { text: TEXTS.duplicateLabel });
     duplicate.addEventListener('click', async () => {
       const id = await this.plugin.duplicateCategory(cat.id);
       if (!id) return;
@@ -2328,11 +2328,11 @@ class KategorienFenster extends Modal {
        have exactly one entry -- a control that can only say what is
        already true. */
     if (this.plugin.data.gruppen.length > 1) {
-      footer.createSpan({ cls: 'fc-footername', text: TEXTS.gruppeFeld });
+      footer.createSpan({ cls: 'fc-footername', text: TEXTS.groupField });
 
       const choice = footer.createEl('select', { cls: 'dropdown fc-groupchoice' });
-      choice.setAttribute('aria-label', TEXTS.gruppeWechseln);
-      choice.setAttribute('title', TEXTS.gruppeWechseln);
+      choice.setAttribute('aria-label', TEXTS.groupSwitch);
+      choice.setAttribute('title', TEXTS.groupSwitch);
 
       for (const g of this.plugin.data.gruppen) {
         const entry = choice.createEl('option', { text: g.name });
@@ -2346,7 +2346,7 @@ class KategorienFenster extends Modal {
 
         /* The window follows it. Staying put would make the category
            vanish from the list with nothing to show where it went. */
-        this.gruppeGewaehlt = target;
+        this.chosenGroup = target;
         this.chosen = cat.id;
         this.fillTabs();
         this.fillList();
@@ -2364,7 +2364,7 @@ class KategorienFenster extends Modal {
     farbe.addEventListener('input', () => {
       this.plugin.changeCategory(cat.id, { farbe: farbe.value });
       colourPicker();
-      const row = this.zeilen.get(cat.id);
+      const row = this.rows.get(cat.id);
       if (row) this.drawRowStyle(row, farbe.value, stil, cat.icon);
     });
 
@@ -2383,7 +2383,7 @@ class KategorienFenster extends Modal {
       showIconImage();
       showIconState(false);
 
-      const row = this.zeilen.get(cat.id);
+      const row = this.rows.get(cat.id);
       if (row) this.drawRowStyle(row, cat.farbe, stil, cat.icon);
     });
 
@@ -2391,7 +2391,7 @@ class KategorienFenster extends Modal {
        caret after every character. */
     name.addEventListener('input', () => {
       this.plugin.changeCategory(cat.id, { name: name.value });
-      const row = this.zeilen.get(cat.id);
+      const row = this.rows.get(cat.id);
       if (row) row.name.setText(name.value);
     });
 
@@ -2401,11 +2401,11 @@ class KategorienFenster extends Modal {
 
       const remove = async () => {
         await this.plugin.deleteCategory(cat.id);
-        new Notice(TEXTS.geloescht(oldName));
+        new Notice(TEXTS.deleted(oldName));
         /* The next one from THIS group. Falling back to the first
            category overall would jump into another legend while the tab
            above still says this one. */
-        const first = this.plugin.categoriesIn(this.gruppeGewaehlt)[0];
+        const first = this.plugin.categoriesIn(this.chosenGroup)[0];
         this.chosen = first ? first.id : null;
         /* The tab carries the category count, so it follows too. */
         this.fillTabs();
@@ -2416,9 +2416,9 @@ class KategorienFenster extends Modal {
       /* Always ask, even when no folder hangs off the category.
          Deleting without a prompt is one click too few, however little
          is at stake. */
-      new BestaetigenFenster(
+      new ConfirmModal(
         this.app,
-        TEXTS.loeschFrage(oldName, folderTotal),
+        TEXTS.deleteQuestion(oldName, folderTotal),
         remove
       ).open();
     });
@@ -2436,21 +2436,21 @@ class KategorienFenster extends Modal {
  * Restoring goes through the same confirmation as deleting: it throws
  * away everything currently on screen, and unlike a deleted category
  * there is no single thing to point at afterwards and say what went. */
-class SicherungFenster extends Modal {
-  constructor(app, plugin, beiErfolg) {
+class BackupModal extends Modal {
+  constructor(app, plugin, onSuccess) {
     super(app);
     this.plugin = plugin;
-    this.beiErfolg = beiErfolg;
+    this.onSuccess = onSuccess;
   }
 
   async onOpen() {
     const { contentEl, titleEl } = this;
-    if (titleEl) titleEl.setText(TEXTS.sicherungTitel);
+    if (titleEl) titleEl.setText(TEXTS.backupTitle);
 
     const files = await this.plugin.findBackups();
 
     if (!files.length) {
-      contentEl.createDiv({ cls: 'fc-empty', text: TEXTS.sicherungLeer });
+      contentEl.createDiv({ cls: 'fc-empty', text: TEXTS.backupEmpty });
       return;
     }
 
@@ -2463,28 +2463,28 @@ class SicherungFenster extends Modal {
         text: name,
       });
       row.addEventListener('click', () => {
-        new BestaetigenFenster(
+        new ConfirmModal(
           this.app,
-          TEXTS.sicherungFrage(name),
+          TEXTS.backupQuestion(name),
           async () => {
             try {
               const data = await this.plugin.readBackup(path);
               this.close();
-              this.beiErfolg(data);
+              this.onSuccess(data);
             } catch (e) {
               /* The message comes from readBackup and already says
                  which of the two things went wrong. */
-              new Notice(e.message || TEXTS.sicherungUnlesbar);
+              new Notice(e.message || TEXTS.backupUnreadable);
             }
           },
-          TEXTS.laden
+          TEXTS.load
         ).open();
       });
     }
 
     contentEl.createDiv({
       cls: 'fc-hint',
-      text: TEXTS.sicherungOrt(BACKUP_FOLDER),
+      text: TEXTS.backupPlace(BACKUP_FOLDER),
     });
   }
 
@@ -2496,7 +2496,7 @@ class SicherungFenster extends Modal {
 /* Own confirmation dialog instead of confirm(). The built-in one is not
    dependable inside Obsidian -- it looks foreign on mobile, and Electron
    can have it disabled. */
-class BestaetigenFenster extends Modal {
+class ConfirmModal extends Modal {
   constructor(app, question, onYes, yesText) {
     super(app);
     this.question = question;
@@ -2542,17 +2542,17 @@ class BestaetigenFenster extends Modal {
  * after the prefix is displayed -- the search looks at both. */
 const ICON_LIMIT = 120;
 
-class SymbolFenster extends Modal {
-  constructor(app, current, beiWahl) {
+class IconModal extends Modal {
+  constructor(app, current, onPick) {
     super(app);
     this.current = current;
-    this.beiWahl = beiWahl;
+    this.onPick = onPick;
     this.all = [];
   }
 
   onOpen() {
     const { contentEl, titleEl } = this;
-    if (titleEl) titleEl.setText(TEXTS.symbolFensterTitel);
+    if (titleEl) titleEl.setText(TEXTS.iconWindowTitle);
     contentEl.addClass('fc-iconwindow');
 
     /* If getIconIds fails, the list stays empty and the window says so
@@ -2566,11 +2566,11 @@ class SymbolFenster extends Modal {
     const search = contentEl.createEl('input', {
       type: 'text',
       cls: 'fc-iconsearch',
-      placeholder: TEXTS.symbolSuche,
+      placeholder: TEXTS.iconSearch,
     });
 
-    this.rasterEl = contentEl.createDiv({ cls: 'fc-icongrid' });
-    this.hinweisEl = contentEl.createDiv({ cls: 'fc-hint' });
+    this.gridEl = contentEl.createDiv({ cls: 'fc-icongrid' });
+    this.hintEl = contentEl.createDiv({ cls: 'fc-hint' });
 
     search.addEventListener('input', () => this.fillGrid(search.value));
     this.fillGrid('');
@@ -2581,8 +2581,8 @@ class SymbolFenster extends Modal {
   }
 
   fillGrid(suchtext) {
-    this.rasterEl.empty();
-    this.hinweisEl.empty();
+    this.gridEl.empty();
+    this.hintEl.empty();
 
     const text = suchtext.trim().toLowerCase();
     const fitting = text
@@ -2590,12 +2590,12 @@ class SymbolFenster extends Modal {
       : this.all;
 
     if (!fitting.length) {
-      this.hinweisEl.setText(TEXTS.symbolNichtsGefunden);
+      this.hintEl.setText(TEXTS.iconNothingFound);
       return;
     }
 
     for (const id of fitting.slice(0, ICON_LIMIT)) {
-      const button = this.rasterEl.createEl('button', { cls: 'fc-iconfield' });
+      const button = this.gridEl.createEl('button', { cls: 'fc-iconfield' });
       button.setAttribute('aria-label', shortIconName(id));
       button.setAttribute('title', shortIconName(id));
       if (id === this.current) button.addClass('mod-cta');
@@ -2604,12 +2604,12 @@ class SymbolFenster extends Modal {
 
       button.addEventListener('click', async () => {
         this.close();
-        await this.beiWahl(id);
+        await this.onPick(id);
       });
     }
 
     if (fitting.length > ICON_LIMIT) {
-      this.hinweisEl.setText(TEXTS.symbolMehr(ICON_LIMIT, fitting.length));
+      this.hintEl.setText(TEXTS.iconMore(ICON_LIMIT, fitting.length));
     }
   }
 
@@ -2665,9 +2665,9 @@ function styleFromOldShape(old) {
  *
  * Pure function on the data, no vault involved, so it can be tested
  * without Obsidian. */
-function catchUpGroups(data, vorgabeName) {
+function catchUpGroups(data, defaultName) {
   if (!Array.isArray(data.gruppen) || !data.gruppen.length) {
-    data.gruppen = [{ id: 'grp-1', name: vorgabeName }];
+    data.gruppen = [{ id: 'grp-1', name: defaultName }];
   }
 
   const known = new Set(data.gruppen.map((g) => g.id));
@@ -2864,11 +2864,11 @@ function buildTargets(data, nachschlagen) {
   /* Which folders pass their colour down? Every folder whose category
      says so. There is no table of its own for this any more -- the
      switch sits on the category, so this is a lookup. */
-  const sourcesWith = (feld) =>
+  const sourcesWith = (field) =>
     Object.keys(zuordnung)
       .filter((path) => {
         const entry = nachschlagen(zuordnung[path]);
-        return !!(entry && entry.stil && entry.stil[feld]);
+        return !!(entry && entry.stil && entry.stil[field]);
       })
       .sort((a, b) => depth(a) - depth(b) || a.localeCompare(b));
 
@@ -2902,7 +2902,7 @@ function buildTargets(data, nachschlagen) {
     }
 
     targets.push({
-      selektor: `.nav-folder-title[data-path^="${toMask(prefix)}"]${exceptions
+      selector: `.nav-folder-title[data-path^="${toMask(prefix)}"]${exceptions
         .map((a) => `:not(${a})`)
         .join('')}`,
       farbe,
@@ -2916,7 +2916,7 @@ function buildTargets(data, nachschlagen) {
     const { farbe, stil, icon } = nachschlagen(catId);
     if (!farbe || !stil) continue;
     targets.push({
-      selektor: `.nav-folder-title[data-path="${toMask(path)}"]`,
+      selector: `.nav-folder-title[data-path="${toMask(path)}"]`,
       farbe,
       stil: parentStyle(stil),
       icon: icon || null,
@@ -2950,7 +2950,7 @@ function buildTargets(data, nachschlagen) {
     }
 
     targets.push({
-      selektor: `.nav-file-title[data-path^="${toMask(prefix)}"]${exceptions
+      selector: `.nav-file-title[data-path^="${toMask(prefix)}"]${exceptions
         .map((a) => `:not(${a})`)
         .join('')}`,
       body: 'nav-file-title-content',
@@ -2977,12 +2977,12 @@ function buildTargets(data, nachschlagen) {
 function buildRules(eintraege, maskOf) {
   if (!eintraege.length) return '';
 
-  const title = (e) => e.selektor;
+  const title = (e) => e.selector;
   /* Folders and notes carry their text in differently named elements.
      Defaults to the folder, so an entry without the field behaves the
      way every entry did before notes could be coloured. */
   const body = (e) =>
-    `${e.selektor} .${e.body || 'nav-folder-title-content'}`;
+    `${e.selector} .${e.body || 'nav-folder-title-content'}`;
   const blocks = [];
 
   /* What colour the marker is painted in.
