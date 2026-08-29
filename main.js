@@ -30,11 +30,11 @@ const {
 } = require('obsidian');
 
 /* Every visible string, once per language. Which list applies is decided
-   by Obsidian's interface language, see spracheWaehlen() below.
+   by Obsidian's interface language, see chooseLanguage() below.
 
-   To contribute a third language: copy TEXTE_EN, translate the entries,
-   and add the list to SPRACHEN. Nothing in the code itself changes. */
-const TEXTE_DE = {
+   To contribute a third language: copy TEXTS_EN, translate the entries,
+   and add the list to LANGUAGES. Nothing in the code itself changes. */
+const TEXTS_DE = {
   /* "Category" on its own would be lost in the context menu -- there are
      a dozen other entries competing with it. */
   menue: 'Farbkategorie',
@@ -42,9 +42,9 @@ const TEXTE_DE = {
   verwalten: 'Kategorien verwalten …',
   aufUnterordner: 'Gilt auch für Unterordner',
   aufDateien: 'Gilt auch für Notizen darin',
-  erbtVon: (ordner, kategorie) => `Erbt „${kategorie}" von „${ordner}"`,
+  inheritsFrom: (ordner, kategorie) => `Erbt „${kategorie}" von „${ordner}"`,
   fensterTitel: 'Farbkategorien',
-  fensterOeffnen: 'Farbkategorien verwalten',
+  openWindow: 'Farbkategorien verwalten',
   neue: 'Neue Kategorie',
   neueVorgabe: 'Neue Kategorie',
   loeschen: 'Löschen',
@@ -96,7 +96,7 @@ const TEXTE_DE = {
       : `„${name}" löschen? ${n === 1 ? 'Ein Ordner verliert' : `${n} Ordner verlieren`} damit die Farbe.`,
   geloescht: (name) => `„${name}" gelöscht.`,
   abbrechen: 'Abbrechen',
-  speichern: 'Speichern',
+  save: 'Speichern',
   verwerfen: 'Verwerfen',
   verwerfenFrage: 'Die Änderungen verwerfen? Sie gehen dabei verloren.',
   sichern: 'Sichern',
@@ -137,8 +137,8 @@ const TEXTE_DE = {
   gruppeNeu: 'Neue Gruppe',
   gruppeNeuVorgabe: 'Neue Gruppe',
   gruppeName: 'Name der Gruppe',
-  gruppeLoeschen: 'Gruppe löschen',
-  gruppeDuplizieren: 'Gruppe duplizieren',
+  deleteGroup: 'Gruppe löschen',
+  duplicateGroup: 'Gruppe duplizieren',
   duplizieren: 'Duplizieren',
   gruppeFeld: 'Gruppe',
   gruppeWechseln: 'In eine andere Gruppe verschieben',
@@ -161,15 +161,15 @@ const TEXTE_DE = {
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
-const TEXTE_EN = {
+const TEXTS_EN = {
   menue: 'Color category',
   keine: 'Remove color',
   verwalten: 'Manage categories …',
   aufUnterordner: 'Also applies to subfolders',
   aufDateien: 'Also applies to the notes inside',
-  erbtVon: (ordner, kategorie) => `Inherits "${kategorie}" from "${ordner}"`,
+  inheritsFrom: (ordner, kategorie) => `Inherits "${kategorie}" from "${ordner}"`,
   fensterTitel: 'Color categories',
-  fensterOeffnen: 'Manage color categories',
+  openWindow: 'Manage color categories',
   neue: 'New category',
   neueVorgabe: 'New category',
   loeschen: 'Delete',
@@ -214,7 +214,7 @@ const TEXTE_EN = {
       : `Delete "${name}"? ${n === 1 ? 'One folder loses' : `${n} folders lose`} their color.`,
   geloescht: (name) => `"${name}" deleted.`,
   abbrechen: 'Cancel',
-  speichern: 'Save',
+  save: 'Save',
   verwerfen: 'Discard',
   verwerfenFrage: 'Discard the changes? They will be lost.',
   sichern: 'Back up',
@@ -250,8 +250,8 @@ const TEXTE_EN = {
   gruppeNeu: 'New group',
   gruppeNeuVorgabe: 'New group',
   gruppeName: 'Group name',
-  gruppeLoeschen: 'Delete group',
-  gruppeDuplizieren: 'Duplicate group',
+  deleteGroup: 'Delete group',
+  duplicateGroup: 'Duplicate group',
   duplizieren: 'Duplicate',
   gruppeFeld: 'Group',
   gruppeWechseln: 'Move to another group',
@@ -271,7 +271,7 @@ const TEXTE_EN = {
   gruppeRechts: 'Move group right',
 };
 
-const SPRACHEN = { de: TEXTE_DE, en: TEXTE_EN };
+const LANGUAGES = { de: TEXTS_DE, en: TEXTS_EN };
 
 /* Which language is Obsidian set to?
  *
@@ -284,21 +284,21 @@ const SPRACHEN = { de: TEXTE_DE, en: TEXTE_EN };
  * language is not covered here is far more likely to read English. And
  * if the call fails outright -- an older version, no window -- English
  * is the safe choice too. */
-function spracheWaehlen() {
+function chooseLanguage() {
   try {
     const kennung = String(getLanguage() || '').toLowerCase().split('-')[0];
-    return SPRACHEN[kennung] || TEXTE_EN;
+    return LANGUAGES[kennung] || TEXTS_EN;
   } catch (e) {
-    return TEXTE_EN;
+    return TEXTS_EN;
   }
 }
 
-const TEXTE = spracheWaehlen();
+const TEXTS = chooseLanguage();
 
-const MARKIERUNGEN = [
-  { id: 'keine', name: TEXTE.markierungKeine },
-  { id: 'lasche', name: TEXTE.markierungLasche },
-  { id: 'punkt', name: TEXTE.markierungPunkt },
+const MARKERS = [
+  { id: 'keine', name: TEXTS.markierungKeine },
+  { id: 'lasche', name: TEXTS.markierungLasche },
+  { id: 'punkt', name: TEXTS.markierungPunkt },
 ];
 
 /* How the folder carrying the assignment is told apart from the ones
@@ -309,18 +309,18 @@ const MARKIERUNGEN = [
  * takes the children down. The result is the same, the parent is the
  * row that stands out, and it is the only way to do that without making
  * anything louder. */
-const VATER_ARTEN = [
-  { id: 'keine', name: TEXTE.vaterKeine },
-  { id: 'fett', name: TEXTE.vaterFett },
-  { id: 'hintergrund', name: TEXTE.vaterHintergrund },
-  { id: 'schrift', name: TEXTE.vaterSchrift },
-  { id: 'symbol', name: TEXTE.vaterSymbol },
-  { id: 'markierung', name: TEXTE.vaterMarkierung },
-  { id: 'blass', name: TEXTE.vaterBlass },
+const PARENT_MODES = [
+  { id: 'keine', name: TEXTS.vaterKeine },
+  { id: 'fett', name: TEXTS.vaterFett },
+  { id: 'hintergrund', name: TEXTS.vaterHintergrund },
+  { id: 'schrift', name: TEXTS.vaterSchrift },
+  { id: 'symbol', name: TEXTS.vaterSymbol },
+  { id: 'markierung', name: TEXTS.vaterMarkierung },
+  { id: 'blass', name: TEXTS.vaterBlass },
 ];
 
 /* What a freshly created category starts out with. */
-const STIL_VORGABE = {
+const STYLE_DEFAULT = {
   markierung: 'lasche',
   hintergrund: false,
   schriftFarbig: false,
@@ -349,10 +349,10 @@ const STIL_VORGABE = {
    names come from the language list: they are the first thing anyone
    sees after installing, and an untranslated name would be a poor first
    impression. */
-const BEISPIEL_KATEGORIEN = [
-  { id: 'kat-1', name: TEXTE.beispielName(1), farbe: '#4a90d9', gruppe: 'grp-1' },
-  { id: 'kat-2', name: TEXTE.beispielName(2), farbe: '#e05252', gruppe: 'grp-1' },
-  { id: 'kat-3', name: TEXTE.beispielName(3), farbe: '#3fb950', gruppe: 'grp-1' },
+const EXAMPLE_CATEGORIES = [
+  { id: 'kat-1', name: TEXTS.beispielName(1), farbe: '#4a90d9', gruppe: 'grp-1' },
+  { id: 'kat-2', name: TEXTS.beispielName(2), farbe: '#e05252', gruppe: 'grp-1' },
+  { id: 'kat-3', name: TEXTS.beispielName(3), farbe: '#3fb950', gruppe: 'grp-1' },
 ];
 
 /* Groups are the legend a set of categories belongs to.
@@ -365,24 +365,24 @@ const BEISPIEL_KATEGORIEN = [
  * A group is pure order. It carries no colour, no marker, no icon --
  * only which categories are shown together. Which folder gets which
  * colour is still decided per folder, exactly as before. */
-const BEISPIEL_GRUPPEN = [{ id: 'grp-1', name: TEXTE.beispielGruppe }];
+const EXAMPLE_GROUPS = [{ id: 'grp-1', name: TEXTS.beispielGruppe }];
 
-const STANDARD_DATEN = {
-  gruppen: BEISPIEL_GRUPPEN,
-  kategorien: BEISPIEL_KATEGORIEN,
+const DEFAULT_DATA = {
+  gruppen: EXAMPLE_GROUPS,
+  kategorien: EXAMPLE_CATEGORIES,
   /* folder path -> category id.
      The only table about folders. Whether a folder passes its colour
      down is not stored here: that hangs off the category, see
-     STIL_VORGABE above. */
+     STYLE_DEFAULT above. */
   zuordnung: {},
 };
 
-const STIL_ID = 'explorer-categories-stil';
+const STYLE_ID = 'explorer-categories-stil';
 
 /* The phone's backup folder, and only the phone's.
  *
  * On the desktop a backup leaves the vault altogether and goes to the
- * downloads folder -- see sicherungSchreiben. A copy inside the vault
+ * downloads folder -- see writeBackup. A copy inside the vault
  * shares the fate of the file it is meant to survive: the same folder
  * tree, the same sync, the same mishap.
  *
@@ -391,11 +391,11 @@ const STIL_ID = 'explorer-categories-stil';
  *
  * Lower case and no spaces, so the name survives every filesystem and
  * every sync in one piece. */
-const SICHERUNG_ORDNER = 'explorer-categories-backup';
+const BACKUP_FOLDER = 'explorer-categories-backup';
 
 /* Sorts by name, so the file name has to carry the date in an order
    that sorts: year, month, day, hour, minute. */
-const zeitstempel = () => {
+const timestamp = () => {
   const jetzt = new Date();
   const zwei = (n) => String(n).padStart(2, '0');
   return (
@@ -414,7 +414,7 @@ const zeitstempel = () => {
  * An empty string means no help link at all -- a link that goes nowhere
  * is worse than none. That is why it is empty right now: the repository
  * does not exist yet. Fill it in when the plugin is published. */
-const HILFE_ADRESSE = '';
+const HELP_URL = '';
 
 class ExplorerCategoriesPlugin extends Plugin {
   async onload() {
@@ -422,18 +422,18 @@ class ExplorerCategoriesPlugin extends Plugin {
     /* Deep copy of the defaults: otherwise the data would point at the
        very objects declared above, and editing a category would mutate
        the examples along with it. */
-    this.daten = Object.assign(JSON.parse(JSON.stringify(STANDARD_DATEN)), geladen);
-    this.altbestandUmstellen();
+    this.daten = Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), geladen);
+    this.migrateOldData();
 
     this.stilEl = document.createElement('style');
-    this.stilEl.id = STIL_ID;
+    this.stilEl.id = STYLE_ID;
     document.head.appendChild(this.stilEl);
-    this.stilSchreiben();
+    this.writeStyle();
 
     /* Right-click on a single folder */
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, datei) => {
-        if (datei instanceof TFolder) this.menueEintragBauen(menu, [datei]);
+        if (datei instanceof TFolder) this.buildMenuEntry(menu, [datei]);
       })
     );
 
@@ -448,14 +448,14 @@ class ExplorerCategoriesPlugin extends Plugin {
     this.registerEvent(
       this.app.workspace.on('files-menu', (menu, dateien) => {
         const ordner = (dateien || []).filter((d) => d instanceof TFolder);
-        if (ordner.length) this.menueEintragBauen(menu, ordner);
+        if (ordner.length) this.buildMenuEntry(menu, ordner);
       })
     );
 
     /* Renaming and moving: the assignment follows the folder. */
     this.registerEvent(
       this.app.vault.on('rename', (datei, alterPfad) => {
-        this.pfadUmschreiben(alterPfad, datei.path);
+        this.rewritePath(alterPfad, datei.path);
       })
     );
 
@@ -465,8 +465,8 @@ class ExplorerCategoriesPlugin extends Plugin {
        without a mouse. */
     this.addCommand({
       id: 'open-categories',
-      name: TEXTE.fensterOeffnen,
-      callback: () => this.fensterOeffnen(),
+      name: TEXTS.openWindow,
+      callback: () => this.openWindow(),
     });
   }
 
@@ -474,7 +474,7 @@ class ExplorerCategoriesPlugin extends Plugin {
     if (this.stilEl) this.stilEl.remove();
   }
 
-  fensterOeffnen() {
+  openWindow() {
     new KategorienFenster(this.app, this).open();
   }
 
@@ -487,7 +487,7 @@ class ExplorerCategoriesPlugin extends Plugin {
      The first two are translated into the current form with four
      independent switches, the third into a single group holding
      everything. */
-  altbestandUmstellen() {
+  migrateOldData() {
     const alteGlobale = this.daten.darstellung;
     delete this.daten.darstellung;
     delete this.daten.darstellungVorgabe;
@@ -497,11 +497,11 @@ class ExplorerCategoriesPlugin extends Plugin {
 
       const alt = kat.darstellung || alteGlobale;
       delete kat.darstellung;
-      kat.stil = stilAusAlterForm(alt);
+      kat.stil = styleFromOldShape(alt);
     }
 
-    this.vererbungUmstellen();
-    gruppenNachziehen(this.daten, TEXTE.beispielGruppe);
+    this.migrateInheritance();
+    catchUpGroups(this.daten, TEXTS.beispielGruppe);
   }
 
   /* Inheritance used to be two tables of folder paths. It is a property
@@ -510,13 +510,13 @@ class ExplorerCategoriesPlugin extends Plugin {
      Deliberately generous rather than exact -- the alternative is a
      folder that quietly loses a colour it had yesterday, and that is
      harder to notice than one that has too much. */
-  vererbungUmstellen() {
+  migrateInheritance() {
     const stilSetzen = (pfad, feld) => {
       const katId = this.daten.zuordnung[pfad];
       if (!katId) return;
       const kat = this.daten.kategorien.find((k) => k.id === katId);
       if (!kat) return;
-      kat.stil = Object.assign({}, STIL_VORGABE, kat.stil || {}, { [feld]: true });
+      kat.stil = Object.assign({}, STYLE_DEFAULT, kat.stil || {}, { [feld]: true });
     };
 
     for (const pfad of Object.keys(this.daten.vererbung || {})) {
@@ -531,22 +531,22 @@ class ExplorerCategoriesPlugin extends Plugin {
   }
 
   /* The categories of one group, in the order they are stored. */
-  kategorienIn(gruppenId) {
+  categoriesIn(gruppenId) {
     return this.daten.kategorien.filter((k) => k.gruppe === gruppenId);
   }
 
-  async gruppeAnlegen() {
-    const id = neueId('grp', this.daten.gruppen.map((g) => g.id));
-    this.daten.gruppen.push({ id, name: TEXTE.gruppeNeuVorgabe });
-    await this.speichern();
+  async addGroup() {
+    const id = newId('grp', this.daten.gruppen.map((g) => g.id));
+    this.daten.gruppen.push({ id, name: TEXTS.gruppeNeuVorgabe });
+    await this.save();
     return id;
   }
 
-  async gruppeUmbenennen(gruppenId, name) {
+  async renameGroup(gruppenId, name) {
     const gruppe = this.daten.gruppen.find((g) => g.id === gruppenId);
     if (!gruppe) return;
     gruppe.name = name;
-    await this.speichern();
+    await this.save();
   }
 
   /* Moves a group one place along the strip of tabs. The array is the
@@ -555,7 +555,7 @@ class ExplorerCategoriesPlugin extends Plugin {
 
      Says whether anything moved, so the window can leave itself alone
      when the group is already at the end. */
-  async gruppeVerschieben(gruppenId, richtung) {
+  async moveGroup(gruppenId, richtung) {
     const gruppen = this.daten.gruppen;
     const von = gruppen.findIndex((g) => g.id === gruppenId);
     if (von < 0) return false;
@@ -567,7 +567,7 @@ class ExplorerCategoriesPlugin extends Plugin {
     gruppen[von] = gruppen[nach];
     gruppen[nach] = merk;
 
-    await this.speichern();
+    await this.save();
     return true;
   }
 
@@ -590,15 +590,15 @@ class ExplorerCategoriesPlugin extends Plugin {
    * The folder assignments stay behind on purpose. A copy colouring the
    * same folders would put two categories on one folder, and the tree
    * can only show one. */
-  async gruppeDuplizieren(gruppenId) {
+  async duplicateGroup(gruppenId) {
     const gruppen = this.daten.gruppen;
     const von = gruppen.findIndex((g) => g.id === gruppenId);
     if (von < 0) return null;
 
     const vorlage = gruppen[von];
     const neu = {
-      id: neueId('grp', gruppen.map((g) => g.id)),
-      name: TEXTE.kopieName(vorlage.name),
+      id: newId('grp', gruppen.map((g) => g.id)),
+      name: TEXTS.kopieName(vorlage.name),
     };
     gruppen.splice(von + 1, 0, neu);
 
@@ -606,13 +606,13 @@ class ExplorerCategoriesPlugin extends Plugin {
        in the same millisecond, so asking the array once at the start
        would not be enough. */
     const vergeben = this.daten.kategorien.map((k) => k.id);
-    for (const kat of this.kategorienIn(gruppenId)) {
-      const id = neueId('kat', vergeben);
+    for (const kat of this.categoriesIn(gruppenId)) {
+      const id = newId('kat', vergeben);
       vergeben.push(id);
-      this.daten.kategorien.push(this.kategorieKopie(kat, id, neu.id, kat.name));
+      this.daten.kategorien.push(this.categoryCopy(kat, id, neu.id, kat.name));
     }
 
-    await this.speichern();
+    await this.save();
     return neu.id;
   }
 
@@ -621,21 +621,21 @@ class ExplorerCategoriesPlugin extends Plugin {
      you were looking at when you asked for it.
 
      No folder assignments, same reason as above. */
-  async kategorieDuplizieren(katId) {
+  async duplicateCategory(katId) {
     const alle = this.daten.kategorien;
     const von = alle.findIndex((k) => k.id === katId);
     if (von < 0) return null;
 
     const vorlage = alle[von];
-    const id = neueId('kat', alle.map((k) => k.id));
+    const id = newId('kat', alle.map((k) => k.id));
 
     alle.splice(
       von + 1,
       0,
-      this.kategorieKopie(vorlage, id, vorlage.gruppe, TEXTE.kopieName(vorlage.name))
+      this.categoryCopy(vorlage, id, vorlage.gruppe, TEXTS.kopieName(vorlage.name))
     );
 
-    await this.speichern();
+    await this.save();
     return id;
   }
 
@@ -649,7 +649,7 @@ class ExplorerCategoriesPlugin extends Plugin {
    * Left where it was, its place among the others would depend on which
    * entries of that group happen to sit before or after it -- arriving
    * at the bottom is at least predictable. */
-  async kategorieUmhaengen(katId, gruppenId) {
+  async moveCategoryToGroup(katId, gruppenId) {
     const alle = this.daten.kategorien;
     const von = alle.findIndex((k) => k.id === katId);
     if (von < 0) return false;
@@ -661,21 +661,21 @@ class ExplorerCategoriesPlugin extends Plugin {
     alle.splice(von, 1);
     alle.push(kat);
 
-    await this.speichern();
+    await this.save();
     return true;
   }
 
-  /* One category, copied. The style is copied over STIL_VORGABE rather
+  /* One category, copied. The style is copied over STYLE_DEFAULT rather
      than handed on: sharing the object would tie the two categories
      together, and a switch flipped on one would move on the other. */
-  kategorieKopie(vorlage, id, gruppenId, name) {
+  categoryCopy(vorlage, id, gruppenId, name) {
     return {
       id,
       name,
       farbe: vorlage.farbe,
       gruppe: gruppenId,
       icon: vorlage.icon || null,
-      stil: Object.assign({}, STIL_VORGABE, vorlage.stil || {}),
+      stil: Object.assign({}, STYLE_DEFAULT, vorlage.stil || {}),
     };
   }
 
@@ -685,11 +685,11 @@ class ExplorerCategoriesPlugin extends Plugin {
 
      Never the last one. Without a group there is no place to put a new
      category, and the window would have nothing to show. */
-  async gruppeLoeschen(gruppenId) {
+  async deleteGroup(gruppenId) {
     if (this.daten.gruppen.length < 2) return false;
 
-    for (const kat of this.kategorienIn(gruppenId)) {
-      this.zuordnungenEntfernen(kat.id);
+    for (const kat of this.categoriesIn(gruppenId)) {
+      this.removeAssignments(kat.id);
     }
 
     this.daten.kategorien = this.daten.kategorien.filter(
@@ -697,7 +697,7 @@ class ExplorerCategoriesPlugin extends Plugin {
     );
     this.daten.gruppen = this.daten.gruppen.filter((g) => g.id !== gruppenId);
 
-    await this.speichern();
+    await this.save();
     return true;
   }
 
@@ -706,29 +706,29 @@ class ExplorerCategoriesPlugin extends Plugin {
      something gone would colour nothing and sit in the file forever.
      The inheritance flags need no cleaning up: they went with the
      category. */
-  zuordnungenEntfernen(katId) {
+  removeAssignments(katId) {
     for (const pfad of Object.keys(this.daten.zuordnung)) {
       if (this.daten.zuordnung[pfad] === katId) delete this.daten.zuordnung[pfad];
     }
   }
 
-  stilVon(katId) {
+  styleOf(katId) {
     const kat = this.daten.kategorien.find((k) => k.id === katId);
     if (!kat) return null;
-    return Object.assign({}, STIL_VORGABE, kat.stil || {});
+    return Object.assign({}, STYLE_DEFAULT, kat.stil || {});
   }
 
   /* Which folder further up gives this one its color? Searched from
      near to far, because the closest ancestor wins -- the same order the
      CSS rules are sorted in. */
-  erbtVon(pfad) {
+  inheritsFrom(pfad) {
     const teile = pfad.split('/');
 
     for (let i = teile.length - 1; i > 0; i--) {
       const eltern = teile.slice(0, i).join('/');
       const katId = this.daten.zuordnung[eltern];
       if (!katId) continue;
-      const stil = this.stilVon(katId);
+      const stil = this.styleOf(katId);
       if (!stil || !stil.vererbt) continue;
       const kat = this.daten.kategorien.find((k) => k.id === katId);
       if (kat) return { ordner: eltern, kategorie: kat.name };
@@ -744,14 +744,14 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* Takes a list of folders, never a single one. Right-clicking one
      folder simply passes a list of one -- that way there is a single
      path through this code instead of two that drift apart. */
-  menueEintragBauen(menu, ordnerListe) {
+  buildMenuEntry(menu, ordnerListe) {
     const pfade = ordnerListe.map((o) => o.path);
     const mehrere = pfade.length > 1;
 
     /* With several folders, a checkmark only when all of them really
        share a category. Otherwise the mark would claim something that
        is wrong for half of the selection. */
-    const aktuell = gemeinsameKategorie(this.daten.zuordnung, pfade);
+    const aktuell = sharedCategory(this.daten.zuordnung, pfade);
     /* For "remove" and "inherit", a single coloured folder in the
        selection is enough -- otherwise the entry would be missing
        exactly when it is needed. */
@@ -766,7 +766,7 @@ class ExplorerCategoriesPlugin extends Plugin {
           i
             .setTitle(titel(kat.name))
             .setChecked(aktuell === kat.id)
-            .onClick(() => this.zuweisenMehrere(pfade, kat.id))
+            .onClick(() => this.assignMany(pfade, kat.id))
         );
       }
     };
@@ -778,7 +778,7 @@ class ExplorerCategoriesPlugin extends Plugin {
        known from the outer entry: if that one could not open a submenu,
        nothing below it can either. */
     const eintraegeFuellen = (ziel, mitPraefix, mitUnter) => {
-      const kopf = mehrere ? TEXTE.menueMehrere(pfade.length) : TEXTE.menue;
+      const kopf = mehrere ? TEXTS.menueMehrere(pfade.length) : TEXTS.menue;
       const titel = (t) => (mitPraefix ? `${kopf}: ${t}` : t);
 
       const gruppen = this.daten.gruppen;
@@ -788,7 +788,7 @@ class ExplorerCategoriesPlugin extends Plugin {
          somebody sets up a second legend, that is every vault. */
       if (gruppen.length < 2 || !mitUnter) {
         for (const gruppe of gruppen) {
-          const kats = this.kategorienIn(gruppe.id);
+          const kats = this.categoriesIn(gruppe.id);
           if (!kats.length) continue;
           /* Flat with several legends: the group name has to travel
              with each entry, or two identical reds give no clue which
@@ -799,7 +799,7 @@ class ExplorerCategoriesPlugin extends Plugin {
         }
       } else {
         for (const gruppe of gruppen) {
-          const kats = this.kategorienIn(gruppe.id);
+          const kats = this.categoriesIn(gruppe.id);
           /* An empty legend would be a submenu that opens on nothing. */
           if (!kats.length) continue;
 
@@ -816,12 +816,12 @@ class ExplorerCategoriesPlugin extends Plugin {
          plugin. Single folder only: twenty selected folders would mean
          twenty different sources, which fits in no single line. */
       const quelle =
-        !mehrere && aktuell === null ? this.erbtVon(pfade[0]) : null;
+        !mehrere && aktuell === null ? this.inheritsFrom(pfade[0]) : null;
       if (quelle) {
         if (typeof ziel.addSeparator === 'function') ziel.addSeparator();
         ziel.addItem((i) => {
           i.setTitle(
-            titel(TEXTE.erbtVon(quelle.ordner, quelle.kategorie))
+            titel(TEXTS.inheritsFrom(quelle.ordner, quelle.kategorie))
           ).setIcon('git-branch');
           /* Information only, not a button. */
           if (typeof i.setDisabled === 'function') i.setDisabled(true);
@@ -841,9 +841,9 @@ class ExplorerCategoriesPlugin extends Plugin {
 
         ziel.addItem((i) =>
           i
-            .setTitle(titel(TEXTE.keine))
+            .setTitle(titel(TEXTS.keine))
             .setIcon('eraser')
-            .onClick(() => this.zuweisenMehrere(pfade, null))
+            .onClick(() => this.assignMany(pfade, null))
         );
       }
 
@@ -852,9 +852,9 @@ class ExplorerCategoriesPlugin extends Plugin {
       if (typeof ziel.addSeparator === 'function') ziel.addSeparator();
       ziel.addItem((i) =>
         i
-          .setTitle(titel(TEXTE.verwalten))
+          .setTitle(titel(TEXTS.verwalten))
           .setIcon('settings')
-          .onClick(() => this.fensterOeffnen())
+          .onClick(() => this.openWindow())
       );
     };
 
@@ -864,7 +864,7 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     menu.addItem((eintrag) => {
       eintrag
-        .setTitle(mehrere ? TEXTE.menueMehrere(pfade.length) : TEXTE.menue)
+        .setTitle(mehrere ? TEXTS.menueMehrere(pfade.length) : TEXTS.menue)
         .setIcon('palette');
       if (typeof eintrag.setSubmenu !== 'function') return;
 
@@ -891,13 +891,13 @@ class ExplorerCategoriesPlugin extends Plugin {
      Outside the window -- assigning a folder from the context menu --
      nothing is pending and this writes straight away, as it always
      did. */
-  async speichern() {
-    if (this.entwurfLaeuft) {
-      this.stilSchreiben();
+  async save() {
+    if (this.draftRunning) {
+      this.writeStyle();
       return;
     }
     await this.saveData(this.daten);
-    this.stilSchreiben();
+    this.writeStyle();
   }
 
   /* --- Backups ----------------------------------------------------- */
@@ -908,7 +908,7 @@ class ExplorerCategoriesPlugin extends Plugin {
    * carried off, and a category list is a few kilobytes either way.
    *
    * The wrapper around the data carries the version that wrote it. A
-   * file restored two years from now runs through altbestandUmstellen()
+   * file restored two years from now runs through migrateOldData()
    * like any other old shape, and the number says what to expect.
    *
    * What gets written is what is on screen, unsaved edits and all --
@@ -916,8 +916,8 @@ class ExplorerCategoriesPlugin extends Plugin {
    * somebody pressing "Back up" is looking at, and backing up a
    * different one than the visible one would be a trap. It does mean a
    * backup can outlive a Cancel: the file stays, the edits do not. */
-  async sicherungSchreiben() {
-    const name = `kategorien-${zeitstempel()}.json`;
+  async writeBackup() {
+    const name = `kategorien-${timestamp()}.json`;
     const inhalt = JSON.stringify(
       {
         plugin: 'explorer-categories',
@@ -956,20 +956,20 @@ class ExplorerCategoriesPlugin extends Plugin {
     /* The phone has no downloads folder to speak of, so there the backup
        stays in the vault -- reachable rather than nowhere. */
     const adapter = this.app.vault.adapter;
-    if (!(await adapter.exists(SICHERUNG_ORDNER))) {
-      await adapter.mkdir(SICHERUNG_ORDNER);
+    if (!(await adapter.exists(BACKUP_FOLDER))) {
+      await adapter.mkdir(BACKUP_FOLDER);
     }
-    await adapter.write(`${SICHERUNG_ORDNER}/${name}`, inhalt);
+    await adapter.write(`${BACKUP_FOLDER}/${name}`, inhalt);
     return { name, imVault: true };
   }
 
   /* Newest first -- the name sorts by date, so reversing the plain sort
      is enough and no file has to be opened to order the list. */
-  async sicherungenFinden() {
+  async findBackups() {
     const adapter = this.app.vault.adapter;
-    if (!(await adapter.exists(SICHERUNG_ORDNER))) return [];
+    if (!(await adapter.exists(BACKUP_FOLDER))) return [];
 
-    const inhalt = await adapter.list(SICHERUNG_ORDNER);
+    const inhalt = await adapter.list(BACKUP_FOLDER);
     return (inhalt.files || [])
       .filter((pfad) => pfad.endsWith('.json'))
       .sort()
@@ -990,29 +990,29 @@ class ExplorerCategoriesPlugin extends Plugin {
      and the vault list run through exactly the same one -- a file chosen
      from the downloads folder deserves no less scrutiny than one lying
      inside the vault. */
-  sicherungAusText(text) {
+  backupFromText(text) {
     let roh;
     try {
       roh = JSON.parse(text);
     } catch (e) {
-      throw new Error(TEXTE.sicherungUnlesbar);
+      throw new Error(TEXTS.sicherungUnlesbar);
     }
 
     const daten = roh && roh.daten ? roh.daten : roh;
     if (!daten || !Array.isArray(daten.kategorien) || !daten.kategorien.length) {
-      throw new Error(TEXTE.sicherungOhneKategorien);
+      throw new Error(TEXTS.sicherungOhneKategorien);
     }
     return daten;
   }
 
-  async sicherungLesen(pfad) {
+  async readBackup(pfad) {
     let text;
     try {
       text = await this.app.vault.adapter.read(pfad);
     } catch (e) {
-      throw new Error(TEXTE.sicherungUnlesbar);
+      throw new Error(TEXTS.sicherungUnlesbar);
     }
-    return this.sicherungAusText(text);
+    return this.backupFromText(text);
   }
 
   /* Puts a backup in place of what is on screen -- in the draft, so Save
@@ -1023,57 +1023,57 @@ class ExplorerCategoriesPlugin extends Plugin {
      Runs through the same defaults and the same migration as a normal
      start, so a file from an older version arrives in today's shape
      instead of half-filled. */
-  sicherungUebernehmen(daten) {
+  restoreBackup(daten) {
     this.daten = Object.assign(
-      JSON.parse(JSON.stringify(STANDARD_DATEN)),
+      JSON.parse(JSON.stringify(DEFAULT_DATA)),
       JSON.parse(JSON.stringify(daten))
     );
-    this.altbestandUmstellen();
-    this.stilSchreiben();
+    this.migrateOldData();
+    this.writeStyle();
   }
 
   /* The safety copy is taken once, when the window opens. Everything
      below works on this.daten as before -- not a single other method
      had to change for this. Cancelling means putting the copy back. */
-  entwurfStarten() {
+  startDraft() {
     this.original = JSON.parse(JSON.stringify(this.daten));
-    this.entwurfLaeuft = true;
+    this.draftRunning = true;
   }
 
-  async entwurfUebernehmen() {
-    this.entwurfLaeuft = false;
+  async commitDraft() {
+    this.draftRunning = false;
     this.original = null;
-    await this.speichern();
+    await this.save();
   }
 
-  entwurfVerwerfen() {
-    if (!this.entwurfLaeuft) return;
+  discardDraft() {
+    if (!this.draftRunning) return;
     if (this.original) this.daten = this.original;
     this.original = null;
-    this.entwurfLaeuft = false;
+    this.draftRunning = false;
     /* Repaints from the restored data, so the tree jumps back to where
        it was before the window opened. */
-    this.stilSchreiben();
+    this.writeStyle();
   }
 
   /* Compared as text on purpose: the data is a handful of kilobytes of
      plain JSON, and this catches a change anywhere in it -- colour,
      name, switch, a deleted group -- without a list of fields that
      would go stale the next time one is added. */
-  entwurfGeaendert() {
-    if (!this.entwurfLaeuft || !this.original) return false;
+  draftChanged() {
+    if (!this.draftRunning || !this.original) return false;
     return JSON.stringify(this.daten) !== JSON.stringify(this.original);
   }
 
   /* Changes every path and then saves ONCE. With forty selected folders,
      forty separate writes to data.json would be most of the waiting time
      -- and the stylesheet would be rebuilt forty times over. */
-  async zuweisenMehrere(pfade, katId) {
+  async assignMany(pfade, katId) {
     for (const pfad of pfade) {
       if (katId === null) delete this.daten.zuordnung[pfad];
       else this.daten.zuordnung[pfad] = katId;
     }
-    await this.speichern();
+    await this.save();
 
     /* Feedback only for multiple folders: with a single one you see the
        color appear in the explorer straight away, so a notice would just
@@ -1081,62 +1081,62 @@ class ExplorerCategoriesPlugin extends Plugin {
        be on screen. */
     if (pfade.length > 1) {
       if (katId === null) {
-        new Notice(TEXTE.entfernt(pfade.length));
+        new Notice(TEXTS.entfernt(pfade.length));
       } else {
         const kat = this.daten.kategorien.find((k) => k.id === katId);
-        if (kat) new Notice(TEXTE.zugewiesen(pfade.length, kat.name));
+        if (kat) new Notice(TEXTS.zugewiesen(pfade.length, kat.name));
       }
     }
   }
 
   /* How many folders hang off this category? Needed before deleting, so
      nobody throws something away blind. */
-  ordnerAnzahl(katId) {
+  folderCount(katId) {
     return Object.values(this.daten.zuordnung).filter((id) => id === katId).length;
   }
 
   /* A new category always lands in a group -- the one the window is
      showing. There is no such thing as a category outside every group:
      it would appear nowhere and could never be reached again. */
-  async kategorieAnlegen(gruppenId) {
-    const id = neueId('kat', this.daten.kategorien.map((k) => k.id));
+  async addCategory(gruppenId) {
+    const id = newId('kat', this.daten.kategorien.map((k) => k.id));
     this.daten.kategorien.push({
       id,
-      name: TEXTE.neueVorgabe,
-      farbe: zufallsfarbe(),
+      name: TEXTS.neueVorgabe,
+      farbe: randomColour(),
       gruppe: gruppenId || this.daten.gruppen[0].id,
-      stil: Object.assign({}, STIL_VORGABE),
+      stil: Object.assign({}, STYLE_DEFAULT),
     });
-    await this.speichern();
+    await this.save();
     return id;
   }
 
-  async kategorieAendern(katId, felder) {
+  async changeCategory(katId, felder) {
     const kat = this.daten.kategorien.find((k) => k.id === katId);
     if (!kat) return;
     Object.assign(kat, felder);
-    await this.speichern();
+    await this.save();
   }
 
-  async stilAendern(katId, felder) {
+  async changeStyle(katId, felder) {
     const kat = this.daten.kategorien.find((k) => k.id === katId);
     if (!kat) return;
-    kat.stil = Object.assign({}, STIL_VORGABE, kat.stil || {}, felder);
-    await this.speichern();
+    kat.stil = Object.assign({}, STYLE_DEFAULT, kat.stil || {}, felder);
+    await this.save();
   }
 
-  async kategorieLoeschen(katId) {
+  async deleteCategory(katId) {
     this.daten.kategorien = this.daten.kategorien.filter((k) => k.id !== katId);
     /* Without a category there is nothing left to inherit either. An
        inheritance flag left behind would quietly take effect again the
        next time the same folder is assigned one. */
-    this.zuordnungenEntfernen(katId);
-    await this.speichern();
+    this.removeAssignments(katId);
+    await this.save();
   }
 
   /* Moves a category one place within its own group.
    *
-   * All categories of all groups lie in ONE array; kategorienIn() only
+   * All categories of all groups lie in ONE array; categoriesIn() only
    * filters it. So the neighbour to swap with is not the next entry in
    * the array but the next one carrying the same group -- everything in
    * between belongs to other groups and is skipped.
@@ -1144,7 +1144,7 @@ class ExplorerCategoriesPlugin extends Plugin {
    * Swapping the two absolute positions leaves every skipped entry
    * exactly where it was, so the order inside the other groups cannot be
    * disturbed by moving something here. */
-  async kategorieVerschieben(katId, richtung) {
+  async moveCategory(katId, richtung) {
     const alle = this.daten.kategorien;
     const von = alle.findIndex((k) => k.id === katId);
     if (von < 0) return false;
@@ -1160,7 +1160,7 @@ class ExplorerCategoriesPlugin extends Plugin {
     alle[von] = alle[nach];
     alle[nach] = merk;
 
-    await this.speichern();
+    await this.save();
     return true;
   }
 
@@ -1178,7 +1178,7 @@ class ExplorerCategoriesPlugin extends Plugin {
    *
    * Below two entries there is nothing to sort, and the buttons are dead
    * anyway -- the check is here as well so the method holds on its own. */
-  async kategorienSortieren(gruppeId, absteigend) {
+  async sortCategories(gruppeId, absteigend) {
     const alle = this.daten.kategorien;
 
     const stellen = [];
@@ -1198,17 +1198,17 @@ class ExplorerCategoriesPlugin extends Plugin {
       alle[stelle] = sortiert[i];
     });
 
-    await this.speichern();
+    await this.save();
     return true;
   }
 
   /* Renaming or moving a folder changes the paths of everything inside
      it too. So not just the one key, but every key below it. */
-  async pfadUmschreiben(alt, neu) {
+  async rewritePath(alt, neu) {
     /* One table to carry along. Inheritance needs no rewriting since it
        moved to the category -- it knows no paths. */
-    if (schluesselUmschreiben(this.daten.zuordnung, alt, neu)) {
-      await this.speichern();
+    if (rewriteKeys(this.daten.zuordnung, alt, neu)) {
+      await this.save();
     }
   }
 
@@ -1216,12 +1216,12 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* Building the stylesheet                                           */
   /* ---------------------------------------------------------------- */
 
-  farbeVon(katId) {
+  colourOf(katId) {
     const kat = this.daten.kategorien.find((k) => k.id === katId);
     return kat ? kat.farbe : null;
   }
 
-  iconVon(katId) {
+  iconOf(katId) {
     const kat = this.daten.kategorien.find((k) => k.id === katId);
     return kat && kat.icon ? kat.icon : null;
   }
@@ -1251,9 +1251,9 @@ class ExplorerCategoriesPlugin extends Plugin {
    * have nothing to refer to inside a data: URI. For a mask all that
    * matters is that something opaque is drawn at all.
    *
-   * The result is cached because stilSchreiben runs on every change, and
+   * The result is cached because writeStyle runs on every change, and
    * the drawing would otherwise start from scratch each time. */
-  maskeVon(id) {
+  maskOf(id) {
     if (!this.maskenSpeicher) this.maskenSpeicher = new Map();
     if (this.maskenSpeicher.has(id)) return this.maskenSpeicher.get(id);
 
@@ -1285,7 +1285,7 @@ class ExplorerCategoriesPlugin extends Plugin {
            variables. Both would be inert here, and misleading. */
         svg.removeAttribute('class');
         svg.removeAttribute('style');
-        maske = svgZuMaske(svg.outerHTML);
+        maske = svgToMask(svg.outerHTML);
       }
     } catch (e) {
       maske = null;
@@ -1295,14 +1295,14 @@ class ExplorerCategoriesPlugin extends Plugin {
     return maske;
   }
 
-  stilSchreiben() {
-    this.stilEl.textContent = regelnBauen(
-      zieleBauen(this.daten, (katId) => ({
-        farbe: this.farbeVon(katId),
-        stil: this.stilVon(katId),
-        icon: this.iconVon(katId),
+  writeStyle() {
+    this.stilEl.textContent = buildRules(
+      buildTargets(this.daten, (katId) => ({
+        farbe: this.colourOf(katId),
+        stil: this.styleOf(katId),
+        icon: this.iconOf(katId),
       })),
-      (id) => this.maskeVon(id)
+      (id) => this.maskOf(id)
     );
   }
 }
@@ -1320,14 +1320,14 @@ class KategorienFenster extends Modal {
     this.plugin = plugin;
 
     this.gruppeGewaehlt = plugin.daten.gruppen[0].id;
-    const erste = plugin.kategorienIn(this.gruppeGewaehlt)[0];
+    const erste = plugin.categoriesIn(this.gruppeGewaehlt)[0];
     this.gewaehlt = erste ? erste.id : null;
   }
 
   onOpen() {
     this.modalEl.addClass('fc-fenster');
-    this.plugin.entwurfStarten();
-    this.zeichnen();
+    this.plugin.startDraft();
+    this.draw();
   }
 
   /* The last line of defence. Whoever gets here without going through
@@ -1336,7 +1336,7 @@ class KategorienFenster extends Modal {
      direction: the file on disk is still the old one either way, so the
      tree must show the old one too. */
   onClose() {
-    this.plugin.entwurfVerwerfen();
+    this.plugin.discardDraft();
     this.contentEl.empty();
   }
 
@@ -1345,37 +1345,37 @@ class KategorienFenster extends Modal {
      enough. On the phone a tap beside the window is easy to trigger by
      accident, and without this everything set would be gone. */
   close() {
-    if (!this.plugin.entwurfGeaendert()) {
+    if (!this.plugin.draftChanged()) {
       super.close();
       return;
     }
     new BestaetigenFenster(
       this.app,
-      TEXTE.verwerfenFrage,
+      TEXTS.verwerfenFrage,
       async () => {
-        this.plugin.entwurfVerwerfen();
+        this.plugin.discardDraft();
         super.close();
       },
-      TEXTE.verwerfen
+      TEXTS.verwerfen
     ).open();
   }
 
   /* Builds the frame. Only called when the structure changes -- not
      while typing in the name field, or the caret would jump out. */
-  zeichnen() {
+  draw() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl('h2', { text: TEXTE.fensterTitel });
+    contentEl.createEl('h2', { text: TEXTS.fensterTitel });
 
     this.reiterEl = contentEl.createDiv({ cls: 'fc-reiter' });
-    this.reiterFuellen();
+    this.fillTabs();
 
     const spalten = contentEl.createDiv({ cls: 'fc-spalten' });
     this.listeEl = spalten.createDiv({ cls: 'fc-liste' });
     this.detailEl = spalten.createDiv({ cls: 'fc-detail' });
 
-    this.listeFuellen();
-    this.detailFuellen();
+    this.fillList();
+    this.fillDetail();
 
     /* Cancel first, Save on the right and highlighted: the same order
        Obsidian uses in its own dialogs, so the finishing button sits
@@ -1388,39 +1388,39 @@ class KategorienFenster extends Modal {
        to it. */
     const sicherungen = fuss.createDiv({ cls: 'fc-fussnebenan' });
 
-    const sicherungKnopf = sicherungen.createEl('button', { text: TEXTE.sichern });
+    const sicherungKnopf = sicherungen.createEl('button', { text: TEXTS.sichern });
     sicherungKnopf.addEventListener('click', async () => {
       try {
-        const stand = await this.plugin.sicherungSchreiben();
+        const stand = await this.plugin.writeBackup();
         new Notice(
           stand.imVault
-            ? TEXTE.gesichertImVault(stand.name)
-            : TEXTE.gesichertGeladen(stand.name)
+            ? TEXTS.gesichertImVault(stand.name)
+            : TEXTS.gesichertGeladen(stand.name)
         );
       } catch (e) {
-        new Notice(TEXTE.sicherungFehlgeschlagen);
+        new Notice(TEXTS.sicherungFehlgeschlagen);
       }
     });
 
-    const ladenKnopf = sicherungen.createEl('button', { text: TEXTE.laden });
+    const ladenKnopf = sicherungen.createEl('button', { text: TEXTS.laden });
     ladenKnopf.addEventListener('click', () => {
-      if (Platform.isDesktopApp) this.sicherungAusDateiWaehlen();
-      else this.sicherungAusVaultWaehlen();
+      if (Platform.isDesktopApp) this.pickBackupFile();
+      else this.pickBackupInVault();
     });
 
-    const abbrechen = fuss.createEl('button', { text: TEXTE.abbrechen });
+    const abbrechen = fuss.createEl('button', { text: TEXTS.abbrechen });
     abbrechen.addEventListener('click', () => this.close());
 
     const sichern = fuss.createEl('button', {
-      text: TEXTE.speichern,
+      text: TEXTS.save,
       cls: 'mod-cta',
     });
     sichern.addEventListener('click', async () => {
-      await this.plugin.entwurfUebernehmen();
+      await this.plugin.commitDraft();
       super.close();
     });
 
-    this.herkunftZeichnen(contentEl);
+    this.drawOrigin(contentEl);
   }
 
   /* A thin line at the very bottom: name, version, author, help.
@@ -1431,7 +1431,7 @@ class KategorienFenster extends Modal {
    *
    * Obsidian does show version and author in its settings too, but
    * someone with this window open is not there. */
-  herkunftZeichnen(ziel) {
+  drawOrigin(ziel) {
     const m = this.plugin.manifest || {};
     const zeile = ziel.createDiv({ cls: 'fc-herkunft' });
 
@@ -1452,11 +1452,11 @@ class KategorienFenster extends Modal {
       }
     }
 
-    if (HILFE_ADRESSE) {
+    if (HELP_URL) {
       zeile.createSpan({ text: ' · ' });
       zeile.createEl('a', {
-        text: TEXTE.hilfe,
-        href: HILFE_ADRESSE,
+        text: TEXTS.hilfe,
+        href: HELP_URL,
         attr: { target: '_blank', rel: 'noopener' },
       });
     }
@@ -1464,7 +1464,7 @@ class KategorienFenster extends Modal {
 
   /* ---------------- Liste ----------------------------------------- */
 
-  listeFuellen() {
+  fillList() {
     this.listeEl.empty();
     /* Handles on the individual rows, so name and colour can be updated
        while typing without rebuilding everything. */
@@ -1477,7 +1477,7 @@ class KategorienFenster extends Modal {
        column that has none to spare. */
     this.listeEl.createDiv({
       cls: 'fc-bereichname fc-bereichzeile',
-      text: TEXTE.bereichKategorien,
+      text: TEXTS.bereichKategorien,
     });
 
     const rollen = this.listeEl.createDiv({ cls: 'fc-listenrollen' });
@@ -1485,10 +1485,10 @@ class KategorienFenster extends Modal {
     /* Only the active group. That is the whole point of groups: the same
        colour means different things in different parts of the vault, and
        all of them at once is what made the list unusable. */
-    const kategorien = this.plugin.kategorienIn(this.gruppeGewaehlt);
+    const kategorien = this.plugin.categoriesIn(this.gruppeGewaehlt);
 
     if (!kategorien.length) {
-      rollen.createDiv({ cls: 'fc-leer', text: TEXTE.keineKategorienInGruppe });
+      rollen.createDiv({ cls: 'fc-leer', text: TEXTS.keineKategorienInGruppe });
     }
 
     for (const kat of kategorien) {
@@ -1510,23 +1510,23 @@ class KategorienFenster extends Modal {
         .createSpan({ cls: 'fc-listenname' })
         .createSpan({ cls: 'fc-listentext', text: kat.name });
 
-      this.listenStilZeichnen(
+      this.drawRowStyle(
         { marke, name },
         kat.farbe,
-        this.plugin.stilVon(kat.id),
+        this.plugin.styleOf(kat.id),
         kat.icon
       );
 
       const anzahl = zeile.createSpan({
         cls: 'fc-listenanzahl',
-        text: String(this.plugin.ordnerAnzahl(kat.id)),
+        text: String(this.plugin.folderCount(kat.id)),
       });
-      anzahl.setAttribute('aria-label', TEXTE.ordnerZahl(this.plugin.ordnerAnzahl(kat.id)));
+      anzahl.setAttribute('aria-label', TEXTS.ordnerZahl(this.plugin.folderCount(kat.id)));
 
       zeile.addEventListener('click', () => {
         this.gewaehlt = kat.id;
-        this.listeFuellen();
-        this.detailFuellen();
+        this.fillList();
+        this.fillDetail();
       });
 
       this.zeilen.set(kat.id, { marke, name });
@@ -1549,15 +1549,15 @@ class KategorienFenster extends Modal {
        there is nothing to move. */
     const stelle = kategorien.findIndex((k) => k.id === this.gewaehlt);
 
-    this.schiebeKnopf(paar, 'chevron-up', TEXTE.hochSchieben, stelle > 0, () =>
-      this.kategorieSchieben(-1)
+    this.shiftButton(paar, 'chevron-up', TEXTS.hochSchieben, stelle > 0, () =>
+      this.categoryShiftButton(-1)
     );
-    this.schiebeKnopf(
+    this.shiftButton(
       paar,
       'chevron-down',
-      TEXTE.runterSchieben,
+      TEXTS.runterSchieben,
       stelle >= 0 && stelle < kategorien.length - 1,
-      () => this.kategorieSchieben(1)
+      () => this.categoryShiftButton(1)
     );
 
     /* Sorting sits in its own pair, a gap away from the arrows. Both do
@@ -1571,21 +1571,21 @@ class KategorienFenster extends Modal {
     const sortierpaar = fuss.createDiv({ cls: 'fc-schiebepaar fc-sortierpaar' });
     const genug = kategorien.length > 1;
 
-    this.schiebeKnopf(sortierpaar, 'arrow-down-az', TEXTE.sortierenAuf, genug, () =>
-      this.kategorienSortieren(false)
+    this.shiftButton(sortierpaar, 'arrow-down-az', TEXTS.sortierenAuf, genug, () =>
+      this.sortCategories(false)
     );
-    this.schiebeKnopf(sortierpaar, 'arrow-up-az', TEXTE.sortierenAb, genug, () =>
-      this.kategorienSortieren(true)
+    this.shiftButton(sortierpaar, 'arrow-up-az', TEXTS.sortierenAb, genug, () =>
+      this.sortCategories(true)
     );
 
     const neu = fuss.createEl('button', {
       cls: 'fc-neu',
-      text: '+ ' + TEXTE.neue,
+      text: '+ ' + TEXTS.neue,
     });
     neu.addEventListener('click', async () => {
-      this.gewaehlt = await this.plugin.kategorieAnlegen(this.gruppeGewaehlt);
-      this.listeFuellen();
-      this.detailFuellen();
+      this.gewaehlt = await this.plugin.addCategory(this.gruppeGewaehlt);
+      this.fillList();
+      this.fillDetail();
     });
   }
 
@@ -1602,7 +1602,7 @@ class KategorienFenster extends Modal {
    * At the end of the list the button stays put and goes dead rather
    * than disappearing -- the other one would jump sideways, and a target
    * that moves is worse than one that says no. */
-  schiebeKnopf(ziel, symbol, beschriftung, moeglich, tun) {
+  shiftButton(ziel, symbol, beschriftung, moeglich, tun) {
     const knopf = ziel.createEl('button', { cls: 'clickable-icon fc-schieben' });
     setIcon(knopf, symbol);
     knopf.setAttribute('aria-label', beschriftung);
@@ -1618,11 +1618,11 @@ class KategorienFenster extends Modal {
   /* Only the list is redrawn. The category stays selected, so its
      settings on the right have not changed -- redrawing them would throw
      away the caret in the name field for nothing. */
-  async kategorieSchieben(richtung) {
+  async categoryShiftButton(richtung) {
     if (!this.gewaehlt) return;
-    const bewegt = await this.plugin.kategorieVerschieben(this.gewaehlt, richtung);
+    const bewegt = await this.plugin.moveCategory(this.gewaehlt, richtung);
     if (!bewegt) return;
-    this.listeFuellen();
+    this.fillList();
   }
 
   /* --- Restoring --------------------------------------------------- */
@@ -1634,7 +1634,7 @@ class KategorienFenster extends Modal {
    *
      Read and checked before anything is asked, so a file that turns out
      not to be a backup is refused without a pointless question first. */
-  sicherungAusDateiWaehlen() {
+  pickBackupFile() {
     const eingabe = document.createElement('input');
     eingabe.type = 'file';
     eingabe.accept = '.json,application/json';
@@ -1645,26 +1645,26 @@ class KategorienFenster extends Modal {
 
       let daten;
       try {
-        daten = this.plugin.sicherungAusText(await datei.text());
+        daten = this.plugin.backupFromText(await datei.text());
       } catch (e) {
-        new Notice(e.message || TEXTE.sicherungUnlesbar);
+        new Notice(e.message || TEXTS.sicherungUnlesbar);
         return;
       }
 
       new BestaetigenFenster(
         this.app,
-        TEXTE.sicherungFrage(datei.name),
-        () => this.sicherungAnwenden(daten),
-        TEXTE.laden
+        TEXTS.sicherungFrage(datei.name),
+        () => this.applyBackup(daten),
+        TEXTS.laden
       ).open();
     });
 
     eingabe.click();
   }
 
-  sicherungAusVaultWaehlen() {
+  pickBackupInVault() {
     new SicherungFenster(this.app, this.plugin, (daten) =>
-      this.sicherungAnwenden(daten)
+      this.applyBackup(daten)
     ).open();
   }
 
@@ -1672,32 +1672,32 @@ class KategorienFenster extends Modal {
      which category is selected. Both are worked out again rather than
      kept, or the window would point at entries the restored file does
      not have. */
-  sicherungAnwenden(daten) {
-    this.plugin.sicherungUebernehmen(daten);
+  applyBackup(daten) {
+    this.plugin.restoreBackup(daten);
     this.gruppeGewaehlt = this.plugin.daten.gruppen[0].id;
-    const erste = this.plugin.kategorienIn(this.gruppeGewaehlt)[0];
+    const erste = this.plugin.categoriesIn(this.gruppeGewaehlt)[0];
     this.gewaehlt = erste ? erste.id : null;
-    this.zeichnen();
-    new Notice(TEXTE.sicherungGeladen);
+    this.draw();
+    new Notice(TEXTS.sicherungGeladen);
   }
 
   /* Only the list is redrawn, same as for the arrows: sorting changes
      the order, not the settings of the category that stays selected. */
-  async kategorienSortieren(absteigend) {
-    const geaendert = await this.plugin.kategorienSortieren(
+  async sortCategories(absteigend) {
+    const geaendert = await this.plugin.sortCategories(
       this.gruppeGewaehlt,
       absteigend
     );
     if (!geaendert) return;
-    this.listeFuellen();
+    this.fillList();
   }
 
   /* Only the tabs. Which categories the group holds does not change by
      moving it, so list and settings stay as they are. */
-  async gruppeSchieben(richtung) {
-    const bewegt = await this.plugin.gruppeVerschieben(this.gruppeGewaehlt, richtung);
+  async groupShiftButton(richtung) {
+    const bewegt = await this.plugin.moveGroup(this.gruppeGewaehlt, richtung);
     if (!bewegt) return;
-    this.reiterFuellen();
+    this.fillTabs();
   }
 
   /* ---------------- Gruppen --------------------------------------- */
@@ -1706,14 +1706,14 @@ class KategorienFenster extends Modal {
      sideways rather than wrapping: with eight legends a wrapping row
      would change height as you switch, and everything below it would
      jump. */
-  reiterFuellen() {
+  fillTabs() {
     this.reiterEl.empty();
 
     /* Says what the tabs are, on the same line as the tabs themselves.
        Above them it would cost a row of height, and the settings column
        below has none to give -- the window is at Obsidian's ceiling. */
     const leiste = this.reiterEl.createDiv({ cls: 'fc-reiterleiste' });
-    leiste.createSpan({ cls: 'fc-bereichname', text: TEXTE.bereichGruppen });
+    leiste.createSpan({ cls: 'fc-bereichname', text: TEXTS.bereichGruppen });
 
     for (const gruppe of this.plugin.daten.gruppen) {
       const knopf = leiste.createEl('button', {
@@ -1724,7 +1724,7 @@ class KategorienFenster extends Modal {
 
       knopf.setAttribute(
         'aria-label',
-        TEXTE.gruppeZahl(this.plugin.kategorienIn(gruppe.id).length)
+        TEXTS.gruppeZahl(this.plugin.categoriesIn(gruppe.id).length)
       );
 
       knopf.addEventListener('click', () => {
@@ -1732,11 +1732,11 @@ class KategorienFenster extends Modal {
         this.gruppeGewaehlt = gruppe.id;
         /* The selection cannot survive a group change: the category it
            points at is not in the new group. */
-        const erste = this.plugin.kategorienIn(gruppe.id)[0];
+        const erste = this.plugin.categoriesIn(gruppe.id)[0];
         this.gewaehlt = erste ? erste.id : null;
-        this.reiterFuellen();
-        this.listeFuellen();
-        this.detailFuellen();
+        this.fillTabs();
+        this.fillList();
+        this.fillDetail();
       });
     }
 
@@ -1744,13 +1744,13 @@ class KategorienFenster extends Modal {
       cls: 'fc-reiterneu',
       text: '+',
     });
-    neu.setAttribute('aria-label', TEXTE.gruppeNeu);
+    neu.setAttribute('aria-label', TEXTS.gruppeNeu);
     neu.addEventListener('click', async () => {
-      this.gruppeGewaehlt = await this.plugin.gruppeAnlegen();
+      this.gruppeGewaehlt = await this.plugin.addGroup();
       this.gewaehlt = null;
-      this.reiterFuellen();
-      this.listeFuellen();
-      this.detailFuellen();
+      this.fillTabs();
+      this.fillList();
+      this.fillDetail();
     });
 
     /* Name and delete for the group sit under the tabs, not in them: a
@@ -1774,29 +1774,29 @@ class KategorienFenster extends Modal {
         (g) => g.id === gruppe.id
       );
 
-      this.schiebeKnopf(paar, 'chevron-left', TEXTE.gruppeLinks, stelle > 0, () =>
-        this.gruppeSchieben(-1)
+      this.shiftButton(paar, 'chevron-left', TEXTS.gruppeLinks, stelle > 0, () =>
+        this.groupShiftButton(-1)
       );
-      this.schiebeKnopf(
+      this.shiftButton(
         paar,
         'chevron-right',
-        TEXTE.gruppeRechts,
+        TEXTS.gruppeRechts,
         stelle < this.plugin.daten.gruppen.length - 1,
-        () => this.gruppeSchieben(1)
+        () => this.groupShiftButton(1)
       );
     }
 
     const name = zeile.createEl('input', {
       type: 'text',
       cls: 'fc-gruppenname',
-      placeholder: TEXTE.gruppeName,
+      placeholder: TEXTS.gruppeName,
     });
     name.value = gruppe.name;
 
     /* Deliberately no full redraw while typing, or the field would lose
        the caret after every character -- only the tab's label follows. */
     name.addEventListener('input', () => {
-      this.plugin.gruppeUmbenennen(gruppe.id, name.value);
+      this.plugin.renameGroup(gruppe.id, name.value);
       const knopf = leiste.querySelector('.fc-reiteraktiv');
       if (knopf) knopf.setText(name.value);
     });
@@ -1805,18 +1805,18 @@ class KategorienFenster extends Modal {
        button is the one closer to the middle of the row. */
     const doppeln = zeile.createEl('button', {
       cls: 'fc-gruppedoppeln',
-      text: TEXTE.gruppeDuplizieren,
+      text: TEXTS.duplicateGroup,
     });
     doppeln.addEventListener('click', async () => {
-      const id = await this.plugin.gruppeDuplizieren(gruppe.id);
+      const id = await this.plugin.duplicateGroup(gruppe.id);
       if (!id) return;
 
       this.gruppeGewaehlt = id;
-      const erste = this.plugin.kategorienIn(id)[0];
+      const erste = this.plugin.categoriesIn(id)[0];
       this.gewaehlt = erste ? erste.id : null;
-      this.reiterFuellen();
-      this.listeFuellen();
-      this.detailFuellen();
+      this.fillTabs();
+      this.fillList();
+      this.fillDetail();
     });
 
     /* Hidden rather than disabled while there is only one group: a
@@ -1826,24 +1826,24 @@ class KategorienFenster extends Modal {
 
     const weg = zeile.createEl('button', {
       cls: 'fc-gruppeweg',
-      text: TEXTE.gruppeLoeschen,
+      text: TEXTS.deleteGroup,
     });
     weg.addEventListener('click', () => {
-      const anzahl = this.plugin.kategorienIn(gruppe.id).length;
+      const anzahl = this.plugin.categoriesIn(gruppe.id).length;
       const alterName = gruppe.name;
 
       new BestaetigenFenster(
         this.app,
-        TEXTE.gruppeLoeschFrage(alterName, anzahl),
+        TEXTS.gruppeLoeschFrage(alterName, anzahl),
         async () => {
-          await this.plugin.gruppeLoeschen(gruppe.id);
-          new Notice(TEXTE.gruppeGeloescht(alterName));
+          await this.plugin.deleteGroup(gruppe.id);
+          new Notice(TEXTS.gruppeGeloescht(alterName));
           this.gruppeGewaehlt = this.plugin.daten.gruppen[0].id;
-          const erste = this.plugin.kategorienIn(this.gruppeGewaehlt)[0];
+          const erste = this.plugin.categoriesIn(this.gruppeGewaehlt)[0];
           this.gewaehlt = erste ? erste.id : null;
-          this.reiterFuellen();
-          this.listeFuellen();
-          this.detailFuellen();
+          this.fillTabs();
+          this.fillList();
+          this.fillDetail();
         }
       ).open();
     });
@@ -1871,7 +1871,7 @@ class KategorienFenster extends Modal {
      tree shows them. That is what let the separate preview section go,
      and it shows every category at once instead of only the selected
      one. */
-  listenStilZeichnen(zeile, farbe, stil, icon) {
+  drawRowStyle(zeile, farbe, stil, icon) {
     const ziel = zeile.marke;
     const text = zeile.name;
 
@@ -1890,7 +1890,7 @@ class KategorienFenster extends Modal {
     /* On a coloured background the marker takes the readable colour, or
        it would be standing on itself. Same rule as the stylesheet uses
        for the tree. */
-    const markenFarbe = stil.hintergrund ? lesbareSchrift(farbe) : farbe;
+    const markenFarbe = stil.hintergrund ? readableText(farbe) : farbe;
 
     if (stil.markierung !== 'keine') {
       if (icon) {
@@ -1906,7 +1906,7 @@ class KategorienFenster extends Modal {
 
     if (stil.hintergrund) {
       text.style.backgroundColor = farbe;
-      text.style.color = lesbareSchrift(farbe);
+      text.style.color = readableText(farbe);
     } else if (stil.schriftFarbig) {
       text.style.color = farbe;
     }
@@ -1931,7 +1931,7 @@ class KategorienFenster extends Modal {
      If it fails, the list stays empty -- then no typed name is
      recognised, and the grid button is still there. Better than a
      window that will not open. */
-  symbolListe() {
+  iconList() {
     if (!this.symbole) {
       try {
         this.symbole = getIconIds() || [];
@@ -1956,33 +1956,33 @@ class KategorienFenster extends Modal {
    * The 7em for the heading column is measured, not picked: wider and
    * the switches under "Zusaetzlich" and "Vererbung" start wrapping,
    * which gives back more than the heading row saved. */
-  abschnitt(text) {
-    const zeile = this.detailEl.createDiv({ cls: 'fc-abschnitt' });
+  section(text) {
+    const zeile = this.detailEl.createDiv({ cls: 'fc-section' });
     zeile.createDiv({ cls: 'fc-untertitel', text });
     return zeile.createDiv({ cls: 'fc-abschnittinhalt' });
   }
 
-  detailFuellen() {
+  fillDetail() {
     this.detailEl.empty();
 
     const kat = this.plugin.daten.kategorien.find((k) => k.id === this.gewaehlt);
     if (!kat) {
-      this.detailEl.createDiv({ cls: 'fc-leer', text: TEXTE.nichtsGewaehlt });
+      this.detailEl.createDiv({ cls: 'fc-leer', text: TEXTS.nichtsGewaehlt });
       return;
     }
 
-    const stil = this.plugin.stilVon(kat.id);
+    const stil = this.plugin.styleOf(kat.id);
 
     /* The row in the list is the preview since 0.9.43, so it has to
        follow every change made here -- not only the ones with a handler
        of their own. Every switch redraws this column through
-       detailFuellen, so redrawing the row here catches all of them at
+       fillDetail, so redrawing the row here catches all of them at
        once.
 
        Reported 2026-08-29: pressing "Background" left the row in the
        list uncoloured until something else was changed. */
     const listenzeile = this.zeilen && this.zeilen.get(kat.id);
-    if (listenzeile) this.listenStilZeichnen(listenzeile, kat.farbe, stil, kat.icon);
+    if (listenzeile) this.drawRowStyle(listenzeile, kat.farbe, stil, kat.icon);
 
     /* --- Colour and name ------------------------------------------ */
     const kopf = this.detailEl.createDiv({ cls: 'fc-zeile' });
@@ -2002,8 +2002,8 @@ class KategorienFenster extends Modal {
 
     const farbe = farbfeld.createEl('input', { type: 'color', cls: 'fc-farbe' });
     farbe.value = kat.farbe;
-    farbe.setAttribute('aria-label', TEXTE.farbeWaehlen);
-    farbe.setAttribute('title', TEXTE.farbeWaehlen);
+    farbe.setAttribute('aria-label', TEXTS.farbeWaehlen);
+    farbe.setAttribute('title', TEXTS.farbeWaehlen);
 
     const pipette = farbfeld.createSpan({ cls: 'fc-farbpipette' });
     setIcon(pipette, 'pipette');
@@ -2012,19 +2012,19 @@ class KategorienFenster extends Modal {
        same sum the tree uses for its text. One fixed colour would
        disappear on half the palette. */
     const pipetteFaerben = () => {
-      pipette.style.color = lesbareSchrift(farbe.value);
+      pipette.style.color = readableText(farbe.value);
     };
     pipetteFaerben();
 
     const name = kopf.createEl('input', {
       type: 'text',
       cls: 'fc-name',
-      placeholder: TEXTE.namePlatzhalter,
+      placeholder: TEXTS.namePlatzhalter,
     });
     name.value = kat.name;
 
     /* --- Markierung ------------------------------------------------ */
-    const markierungFeld = this.abschnitt(TEXTE.markierung);
+    const markierungFeld = this.section(TEXTS.markierung);
 
     const gruppe = markierungFeld.createDiv({ cls: 'fc-gruppe' });
 
@@ -2033,15 +2033,15 @@ class KategorienFenster extends Modal {
        working with an icon set, it is what leaves the folder unmarked. */
     const markenKnoepfe = [];
 
-    for (const m of MARKIERUNGEN) {
+    for (const m of MARKERS) {
       const knopf = gruppe.createEl('button', { text: m.name });
       if (stil.markierung === m.id) knopf.addClass('mod-cta');
       if (m.id !== 'keine') markenKnoepfe.push(knopf);
       knopf.addEventListener('click', async () => {
-        await this.plugin.stilAendern(kat.id, { markierung: m.id });
+        await this.plugin.changeStyle(kat.id, { markierung: m.id });
         /* The list carries the marker too, so it has to follow. */
-        this.listeFuellen();
-        this.detailFuellen();
+        this.fillList();
+        this.fillDetail();
       });
     }
 
@@ -2049,7 +2049,7 @@ class KategorienFenster extends Modal {
     /* Sits directly under the marker because it takes the marker's
        place: choose one here and the tree shows no bar and no dot any
        more, but the icon in the category colour. */
-    const symbolAbschnitt = this.abschnitt(TEXTE.symbol);
+    const symbolAbschnitt = this.section(TEXTS.symbol);
 
     /* The name of the icon stands in a field you can type and paste
        into. Through the grid alone, setting one category after another
@@ -2068,20 +2068,20 @@ class KategorienFenster extends Modal {
     const symbolFeld = symbolZeile.createEl('input', {
       type: 'text',
       cls: 'fc-symboltext',
-      placeholder: TEXTE.symbolName,
+      placeholder: TEXTS.symbolName,
     });
-    symbolFeld.value = symbolKurz(kat.icon);
+    symbolFeld.value = shortIconName(kat.icon);
 
     const blaettern = symbolZeile.createEl('button', {
       cls: 'clickable-icon fc-symbolblaettern',
     });
     setIcon(blaettern, 'layout-grid');
-    blaettern.setAttribute('aria-label', TEXTE.symbolWaehlen);
+    blaettern.setAttribute('aria-label', TEXTS.symbolWaehlen);
     blaettern.addEventListener('click', () => {
       new SymbolFenster(this.app, kat.icon || null, async (gewaehlt) => {
-        await this.plugin.kategorieAendern(kat.id, { icon: gewaehlt });
-        this.listeFuellen();
-        this.detailFuellen();
+        await this.plugin.changeCategory(kat.id, { icon: gewaehlt });
+        this.fillList();
+        this.fillDetail();
       }).open();
     });
 
@@ -2089,13 +2089,13 @@ class KategorienFenster extends Modal {
        out entirely, everything below it moved up by a row as soon as you
        clicked a category without an icon -- including "Delete", which
        then slid under the pointer. Reported 2026-08-28. */
-    const symbolWeg = symbolZeile.createEl('button', { text: TEXTE.symbolEntfernen });
+    const symbolWeg = symbolZeile.createEl('button', { text: TEXTS.symbolEntfernen });
     if (!kat.icon) symbolWeg.addClass('fc-platzhalter');
     symbolWeg.addEventListener('click', async () => {
       if (!kat.icon) return;
-      await this.plugin.kategorieAendern(kat.id, { icon: null });
-      this.listeFuellen();
-      this.detailFuellen();
+      await this.plugin.changeCategory(kat.id, { icon: null });
+      this.fillList();
+      this.fillDetail();
     });
 
     /* Same reason as the button above: the line keeps its space even
@@ -2127,9 +2127,9 @@ class KategorienFenster extends Modal {
         knopf.classList.toggle('fc-wirkungslos', Boolean(kat.icon));
       }
 
-      if (unbekannt) symbolHinweisEl.setText(TEXTE.symbolUnbekannt);
-      else if (wirkungslos) symbolHinweisEl.setText(TEXTE.symbolOhneWirkung);
-      else symbolHinweisEl.setText(kat.icon ? TEXTE.symbolErsetzt : '');
+      if (unbekannt) symbolHinweisEl.setText(TEXTS.symbolUnbekannt);
+      else if (wirkungslos) symbolHinweisEl.setText(TEXTS.symbolOhneWirkung);
+      else symbolHinweisEl.setText(kat.icon ? TEXTS.symbolErsetzt : '');
     };
 
     /* Draws the icon in front of the field, in the category colour --
@@ -2145,17 +2145,17 @@ class KategorienFenster extends Modal {
     symbolStandZeigen(false);
 
     /* --- the four independent switches ------------------------------ */
-    const zusaetzlichFeld = this.abschnitt(TEXTE.zusaetzlich);
+    const zusaetzlichFeld = this.section(TEXTS.zusaetzlich);
 
     const schalter = zusaetzlichFeld.createDiv({ cls: 'fc-schalter' });
     const umschalter = [
-      ['hintergrund', TEXTE.hintergrund],
-      ['schriftFarbig', TEXTE.schriftFarbig],
-      ['fett', TEXTE.fett],
+      ['hintergrund', TEXTS.hintergrund],
+      ['schriftFarbig', TEXTS.schriftFarbig],
+      ['fett', TEXTS.fett],
       /* Last on purpose: it is the only one that turns the row down
          rather than up, and it works on top of whatever the three
          before it did. */
-      ['gedimmt', TEXTE.gedimmt],
+      ['gedimmt', TEXTS.gedimmt],
     ];
 
     for (const [feld, beschriftung] of umschalter) {
@@ -2168,8 +2168,8 @@ class KategorienFenster extends Modal {
       if (feld === 'schriftFarbig' && stil.hintergrund) knopf.addClass('fc-wirkungslos');
 
       knopf.addEventListener('click', async () => {
-        await this.plugin.stilAendern(kat.id, { [feld]: !stil[feld] });
-        this.detailFuellen();
+        await this.plugin.changeStyle(kat.id, { [feld]: !stil[feld] });
+        this.fillDetail();
       });
     }
 
@@ -2186,8 +2186,8 @@ class KategorienFenster extends Modal {
        row for the rare case where both are on would move everything
        down for everyone else -- the very shifting that 0.9.16 fixed. */
     let schalterHinweis = '';
-    if (stil.hintergrund) schalterHinweis = TEXTE.schriftAutomatisch;
-    else if (stil.gedimmt) schalterHinweis = TEXTE.gedimmtHinweis;
+    if (stil.hintergrund) schalterHinweis = TEXTS.schriftAutomatisch;
+    else if (stil.gedimmt) schalterHinweis = TEXTS.gedimmtHinweis;
 
     zusaetzlichFeld.createDiv({
       cls: 'fc-hinweis',
@@ -2199,20 +2199,20 @@ class KategorienFenster extends Modal {
        carries. Used to be two entries in the context menu, set per
        folder -- hard to find, and the only thing about a category that
        was not set in this window. */
-    const vererbungFeld = this.abschnitt(TEXTE.vererbung);
+    const vererbungFeld = this.section(TEXTS.vererbung);
 
     const reichweite = vererbungFeld.createDiv({ cls: 'fc-schalter' });
     const erbschalter = [
-      ['vererbt', TEXTE.aufUnterordner],
-      ['vererbtDateien', TEXTE.aufDateien],
+      ['vererbt', TEXTS.aufUnterordner],
+      ['vererbtDateien', TEXTS.aufDateien],
     ];
 
     for (const [feld, beschriftung] of erbschalter) {
       const knopf = reichweite.createEl('button', { text: beschriftung });
       if (stil[feld]) knopf.addClass('mod-cta');
       knopf.addEventListener('click', async () => {
-        await this.plugin.stilAendern(kat.id, { [feld]: !stil[feld] });
-        this.detailFuellen();
+        await this.plugin.changeStyle(kat.id, { [feld]: !stil[feld] });
+        this.fillDetail();
       });
     }
 
@@ -2237,49 +2237,49 @@ class KategorienFenster extends Modal {
     let vaterHinweis = '';
 
     if (stil.vererbt || stil.vererbtDateien) {
-      const vaterFeld = this.abschnitt(TEXTE.vaterHervorheben);
+      const vaterFeld = this.section(TEXTS.vaterHervorheben);
       const vaterWahl = vaterFeld.createDiv({ cls: 'fc-schalter' });
 
       let gewaehlterKnopf = null;
-      for (const art of VATER_ARTEN) {
+      for (const art of PARENT_MODES) {
         const knopf = vaterWahl.createEl('button', { text: art.name });
         if (art.id === vaterArt) {
           knopf.addClass('mod-cta');
           gewaehlterKnopf = knopf;
         }
         knopf.addEventListener('click', async () => {
-          await this.plugin.stilAendern(kat.id, { vaterHervor: art.id });
-          this.detailFuellen();
+          await this.plugin.changeStyle(kat.id, { vaterHervor: art.id });
+          this.fillDetail();
         });
       }
 
       /* Every way this setting can end up doing nothing gets said out
          loud. Without that it looks broken: the choice is made, the tree
          does not change, and there is nothing to go by. */
-      if (vaterArt === 'fett' && stil.fett) vaterHinweis = TEXTE.vaterSchonFett;
+      if (vaterArt === 'fett' && stil.fett) vaterHinweis = TEXTS.vaterSchonFett;
       else if (vaterArt === 'hintergrund' && stil.hintergrund) {
-        vaterHinweis = TEXTE.vaterSchonHintergrund;
+        vaterHinweis = TEXTS.vaterSchonHintergrund;
       } else if (vaterArt === 'schrift' && stil.hintergrund) {
         /* Checked before the "already coloured" case: under a background
            the plugin works out the text colour itself, so colouring the
            parent's text does nothing whether or not the category itself
            has coloured text switched on. The background is the reason,
            and the reason is what has to be said. */
-        vaterHinweis = TEXTE.vaterSchriftUnterHintergrund;
+        vaterHinweis = TEXTS.vaterSchriftUnterHintergrund;
       } else if (vaterArt === 'schrift' && stil.schriftFarbig) {
-        vaterHinweis = TEXTE.vaterSchonSchrift;
+        vaterHinweis = TEXTS.vaterSchonSchrift;
       } else if (vaterArt === 'blass' && stil.gedimmt) {
-        vaterHinweis = TEXTE.vaterSchonBlass;
+        vaterHinweis = TEXTS.vaterSchonBlass;
       } else if (vaterArt === 'symbol' && !kat.icon) {
-        vaterHinweis = TEXTE.vaterOhneSymbol;
+        vaterHinweis = TEXTS.vaterOhneSymbol;
       } else if (vaterArt === 'markierung' && kat.icon && stil.markierung !== 'keine') {
         /* The marker check has to come along: with "None" the icon is
-           not drawn either (see "zeigtSymbol"), so the parent -- which
+           not drawn either (see "showsIcon"), so the parent -- which
            gets the other marker, and that is "punkt" -- is the only row
            showing anything at all. The choice works, and saying it does
            not would send the user looking for a fault that is not
            there. Reported 2026-08-29. */
-        vaterHinweis = TEXTE.vaterSymbolSchlaegt;
+        vaterHinweis = TEXTS.vaterSymbolSchlaegt;
       }
 
       /* Only the chosen button is struck through, never the whole row.
@@ -2309,15 +2309,15 @@ class KategorienFenster extends Modal {
     /* Duplicating sits next to deleting because both act on the category
        shown above, and nowhere else does. Delete stays on the far right,
        away from the hand. */
-    const doppeln = fuss.createEl('button', { text: TEXTE.duplizieren });
+    const doppeln = fuss.createEl('button', { text: TEXTS.duplizieren });
     doppeln.addEventListener('click', async () => {
-      const id = await this.plugin.kategorieDuplizieren(kat.id);
+      const id = await this.plugin.duplicateCategory(kat.id);
       if (!id) return;
       /* The copy is selected straight away: it is called "... (copy)"
          and the first thing anyone does is rename it. */
       this.gewaehlt = id;
-      this.listeFuellen();
-      this.detailFuellen();
+      this.fillList();
+      this.fillDetail();
     });
 
     /* Moving to another group, in the row that is already there rather
@@ -2328,11 +2328,11 @@ class KategorienFenster extends Modal {
        have exactly one entry -- a control that can only say what is
        already true. */
     if (this.plugin.daten.gruppen.length > 1) {
-      fuss.createSpan({ cls: 'fc-fussname', text: TEXTE.gruppeFeld });
+      fuss.createSpan({ cls: 'fc-fussname', text: TEXTS.gruppeFeld });
 
       const wahl = fuss.createEl('select', { cls: 'dropdown fc-gruppenwahl' });
-      wahl.setAttribute('aria-label', TEXTE.gruppeWechseln);
-      wahl.setAttribute('title', TEXTE.gruppeWechseln);
+      wahl.setAttribute('aria-label', TEXTS.gruppeWechseln);
+      wahl.setAttribute('title', TEXTS.gruppeWechseln);
 
       for (const g of this.plugin.daten.gruppen) {
         const eintrag = wahl.createEl('option', { text: g.name });
@@ -2342,19 +2342,19 @@ class KategorienFenster extends Modal {
 
       wahl.addEventListener('change', async () => {
         const ziel = wahl.value;
-        if (!(await this.plugin.kategorieUmhaengen(kat.id, ziel))) return;
+        if (!(await this.plugin.moveCategoryToGroup(kat.id, ziel))) return;
 
         /* The window follows it. Staying put would make the category
            vanish from the list with nothing to show where it went. */
         this.gruppeGewaehlt = ziel;
         this.gewaehlt = kat.id;
-        this.reiterFuellen();
-        this.listeFuellen();
-        this.detailFuellen();
+        this.fillTabs();
+        this.fillList();
+        this.fillDetail();
       });
     }
 
-    const weg = fuss.createEl('button', { cls: 'fc-weg', text: TEXTE.loeschen });
+    const weg = fuss.createEl('button', { cls: 'fc-weg', text: TEXTS.loeschen });
 
     /* --- Ereignisse ------------------------------------------------ */
 
@@ -2362,10 +2362,10 @@ class KategorienFenster extends Modal {
        change while still dragging in the picker. Only the row in the
        list is redrawn -- it is the preview since 0.9.43. */
     farbe.addEventListener('input', () => {
-      this.plugin.kategorieAendern(kat.id, { farbe: farbe.value });
+      this.plugin.changeCategory(kat.id, { farbe: farbe.value });
       pipetteFaerben();
       const zeile = this.zeilen.get(kat.id);
-      if (zeile) this.listenStilZeichnen(zeile, farbe.value, stil, kat.icon);
+      if (zeile) this.drawRowStyle(zeile, farbe.value, stil, kat.icon);
     });
 
     /* Same as the name field: no redraw while typing, only the pieces
@@ -2373,44 +2373,44 @@ class KategorienFenster extends Modal {
        it says so and leaves the saved icon alone, so a half-typed word
        does not wipe out what was there. */
     symbolFeld.addEventListener('input', () => {
-      const id = symbolAufloesen(symbolFeld.value, this.symbolListe());
+      const id = resolveIcon(symbolFeld.value, this.iconList());
       if (id === null) {
         symbolStandZeigen(true);
         return;
       }
 
-      this.plugin.kategorieAendern(kat.id, { icon: id || null });
+      this.plugin.changeCategory(kat.id, { icon: id || null });
       symbolBildZeigen();
       symbolStandZeigen(false);
 
       const zeile = this.zeilen.get(kat.id);
-      if (zeile) this.listenStilZeichnen(zeile, kat.farbe, stil, kat.icon);
+      if (zeile) this.drawRowStyle(zeile, kat.farbe, stil, kat.icon);
     });
 
     /* Deliberately no redraw while typing, or the field would lose the
        caret after every character. */
     name.addEventListener('input', () => {
-      this.plugin.kategorieAendern(kat.id, { name: name.value });
+      this.plugin.changeCategory(kat.id, { name: name.value });
       const zeile = this.zeilen.get(kat.id);
       if (zeile) zeile.name.setText(name.value);
     });
 
     weg.addEventListener('click', async () => {
-      const anzahlOrdner = this.plugin.ordnerAnzahl(kat.id);
+      const anzahlOrdner = this.plugin.folderCount(kat.id);
       const alterName = kat.name;
 
       const loeschen = async () => {
-        await this.plugin.kategorieLoeschen(kat.id);
-        new Notice(TEXTE.geloescht(alterName));
+        await this.plugin.deleteCategory(kat.id);
+        new Notice(TEXTS.geloescht(alterName));
         /* The next one from THIS group. Falling back to the first
            category overall would jump into another legend while the tab
            above still says this one. */
-        const erste = this.plugin.kategorienIn(this.gruppeGewaehlt)[0];
+        const erste = this.plugin.categoriesIn(this.gruppeGewaehlt)[0];
         this.gewaehlt = erste ? erste.id : null;
         /* The tab carries the category count, so it follows too. */
-        this.reiterFuellen();
-        this.listeFuellen();
-        this.detailFuellen();
+        this.fillTabs();
+        this.fillList();
+        this.fillDetail();
       };
 
       /* Always ask, even when no folder hangs off the category.
@@ -2418,7 +2418,7 @@ class KategorienFenster extends Modal {
          is at stake. */
       new BestaetigenFenster(
         this.app,
-        TEXTE.loeschFrage(alterName, anzahlOrdner),
+        TEXTS.loeschFrage(alterName, anzahlOrdner),
         loeschen
       ).open();
     });
@@ -2445,12 +2445,12 @@ class SicherungFenster extends Modal {
 
   async onOpen() {
     const { contentEl, titleEl } = this;
-    if (titleEl) titleEl.setText(TEXTE.sicherungTitel);
+    if (titleEl) titleEl.setText(TEXTS.sicherungTitel);
 
-    const dateien = await this.plugin.sicherungenFinden();
+    const dateien = await this.plugin.findBackups();
 
     if (!dateien.length) {
-      contentEl.createDiv({ cls: 'fc-leer', text: TEXTE.sicherungLeer });
+      contentEl.createDiv({ cls: 'fc-leer', text: TEXTS.sicherungLeer });
       return;
     }
 
@@ -2465,26 +2465,26 @@ class SicherungFenster extends Modal {
       zeile.addEventListener('click', () => {
         new BestaetigenFenster(
           this.app,
-          TEXTE.sicherungFrage(name),
+          TEXTS.sicherungFrage(name),
           async () => {
             try {
-              const daten = await this.plugin.sicherungLesen(pfad);
+              const daten = await this.plugin.readBackup(pfad);
               this.close();
               this.beiErfolg(daten);
             } catch (e) {
-              /* The message comes from sicherungLesen and already says
+              /* The message comes from readBackup and already says
                  which of the two things went wrong. */
-              new Notice(e.message || TEXTE.sicherungUnlesbar);
+              new Notice(e.message || TEXTS.sicherungUnlesbar);
             }
           },
-          TEXTE.laden
+          TEXTS.laden
         ).open();
       });
     }
 
     contentEl.createDiv({
       cls: 'fc-hinweis',
-      text: TEXTE.sicherungOrt(SICHERUNG_ORDNER),
+      text: TEXTS.sicherungOrt(BACKUP_FOLDER),
     });
   }
 
@@ -2512,11 +2512,11 @@ class BestaetigenFenster extends Modal {
 
     const fuss = contentEl.createDiv({ cls: 'fc-fuss' });
 
-    const nein = fuss.createEl('button', { text: TEXTE.abbrechen });
+    const nein = fuss.createEl('button', { text: TEXTS.abbrechen });
     nein.addEventListener('click', () => this.close());
 
     const ja = fuss.createEl('button', {
-      text: this.jaText || TEXTE.loeschen,
+      text: this.jaText || TEXTS.loeschen,
       cls: this.jaText ? 'mod-cta' : 'mod-warning',
     });
     ja.addEventListener('click', async () => {
@@ -2540,7 +2540,7 @@ class BestaetigenFenster extends Modal {
  *
  * Most ids carry a "lucide-" prefix. The full id is stored, the part
  * after the prefix is displayed -- the search looks at both. */
-const SYMBOL_HOECHSTENS = 120;
+const ICON_LIMIT = 120;
 
 class SymbolFenster extends Modal {
   constructor(app, aktuell, beiWahl) {
@@ -2552,7 +2552,7 @@ class SymbolFenster extends Modal {
 
   onOpen() {
     const { contentEl, titleEl } = this;
-    if (titleEl) titleEl.setText(TEXTE.symbolFensterTitel);
+    if (titleEl) titleEl.setText(TEXTS.symbolFensterTitel);
     contentEl.addClass('fc-symbolfenster');
 
     /* If getIconIds fails, the list stays empty and the window says so
@@ -2566,21 +2566,21 @@ class SymbolFenster extends Modal {
     const suche = contentEl.createEl('input', {
       type: 'text',
       cls: 'fc-symbolsuche',
-      placeholder: TEXTE.symbolSuche,
+      placeholder: TEXTS.symbolSuche,
     });
 
     this.rasterEl = contentEl.createDiv({ cls: 'fc-symbolraster' });
     this.hinweisEl = contentEl.createDiv({ cls: 'fc-hinweis' });
 
-    suche.addEventListener('input', () => this.rasterFuellen(suche.value));
-    this.rasterFuellen('');
+    suche.addEventListener('input', () => this.fillGrid(suche.value));
+    this.fillGrid('');
 
     /* Without the detour through setTimeout the field never gets the
        caret -- Obsidian sets it again itself while opening. */
     window.setTimeout(() => suche.focus(), 0);
   }
 
-  rasterFuellen(suchtext) {
+  fillGrid(suchtext) {
     this.rasterEl.empty();
     this.hinweisEl.empty();
 
@@ -2590,14 +2590,14 @@ class SymbolFenster extends Modal {
       : this.alle;
 
     if (!passend.length) {
-      this.hinweisEl.setText(TEXTE.symbolNichtsGefunden);
+      this.hinweisEl.setText(TEXTS.symbolNichtsGefunden);
       return;
     }
 
-    for (const id of passend.slice(0, SYMBOL_HOECHSTENS)) {
+    for (const id of passend.slice(0, ICON_LIMIT)) {
       const knopf = this.rasterEl.createEl('button', { cls: 'fc-symbolfeld' });
-      knopf.setAttribute('aria-label', symbolKurz(id));
-      knopf.setAttribute('title', symbolKurz(id));
+      knopf.setAttribute('aria-label', shortIconName(id));
+      knopf.setAttribute('title', shortIconName(id));
       if (id === this.aktuell) knopf.addClass('mod-cta');
 
       setIcon(knopf, id);
@@ -2608,8 +2608,8 @@ class SymbolFenster extends Modal {
       });
     }
 
-    if (passend.length > SYMBOL_HOECHSTENS) {
-      this.hinweisEl.setText(TEXTE.symbolMehr(SYMBOL_HOECHSTENS, passend.length));
+    if (passend.length > ICON_LIMIT) {
+      this.hinweisEl.setText(TEXTS.symbolMehr(ICON_LIMIT, passend.length));
     }
   }
 
@@ -2623,8 +2623,8 @@ class SymbolFenster extends Modal {
 /* ------------------------------------------------------------------ */
 
 /* Translates the old either-or choice into the four switches. */
-function stilAusAlterForm(alt) {
-  const stil = Object.assign({}, STIL_VORGABE);
+function styleFromOldShape(alt) {
+  const stil = Object.assign({}, STYLE_DEFAULT);
 
   switch (alt) {
     case 'punkt':
@@ -2665,7 +2665,7 @@ function stilAusAlterForm(alt) {
  *
  * Pure function on the data, no vault involved, so it can be tested
  * without Obsidian. */
-function gruppenNachziehen(daten, vorgabeName) {
+function catchUpGroups(daten, vorgabeName) {
   if (!Array.isArray(daten.gruppen) || !daten.gruppen.length) {
     daten.gruppen = [{ id: 'grp-1', name: vorgabeName }];
   }
@@ -2690,7 +2690,7 @@ function gruppenNachziehen(daten, vorgabeName) {
  *
  * The ids already taken are handed in, so this can be tested without
  * Obsidian. */
-function neueId(praefix, vergeben) {
+function newId(praefix, vergeben) {
   const genommen = new Set(vergeben || []);
   const jetzt = Date.now();
 
@@ -2705,7 +2705,7 @@ function neueId(praefix, vergeben) {
 
 /* The id without the prefix. Almost all of them read "lucide-folder";
  * what a person types, pastes or looks up is "folder". */
-function symbolKurz(id) {
+function shortIconName(id) {
   return (id || '').replace(/^lucide-/, '');
 }
 
@@ -2722,7 +2722,7 @@ function symbolKurz(id) {
  *
  * The list of valid ids is handed in rather than fetched here, so this
  * can be tested without Obsidian. */
-function symbolAufloesen(text, alle) {
+function resolveIcon(text, alle) {
   const roh = (text || '').trim().toLowerCase().replace(/\s+/g, '-');
   if (!roh) return '';
 
@@ -2745,7 +2745,7 @@ function nachPfad(a, b) {
 /* Turns a list of paths into a searchable index: every entry keeps the
  * position it had in the original list, so results can be handed back
  * in that order later. */
-function indexBauen(pfade) {
+function buildIndex(pfade) {
   return pfade.map((pfad, idx) => ({ pfad, idx })).sort(nachPfad);
 }
 
@@ -2804,7 +2804,7 @@ function praefixTreffer(index, praefix) {
  * has an assignment or an inheritance of its own. Without that, a mix of
  * styles would leave the inherited bar sitting next to the folder's own
  * background. */
-function zieleBauen(daten, nachschlagen) {
+function buildTargets(daten, nachschlagen) {
   const zuordnung = daten.zuordnung || {};
   const ziele = [];
 
@@ -2816,7 +2816,7 @@ function zieleBauen(daten, nachschlagen) {
      from the ones inheriting from it? Only where something inherits at
      all -- with nothing below, there is nobody to stand out from, and
      every coloured folder would silently turn bold. */
-  const hebtAb = (stil) =>
+  const standsApart = (stil) =>
     Boolean(
       (stil.vererbt || stil.vererbtDateien) &&
         stil.vaterHervor &&
@@ -2827,11 +2827,11 @@ function zieleBauen(daten, nachschlagen) {
      a different mark from its children: whichever the category shows,
      the parent shows the other. With no marker at all the parent gets
      the dot -- it has to show something, that is the whole point. */
-  const andereMarke = (art) => (art === 'punkt' ? 'lasche' : 'punkt');
+  const otherMarker = (art) => (art === 'punkt' ? 'lasche' : 'punkt');
 
   /* The style the parent itself is drawn with. */
-  const vaterStil = (stil) => {
-    if (!hebtAb(stil)) return stil;
+  const parentStyle = (stil) => {
+    if (!standsApart(stil)) return stil;
     if (stil.vaterHervor === 'fett') {
       return Object.assign({}, stil, { fett: true });
     }
@@ -2842,7 +2842,7 @@ function zieleBauen(daten, nachschlagen) {
       return Object.assign({}, stil, { schriftFarbig: true });
     }
     if (stil.vaterHervor === 'markierung') {
-      return Object.assign({}, stil, { markierung: andereMarke(stil.markierung) });
+      return Object.assign({}, stil, { markierung: otherMarker(stil.markierung) });
     }
     return stil;
   };
@@ -2850,16 +2850,16 @@ function zieleBauen(daten, nachschlagen) {
   /* The style the inherited rows are drawn with. Only "blass" changes
      anything here -- it is the one setting that works on the children
      instead of the parent. */
-  const erbStil = (stil) => {
-    if (!hebtAb(stil) || stil.vaterHervor !== 'blass') return stil;
+  const inheritedStyle = (stil) => {
+    if (!standsApart(stil) || stil.vaterHervor !== 'blass') return stil;
     return Object.assign({}, stil, { gedimmt: true });
   };
 
   /* The icon the inherited rows are drawn with. With "icon" chosen for
      the parent they give it up and fall back to bar or dot -- that is
      exactly what leaves the parent as the only row carrying it. */
-  const erbSymbol = (stil, icon) =>
-    hebtAb(stil) && stil.vaterHervor === 'symbol' ? null : icon || null;
+  const inheritedIcon = (stil, icon) =>
+    standsApart(stil) && stil.vaterHervor === 'symbol' ? null : icon || null;
 
   /* Which folders pass their colour down? Every folder whose category
      says so. There is no table of its own for this any more -- the
@@ -2877,8 +2877,8 @@ function zieleBauen(daten, nachschlagen) {
 
   /* Both indexes are built once and then searched per source, instead of
      walking the full lists again for every single one. */
-  const zuordnungIndex = indexBauen(Object.keys(zuordnung));
-  const quellenIndex = indexBauen(quellen);
+  const zuordnungIndex = buildIndex(Object.keys(zuordnung));
+  const quellenIndex = buildIndex(quellen);
 
   for (const quelle of quellen) {
     const { farbe, stil, icon } = nachschlagen(zuordnung[quelle]);
@@ -2892,22 +2892,22 @@ function zieleBauen(daten, nachschlagen) {
     const ausnahmen = [];
 
     for (const { pfad } of praefixTreffer(zuordnungIndex, praefix)) {
-      ausnahmen.push(`[data-path="${maskieren(pfad)}"]`);
+      ausnahmen.push(`[data-path="${toMask(pfad)}"]`);
     }
 
     /* A source can never start with its own prefix -- the prefix is one
        separator longer -- so nothing has to be filtered out here. */
     for (const { pfad } of praefixTreffer(quellenIndex, praefix)) {
-      ausnahmen.push(`[data-path^="${maskieren(pfad + '/')}"]`);
+      ausnahmen.push(`[data-path^="${toMask(pfad + '/')}"]`);
     }
 
     ziele.push({
-      selektor: `.nav-folder-title[data-path^="${maskieren(praefix)}"]${ausnahmen
+      selektor: `.nav-folder-title[data-path^="${toMask(praefix)}"]${ausnahmen
         .map((a) => `:not(${a})`)
         .join('')}`,
       farbe,
-      stil: erbStil(stil),
-      icon: erbSymbol(stil, icon),
+      stil: inheritedStyle(stil),
+      icon: inheritedIcon(stil, icon),
     });
   }
 
@@ -2916,9 +2916,9 @@ function zieleBauen(daten, nachschlagen) {
     const { farbe, stil, icon } = nachschlagen(katId);
     if (!farbe || !stil) continue;
     ziele.push({
-      selektor: `.nav-folder-title[data-path="${maskieren(pfad)}"]`,
+      selektor: `.nav-folder-title[data-path="${toMask(pfad)}"]`,
       farbe,
-      stil: vaterStil(stil),
+      stil: parentStyle(stil),
       icon: icon || null,
     });
   }
@@ -2934,7 +2934,7 @@ function zieleBauen(daten, nachschlagen) {
      selector as long as the vault. */
   const dateiQuellen = quellenMit('vererbtDateien');
 
-  const dateiIndex = indexBauen(dateiQuellen);
+  const dateiIndex = buildIndex(dateiQuellen);
 
   for (const quelle of dateiQuellen) {
     const { farbe, stil, icon } = nachschlagen(zuordnung[quelle]);
@@ -2946,17 +2946,17 @@ function zieleBauen(daten, nachschlagen) {
        otherwise the outer colour would reach past it. */
     const ausnahmen = [];
     for (const { pfad } of praefixTreffer(dateiIndex, praefix)) {
-      ausnahmen.push(`[data-path^="${maskieren(pfad + '/')}"]`);
+      ausnahmen.push(`[data-path^="${toMask(pfad + '/')}"]`);
     }
 
     ziele.push({
-      selektor: `.nav-file-title[data-path^="${maskieren(praefix)}"]${ausnahmen
+      selektor: `.nav-file-title[data-path^="${toMask(praefix)}"]${ausnahmen
         .map((a) => `:not(${a})`)
         .join('')}`,
       inhalt: 'nav-file-title-content',
       farbe,
-      stil: erbStil(stil),
-      icon: erbSymbol(stil, icon),
+      stil: inheritedStyle(stil),
+      icon: inheritedIcon(stil, icon),
     });
   }
 
@@ -2968,13 +2968,13 @@ function zieleBauen(daten, nachschlagen) {
  * icon hang off the text content rather than the row box, which leaves
  * the explorer's indentation untouched.
  *
- * "maskeVon" turns an icon id into a finished CSS value for mask-image.
+ * "maskOf" turns an icon id into a finished CSS value for mask-image.
  * The icon itself is fetched from Obsidian by the plugin; keeping that
  * out of here is what makes this function testable without Obsidian.
  * If the function is missing or does not know an icon, the entry falls
  * back to its bar or dot -- a folder with no marker at all would be the
  * worse surprise. */
-function regelnBauen(eintraege, maskeVon) {
+function buildRules(eintraege, maskOf) {
   if (!eintraege.length) return '';
 
   const titel = (e) => e.selektor;
@@ -2996,16 +2996,16 @@ function regelnBauen(eintraege, maskeVon) {
    * Not a new setting: the same decision as for the text colour on
    * 2026-08-26, worked out rather than chosen by hand. */
   const markenFarbe = (e) =>
-    e.stil.hintergrund ? lesbareSchrift(e.farbe) : e.farbe;
+    e.stil.hintergrund ? readableText(e.farbe) : e.farbe;
 
   /* Which entries actually show an icon? Only those that have one, that
      show a marker at all, and whose icon can be resolved. Worked out
      once so the blocks below agree with each other. */
   const masken = new Map();
-  const zeigtSymbol = (e) => {
+  const showsIcon = (e) => {
     if (!e.icon || e.stil.markierung === 'keine') return false;
     if (!masken.has(e.icon)) {
-      masken.set(e.icon, (maskeVon && maskeVon(e.icon)) || null);
+      masken.set(e.icon, (maskOf && maskOf(e.icon)) || null);
     }
     return masken.get(e.icon) !== null;
   };
@@ -3016,7 +3016,7 @@ function regelnBauen(eintraege, maskeVon) {
      hundred folders sharing a category, that is the difference between
      a few hundred bytes and a few hundred kilobytes. */
   const nachSymbol = new Map();
-  for (const e of eintraege.filter(zeigtSymbol)) {
+  for (const e of eintraege.filter(showsIcon)) {
     if (!nachSymbol.has(e.icon)) nachSymbol.set(e.icon, []);
     nachSymbol.get(e.icon).push(e);
   }
@@ -3055,7 +3055,7 @@ ${farben}`);
   /* --- marker: bar and dot ---------------------------------------- */
   for (const art of ['lasche', 'punkt']) {
     const passend = eintraege.filter(
-      (e) => e.stil.markierung === art && !zeigtSymbol(e)
+      (e) => e.stil.markierung === art && !showsIcon(e)
     );
     if (!passend.length) continue;
 
@@ -3092,7 +3092,7 @@ ${titel(e)}:hover,
 ${titel(e)}.is-active,
 ${titel(e)}.has-focus {
   background-color: ${e.farbe} !important;
-  color: ${lesbareSchrift(e.farbe)};
+  color: ${readableText(e.farbe)};
   border-radius: 4px;
 }
 ${titel(e)}:hover {
@@ -3155,14 +3155,14 @@ ${beiZeiger} {
 /* Text on a coloured box has to stay readable. The formula is the usual
    luminance weighting -- the eye perceives red, green and blue as
    differently bright. Above the threshold black text, below it white. */
-function lesbareSchrift(hex) {
-  const rgb = hexZuRgb(hex);
+function readableText(hex) {
+  const rgb = hexToRgb(hex);
   if (!rgb) return 'inherit';
   const helligkeit = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
   return helligkeit > 0.6 ? '#1c1c1c' : '#ffffff';
 }
 
-function hexZuRgb(hex) {
+function hexToRgb(hex) {
   const t = String(hex).trim().replace(/^#/, '');
   const voll = t.length === 3 ? t.split('').map((c) => c + c).join('') : t;
   if (!/^[0-9a-fA-F]{6}$/.test(voll)) return null;
@@ -3173,14 +3173,14 @@ function hexZuRgb(hex) {
   ];
 }
 
-function zufallsfarbe() {
+function randomColour() {
   /* Fixed saturation and lightness, only the hue is rolled -- so a new
      category never comes out washed out or garish. */
   const ton = Math.floor(Math.random() * 360);
-  return hslZuHex(ton, 65, 55);
+  return hslToHex(ton, 65, 55);
 }
 
-function hslZuHex(h, s, l) {
+function hslToHex(h, s, l) {
   s /= 100;
   l /= 100;
   const k = (n) => (n + h / 30) % 12;
@@ -3196,7 +3196,7 @@ function hslZuHex(h, s, l) {
 /* Rewrites one path in a map (path -> value), together with everything
    below it. Renaming a parent folder changes its children's paths too.
    Returns whether anything changed. */
-function schluesselUmschreiben(verzeichnis, alt, neu) {
+function rewriteKeys(verzeichnis, alt, neu) {
   let geaendert = false;
 
   for (const pfad of Object.keys(verzeichnis)) {
@@ -3220,7 +3220,7 @@ function schluesselUmschreiben(verzeichnis, alt, neu) {
    one" counts as shared too, giving null just like "mixed does". For the
    menu that makes no difference: in both cases no checkmark is the
    right answer. */
-function gemeinsameKategorie(zuordnung, pfade) {
+function sharedCategory(zuordnung, pfade) {
   if (!pfade.length) return null;
   const erste = zuordnung[pfade[0]] || null;
   if (erste === null) return null;
@@ -3232,7 +3232,7 @@ function gemeinsameKategorie(zuordnung, pfade) {
 
 /* Quotes and backslashes in a path have to be escaped inside a CSS
    selector, or the rule breaks. Folder names may contain both. */
-function maskieren(text) {
+function toMask(text) {
   return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
@@ -3246,7 +3246,7 @@ function maskieren(text) {
  * otherwise be read as a fragment and the rest of the image would
  * vanish, and line breaks would break the CSS value. A few extra bytes
  * are worth that. */
-function svgZuMaske(svgText) {
+function svgToMask(svgText) {
   const text = String(svgText || '').trim();
   if (!text.startsWith('<svg')) return null;
   return `url("data:image/svg+xml,${encodeURIComponent(text)}")`;

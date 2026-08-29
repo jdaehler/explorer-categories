@@ -496,14 +496,14 @@
    wrapped at 7em too. The window is 900px wide since then, which is
    where the headroom comes from -- see the note at the top of this
    file. 7em is now comfortably inside the limit, not on its edge. */
-.fc-abschnitt {
+.fc-section {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   margin: 10px 0 0 0;
 }
 
-.fc-abschnitt > .fc-untertitel {
+.fc-section > .fc-untertitel {
   flex: 0 0 7em;
   margin: 0;
   /* Lines the small caps up with the text on the buttons beside them,
@@ -721,11 +721,11 @@
   /* Heading back above its controls. On a phone the 7em is a quarter of
      the screen, and the switches would wrap to three and four rows --
      the layout saves rows on the desktop and would cost them here. */
-  .fc-abschnitt {
+  .fc-section {
     display: block;
   }
 
-  .fc-abschnitt > .fc-untertitel {
+  .fc-section > .fc-untertitel {
     margin-bottom: 4px;
     padding-top: 0;
   }
