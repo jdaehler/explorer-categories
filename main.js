@@ -78,7 +78,6 @@ const TEXTE_DE = {
   vaterSchonBlass: 'Die Kategorie ist ohnehin abgedunkelt.',
   vaterOhneSymbol: 'Dafür muss oben ein Symbol gesetzt sein.',
   vaterSymbolSchlaegt: 'Mit Symbol tragen beide dasselbe Zeichen.',
-  vorschau: 'Vorschau',
   symbol: 'Symbol',
   symbolWaehlen: 'Symbol wählen …',
   symbolName: 'Name des Symbols',
@@ -90,7 +89,6 @@ const TEXTE_DE = {
   symbolErsetzt: 'Das Symbol tritt an die Stelle von Lasche und Punkt.',
   symbolOhneWirkung: 'Bei „Ohne" bleibt der Ordner unmarkiert, auch mit Symbol.',
   symbolMehr: (gezeigt, gesamt) => `${gezeigt} von ${gesamt} — weiter eingrenzen.`,
-  beispielOrdner: 'Beispielordner',
   ordnerZahl: (n) => (n === 1 ? '1 Ordner' : `${n} Ordner`),
   loeschFrage: (name, n) =>
     n === 0
@@ -198,7 +196,6 @@ const TEXTE_EN = {
   vaterSchonBlass: 'The category is dimmed anyway.',
   vaterOhneSymbol: 'An icon has to be set above for this.',
   vaterSymbolSchlaegt: 'With an icon, both carry the same mark.',
-  vorschau: 'Preview',
   symbol: 'Icon',
   symbolWaehlen: 'Choose icon …',
   symbolName: 'Icon name',
@@ -210,7 +207,6 @@ const TEXTE_EN = {
   symbolErsetzt: 'The icon takes the place of the bar and the dot.',
   symbolOhneWirkung: 'With "None" the folder stays unmarked, icon or not.',
   symbolMehr: (gezeigt, gesamt) => `${gezeigt} of ${gesamt} — narrow the search.`,
-  beispielOrdner: 'Example folder',
   ordnerZahl: (n) => (n === 1 ? '1 folder' : `${n} folders`),
   loeschFrage: (name, n) =>
     n === 0
@@ -1503,9 +1499,22 @@ class KategorienFenster extends Modal {
          wider. Without it the column of names would shift from row to
          row. */
       const marke = zeile.createSpan({ cls: 'fc-listenmarkierung' });
-      this.listenMarkeZeichnen(marke, kat.farbe, this.plugin.stilVon(kat.id), kat.icon);
 
-      const name = zeile.createSpan({ cls: 'fc-listenname', text: kat.name });
+      /* The name sits in a span of its own inside the cell. The cell
+         takes the leftover width and clips a long name; the span hugs
+         the text, so a category's background colour wraps the word
+         rather than the whole row -- and the row's own highlight for
+         the selected entry stays visible underneath. */
+      const name = zeile
+        .createSpan({ cls: 'fc-listenname' })
+        .createSpan({ cls: 'fc-listentext', text: kat.name });
+
+      this.listenStilZeichnen(
+        { marke, name },
+        kat.farbe,
+        this.plugin.stilVon(kat.id),
+        kat.icon
+      );
 
       const anzahl = zeile.createSpan({
         cls: 'fc-listenanzahl',
@@ -1856,23 +1865,60 @@ class KategorienFenster extends Modal {
      thing this marker was added to fix. The holder keeps its width
      either way, so the names still line up.
 
-     Deliberately not shared with vorschauZeichnen -- the preview builds
-     a whole example row, this is a marker in a fixed-width holder. */
-  listenMarkeZeichnen(ziel, farbe, stil, icon) {
+     Since 0.9.43 the row carries the whole appearance, not just the
+     marker: background, coloured text, bold and dimming, exactly as the
+     tree shows them. That is what let the separate preview section go,
+     and it shows every category at once instead of only the selected
+     one. */
+  listenStilZeichnen(zeile, farbe, stil, icon) {
+    const ziel = zeile.marke;
+    const text = zeile.name;
+
     ziel.empty();
 
-    if (stil.markierung === 'keine') return;
+    /* Everything set here is set again every time, the "off" value
+       included. The row is redrawn while the colour picker is being
+       dragged, and a style left over from the previous state would
+       simply stay on the span. */
+    text.style.backgroundColor = '';
+    text.style.color = '';
+    text.style.fontWeight = '';
+    text.style.opacity = '';
+    ziel.style.opacity = '';
 
-    if (icon) {
-      const symbol = ziel.createSpan({ cls: 'fc-listensymbol' });
-      setIcon(symbol, icon);
-      symbol.style.color = farbe;
-      return;
+    /* On a coloured background the marker takes the readable colour, or
+       it would be standing on itself. Same rule as the stylesheet uses
+       for the tree. */
+    const markenFarbe = stil.hintergrund ? lesbareSchrift(farbe) : farbe;
+
+    if (stil.markierung !== 'keine') {
+      if (icon) {
+        const symbol = ziel.createSpan({ cls: 'fc-listensymbol' });
+        setIcon(symbol, icon);
+        symbol.style.color = markenFarbe;
+      } else {
+        const marke = ziel.createSpan({ cls: 'fc-listenmarke' });
+        marke.addClass(stil.markierung === 'lasche' ? 'fc-lasche' : 'fc-punkt');
+        marke.style.backgroundColor = farbe;
+      }
     }
 
-    const marke = ziel.createSpan({ cls: 'fc-listenmarke' });
-    marke.addClass(stil.markierung === 'lasche' ? 'fc-lasche' : 'fc-punkt');
-    marke.style.backgroundColor = farbe;
+    if (stil.hintergrund) {
+      text.style.backgroundColor = farbe;
+      text.style.color = lesbareSchrift(farbe);
+    } else if (stil.schriftFarbig) {
+      text.style.color = farbe;
+    }
+
+    if (stil.fett) text.style.fontWeight = '700';
+
+    /* Same value the stylesheet uses for the tree. On marker and text,
+       not on the row: the row carries the highlight for the selected
+       entry, and that must not fade with the category. */
+    if (stil.gedimmt) {
+      text.style.opacity = '0.45';
+      ziel.style.opacity = '0.45';
+    }
   }
 
   /* ---------------- Detail ---------------------------------------- */
@@ -2114,36 +2160,32 @@ class KategorienFenster extends Modal {
       });
     }
 
-    /* Two rows reserved, not one: this sentence wraps at the window's
-       720 pixels. Measured 2026-08-28 -- with a single row everything
-       below it still moved by half a line.
+    /* One reserved row, as everywhere else. The sentence used to need
+       two at the window's 720 pixels; since 0.9.43 the window is 900
+       and it fits on one -- measured, both German sentences and both
+       English ones, in Obsidian's own Inter and in a wider interface
+       font.
 
        Two switches can have something to say here, but only one line is
        shown: the background hint wins because it explains something you
        cannot see (the plugin picking the text colour), while dimming
-       shows itself in the preview right below. Reserving a third row for
-       the rare case where both are on would move everything down for
-       everyone else -- the very shifting that 0.9.16 fixed. */
+       shows itself in the category list on the left. Reserving a second
+       row for the rare case where both are on would move everything
+       down for everyone else -- the very shifting that 0.9.16 fixed. */
     let schalterHinweis = '';
     if (stil.hintergrund) schalterHinweis = TEXTE.schriftAutomatisch;
     else if (stil.gedimmt) schalterHinweis = TEXTE.gedimmtHinweis;
 
     zusaetzlichFeld.createDiv({
-      cls: 'fc-hinweis fc-hinweis-zwei',
+      cls: 'fc-hinweis',
       text: schalterHinweis,
     });
 
-    /* --- Vorschau -------------------------------------------------- */
-    const vorschau = this.abschnitt(TEXTE.vorschau).createDiv({
-      cls: 'fc-vorschau',
-    });
-    this.vorschauZeichnen(vorschau, kat.farbe, stil, kat.icon);
-
     /* --- Vererbung ------------------------------------------------- */
-    /* Below the preview, because this is not about looks but about
-       reach: how far the colour carries. Used to be two entries in the
-       context menu, set per folder -- hard to find, and the only thing
-       about a category that was not set in this window. */
+    /* This is not about looks but about reach: how far the colour
+       carries. Used to be two entries in the context menu, set per
+       folder -- hard to find, and the only thing about a category that
+       was not set in this window. */
     const vererbungFeld = this.abschnitt(TEXTE.vererbung);
 
     const reichweite = vererbungFeld.createDiv({ cls: 'fc-schalter' });
@@ -2298,15 +2340,13 @@ class KategorienFenster extends Modal {
     /* --- Ereignisse ------------------------------------------------ */
 
     /* The colour takes effect immediately, so you can see the tree
-       change while still dragging in the picker. Only the marker in the
-       list and the preview are redrawn. */
+       change while still dragging in the picker. Only the row in the
+       list is redrawn -- it is the preview since 0.9.43. */
     farbe.addEventListener('input', () => {
       this.plugin.kategorieAendern(kat.id, { farbe: farbe.value });
       pipetteFaerben();
       const zeile = this.zeilen.get(kat.id);
-      if (zeile) this.listenMarkeZeichnen(zeile.marke, farbe.value, stil, kat.icon);
-      vorschau.empty();
-      this.vorschauZeichnen(vorschau, farbe.value, stil, kat.icon);
+      if (zeile) this.listenStilZeichnen(zeile, farbe.value, stil, kat.icon);
     });
 
     /* Same as the name field: no redraw while typing, only the pieces
@@ -2325,9 +2365,7 @@ class KategorienFenster extends Modal {
       symbolStandZeigen(false);
 
       const zeile = this.zeilen.get(kat.id);
-      if (zeile) this.listenMarkeZeichnen(zeile.marke, kat.farbe, stil, kat.icon);
-      vorschau.empty();
-      this.vorschauZeichnen(vorschau, kat.farbe, stil, kat.icon);
+      if (zeile) this.listenStilZeichnen(zeile, kat.farbe, stil, kat.icon);
     });
 
     /* Deliberately no redraw while typing, or the field would lose the
@@ -2367,50 +2405,6 @@ class KategorienFenster extends Modal {
     });
   }
 
-  /* Shows an example folder exactly as it will look in the file
-     explorer, so nobody has to experiment on the real tree. */
-  vorschauZeichnen(ziel, farbe, stil, icon) {
-    const zeile = ziel.createDiv({ cls: 'fc-vorschau-zeile' });
-
-    /* Same rule as in the stylesheet: on a coloured background the
-       marker takes the readable colour, or it would be standing on
-       itself. The preview is only worth having if it shows what the
-       tree will do. */
-    const markenFarbe = stil.hintergrund ? lesbareSchrift(farbe) : farbe;
-
-    if (stil.markierung !== 'keine') {
-      if (icon) {
-        /* In the tree this is a tinted mask; here it is a real icon
-           with its colour set. The result looks the same, and the
-           preview avoids the detour through a data: URI. */
-        const marke = zeile.createSpan({ cls: 'fc-vorschau-symbol' });
-        setIcon(marke, icon);
-        marke.style.color = markenFarbe;
-      } else {
-        const marke = zeile.createSpan({ cls: 'fc-vorschau-marke' });
-        marke.addClass(stil.markierung === 'punkt' ? 'fc-punkt' : 'fc-lasche');
-        marke.style.backgroundColor = markenFarbe;
-      }
-    }
-
-    const text = zeile.createSpan({ text: TEXTE.beispielOrdner });
-
-    if (stil.hintergrund) {
-      zeile.style.backgroundColor = farbe;
-      zeile.style.color = lesbareSchrift(farbe);
-      zeile.style.borderRadius = '4px';
-    } else if (stil.schriftFarbig) {
-      text.style.color = farbe;
-    }
-
-    if (stil.fett) text.style.fontWeight = '700';
-
-    /* Same value as the stylesheet uses, and on the row for the same
-       reason -- the preview is only worth having if it shows what the
-       tree will do. The hover exception is left out here: nobody points
-       at the preview to read it. */
-    if (stil.gedimmt) zeile.style.opacity = '0.45';
-  }
 }
 
 /* Picks a backup to restore.

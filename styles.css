@@ -27,7 +27,7 @@
    overriding them here would reach the phone too. The media query at the
    bottom hands the width back.
 
-   WHY 860 AND NOT 720
+   WHY 900 AND NOT 720
    At 720px the four switches under "Additional" wrapped to a second row,
    and the window is already at its maximum height, so the extra row
    turned into a scrollbar (reported 2026-08-29). Measured, not guessed:
@@ -36,22 +36,25 @@
      minus the scrollbar, when macOS is set
      to show scrollbars always                  -15px
      minus the 7em heading column and its gap   -94px
-     left for the switch row                    343px
+     left for a row                             343px
      the four switches need, in one row         424px
+     the longest hint sentence needs            497px
 
-   The switch row is measured with the widths the buttons really take:
-   12px text, 4px/10px padding, 6px gap. It depends on the interface
-   font -- Obsidian's own Inter needs 402px, a wider face such as
-   Hiragino Sans needs 424px. Both are wider than 343px, so narrowing
-   the heading column cannot fix it: even at zero width it would only
-   just fit, and "MARKIERUNG" alone is 97px.
+   Widths are measured with what the elements really take: 12px text,
+   4px/10px button padding, 6px gap. They depend on the interface font,
+   which is a user setting -- Obsidian's own Inter needs 402px for the
+   switch row, a wider face such as Hiragino Sans needs 424px. Both are
+   wider than 343px, so narrowing the heading column cannot fix it: even
+   at zero width it would only just fit, and "MARKIERUNG" alone is 97px.
 
-   860px leaves 483px for the row, about 60px of headroom -- enough for a
-   wider interface font. Obsidian trims to "--dialog-max-width: 80vw", so
-   860 needs a window of at least 1075px; below that the dialog is merely
-   narrower, not broken. */
+   900px leaves 523px, which clears the switch row by 99px and the
+   longest hint sentence by 26px. The sentence is why it is 900 and not
+   860: at 860 it needed two rows, and the row is reserved whether it
+   has something to say or not. Obsidian trims to
+   "--dialog-max-width: 80vw", so 900 needs a window of at least 1125px;
+   below that the dialog is merely narrower, not broken. */
 .fc-fenster {
-  --dialog-width: 860px;
+  --dialog-width: 900px;
   /* As tall as Obsidian allows, instead of a number it silently trims.
      The fallback covers a version that does not know the variable: the
      window is then merely as tall as its content, which is the old
@@ -264,9 +267,8 @@
   width: 15px;
 }
 
-/* Same shapes as in the preview, but sized for a list row rather than
-   for the example text: the preview's tab is measured in em so it
-   follows its own line, here a fixed height keeps the rows even. */
+/* Fixed sizes rather than em: the rows have to stay even whatever the
+   name beside them does. */
 .fc-listenmarke.fc-punkt {
   width: 12px;
   height: 12px;
@@ -289,12 +291,35 @@
   height: 15px;
 }
 
+/* The cell takes the leftover width and clips a long name. */
 .fc-listenname {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The name itself. Since 0.9.43 the row is the preview: background,
+   coloured text, bold and dimming are set on this span from the
+   category's style, exactly as the tree shows them.
+
+   On the span and not on the row, so a background wraps the word rather
+   than the whole line -- the row's own highlight for the selected entry
+   has to stay visible underneath, and a full-width block of colour would
+   swallow it. The padding is what keeps the colour off the letters;
+   without it the background would sit flush against them. */
+.fc-listentext {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  /* Set on every row, not only on the ones with a background: applied
+     with the colour it would make those rows two pixels taller than the
+     rest, and an uneven list is worse than five pixels of indent. */
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 .fc-listenanzahl {
@@ -460,7 +485,7 @@
    CORRECTION, same day: that 7.5em limit held only for Obsidian's own
    Inter in a 720px window with no scrollbar taking room. With a wider
    interface font, or with macOS set to show scrollbars always, the row
-   wrapped at 7em too. The window is 860px wide since then, which is
+   wrapped at 7em too. The window is 900px wide since then, which is
    where the headroom comes from -- see the note at the top of this
    file. 7em is now comfortably inside the limit, not on its edge. */
 .fc-abschnitt {
@@ -536,31 +561,6 @@
 /* --- Preview ------------------------------------------------------- */
 
 /* Looks like a row in the file explorer, so the comparison holds. */
-.fc-vorschau-zeile {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  font-size: var(--font-ui-small);
-}
-
-.fc-vorschau-marke {
-  display: inline-block;
-  margin-right: 7px;
-  flex: 0 0 auto;
-}
-
-.fc-vorschau-marke.fc-lasche {
-  width: 5px;
-  height: 0.95em;
-  border-radius: 3px;
-}
-
-.fc-vorschau-marke.fc-punkt {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
 /* The hint keeps its row even when it is empty. Without that, every
    section below it moved up as soon as a category had no icon and no
    background -- and "Delete" moved with them, right under the pointer.
@@ -570,13 +570,6 @@
   font-size: var(--font-ui-smaller);
   margin-top: 6px;
   min-height: 1.4em;
-}
-
-/* The hint under the switches needs two rows: at the old 720 pixels the
-   sentence about the automatic text colour wrapped. Kept at 860, so the
-   row does not change height when the sentence appears and goes. */
-.fc-hinweis-zwei {
-  min-height: 2.8em;
 }
 
 /* Keeps a control's space without showing it. Used for "Remove" next to
@@ -675,9 +668,9 @@
 /* There is not enough width on a phone for two columns. The list goes
    on top and the settings below it. */
 @media (max-width: 600px) {
-  /* Hands the width back to Obsidian. The 860px at the top of this file
+  /* Hands the width back to Obsidian. The 900px at the top of this file
      is meant for the desktop; on a phone Obsidian runs its dialogs at
-     the full screen width, and a fixed 860 would stick out of it. */
+     the full screen width, and a fixed 900 would stick out of it. */
   .fc-fenster {
     --dialog-width: 100vw;
   }
@@ -724,18 +717,6 @@
 /* In the preview a real icon with a colour set on it. In the file
    explorer it is a tinted mask -- both look the same, only the route
    there differs. */
-.fc-vorschau-symbol {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 6px;
-  flex: 0 0 auto;
-}
-
-.fc-vorschau-symbol svg {
-  width: 15px;
-  height: 15px;
-}
-
 .fc-symbolzeile {
   display: flex;
   align-items: center;

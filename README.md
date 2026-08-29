@@ -68,8 +68,10 @@ single folder. Everything a category decides is decided in one place.
 **Manage categories.** Right-click any folder and choose "Manage
 categories …", or run the command from the command palette. The window
 lists your categories on the left and the settings of the selected one on
-the right: color, name, marker, icon, the four extra switches, a live
-preview of how a folder will look, and the two inheritance switches.
+the right: color, name, marker, icon, the four extra switches and the two
+inheritance switches. The list on the left is the preview: every row
+shows its category exactly as the file explorer will, so you see all of
+them at once rather than only the selected one.
 
 **Icons come from Obsidian.** Any icon Obsidian ships with, searchable,
 shown in the color of its category. An icon takes the place of the bar or
