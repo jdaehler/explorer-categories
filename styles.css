@@ -638,6 +638,36 @@
   font-size: var(--font-ui-smaller);
 }
 
+/* Label, the folder itself, and the way to change it -- on one line.
+   The path gives way before the button does: a deep path may be
+   shortened, but the way out of it must always be reachable. */
+.fc-ordnerzeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.fc-ordnerpfad {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+}
+
+.fc-ordnerknopf {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+}
+
+.fc-ordnersuche {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
 /* --- Phone --------------------------------------------------------- */
 
 /* There is not enough width on a phone for two columns. The list goes
