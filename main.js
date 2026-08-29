@@ -1220,7 +1220,17 @@ class ExplorerCategoriesPlugin extends Plugin {
        outside is nothing the user typed here, so it must not make the
        window ask "throw away your changes?". */
     if (this.draftRunning && this.original) {
-      if (rewriteKeys(this.original.zuordnung, old, fresh)) changed = true;
+      if (rewriteKeys(this.original.zuordnung, old, fresh)) {
+        /* And straight to disk. save() deliberately writes nothing while
+           the window is open -- that is what makes Cancel possible. But
+           this.original IS what stands on disk (nothing else writes
+           during a draft), so writing it costs nothing and carries no
+           unsaved edit with it. Without this the rename would live in
+           memory only: cancel, restart Obsidian before saving anything,
+           and the dead path is back. */
+        await this.saveData(this.original);
+        changed = true;
+      }
     }
 
     if (changed) await this.save();
