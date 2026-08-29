@@ -70,27 +70,27 @@
    Two earlier versions lost the height by accident, which is why a check
    in test.js watches this rule. That check now says the opposite: no
    height here. */
-.fc-fenster {
+.fc-window {
   --dialog-width: 900px;
 }
 
-.fc-fenster .modal-content {
+.fc-window .modal-content {
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
 /* Everything except the columns keeps its natural height. */
-.fc-fenster .modal-content > h2,
-.fc-reiter,
-.fc-fuss,
-.fc-herkunft {
+.fc-window .modal-content > h2,
+.fc-tab,
+.fc-footer,
+.fc-origin {
   flex: 0 0 auto;
 }
 
 /* --- List on the left, settings on the right ---------------------- */
 
-.fc-spalten {
+.fc-columns {
   display: grid;
   grid-template-columns: 200px 1fr;
   gap: 18px;
@@ -109,7 +109,7 @@
 
    A surface rather than a line, because a line only separates while a
    surface also says "these two belong together". */
-.fc-reiter {
+.fc-tab {
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
@@ -120,7 +120,7 @@
 /* Names an area, quietly. Same size and weight as the sub-headings in
    the settings column, so the window has one way of labelling things
    and not two. */
-.fc-bereichname {
+.fc-groupingname {
   flex: 0 0 auto;
   font-size: var(--font-ui-smaller);
   text-transform: uppercase;
@@ -131,19 +131,19 @@
 
 /* Beside the tabs it needs air on the right; above the list it needs it
    underneath. */
-.fc-reiterleiste .fc-bereichname {
+.fc-tabbar .fc-groupingname {
   margin-right: 8px;
   align-self: center;
 }
 
-.fc-bereichzeile {
+.fc-groupingrow {
   margin-bottom: 6px;
 }
 
 /* One tab per legend. The row scrolls sideways instead of wrapping:
    with eight legends a wrapping row would change height as you switch
    between them, and everything below would jump. */
-.fc-reiterleiste {
+.fc-tabbar {
   display: flex;
   gap: 4px;
   overflow-x: auto;
@@ -151,8 +151,8 @@
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.fc-reiterknopf,
-.fc-reiterneu {
+.fc-tabbutton,
+.fc-tabnew {
   flex: 0 0 auto;
   box-shadow: none;
   background: transparent;
@@ -161,21 +161,21 @@
   cursor: pointer;
 }
 
-.fc-reiterknopf:hover,
-.fc-reiterneu:hover {
+.fc-tabbutton:hover,
+.fc-tabnew:hover {
   background: var(--background-modifier-hover);
 }
 
 /* The active tab is marked with a line underneath rather than a fill:
    a filled tab and a filled row in the list below would read as two
    selections competing with each other. */
-.fc-reiterknopf.fc-reiteraktiv {
+.fc-tabbutton.fc-tabactive {
   color: var(--text-normal);
   font-weight: 600;
   box-shadow: inset 0 -2px 0 0 var(--interactive-accent);
 }
 
-.fc-reiterneu {
+.fc-tabnew {
   padding-left: 10px;
   padding-right: 10px;
   color: var(--text-muted);
@@ -184,7 +184,7 @@
 /* Name and delete for the active group, under the tabs. */
 /* Arrows, name, duplicate, delete. Five things in one row: it may wrap
    rather than squeeze the name field to nothing. */
-.fc-gruppenzeile {
+.fc-grouprow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -194,17 +194,17 @@
   margin: 8px 0;
 }
 
-.fc-gruppenname {
+.fc-groupname {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.fc-gruppedoppeln {
+.fc-groupduplicate {
   flex: 0 0 auto;
   font-size: var(--font-ui-smaller);
 }
 
-.fc-gruppeweg {
+.fc-groupremove {
   flex: 0 0 auto;
   font-size: var(--font-ui-smaller);
   color: var(--text-error);
@@ -223,7 +223,7 @@
    which cost more height than the surface is worth. Measured 2026-08-29
    at 8px: the settings column needs 450px on the outside for nothing to
    wrap, which is where the 200px for the list above comes from. */
-.fc-liste,
+.fc-list,
 .fc-detail {
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
@@ -231,7 +231,7 @@
   padding: 8px;
 }
 
-.fc-liste {
+.fc-list {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -239,11 +239,11 @@
 
 /* No scrollbar of its own since 0.9.44: the rows take the height they
    need and the window grows with them. */
-.fc-listenrollen {
+.fc-listscroll {
   flex: 0 0 auto;
 }
 
-.fc-listenzeile {
+.fc-listrow {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -252,19 +252,19 @@
   cursor: pointer;
 }
 
-.fc-listenzeile:hover {
+.fc-listrow:hover {
   background-color: var(--background-modifier-hover);
 }
 
-.fc-listenzeile.fc-aktiv {
-  background-color: var(--background-modifier-active-hover, var(--background-secondary-alt));
+.fc-listrow.fc-active {
+  background-color: var(--background-modifier-active-hover, var(--background-secondary-old));
   font-weight: 600;
 }
 
 /* The marker in front of a name. Fixed width and centred, so the names
    line up whatever sits in front of them -- a tab is 5px wide, a dot
    12px, an icon 15px. */
-.fc-listenmarkierung {
+.fc-listmarker {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -274,30 +274,30 @@
 
 /* Fixed sizes rather than em: the rows have to stay even whatever the
    name beside them does. */
-.fc-listenmarke.fc-punkt {
+.fc-listmark.fc-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
 }
 
-.fc-listenmarke.fc-lasche {
+.fc-listmark.fc-bar {
   width: 5px;
   height: 14px;
   border-radius: 3px;
 }
 
-.fc-listensymbol {
+.fc-listicon {
   display: inline-flex;
   align-items: center;
 }
 
-.fc-listensymbol svg {
+.fc-listicon svg {
   width: 15px;
   height: 15px;
 }
 
 /* The cell takes the leftover width and clips a long name. */
-.fc-listenname {
+.fc-listname {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -314,7 +314,7 @@
    has to stay visible underneath, and a full-width block of colour would
    swallow it. The padding is what keeps the colour off the letters;
    without it the background would sit flush against them. */
-.fc-listentext {
+.fc-listtext {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;
@@ -327,7 +327,7 @@
   border-radius: 4px;
 }
 
-.fc-listenanzahl {
+.fc-listcount {
   flex: 0 0 auto;
   font-size: var(--font-ui-smaller);
   color: var(--text-muted);
@@ -337,7 +337,7 @@
    buttons beside it fill the row -- and shares the row when there is
    space. Without a basis it would cling to the icons and wrap only
    after being squashed. */
-.fc-neu {
+.fc-new {
   flex: 1 1 100%;
   min-width: 0;
 }
@@ -354,7 +354,7 @@
    crushed to a sliver instead of dropping to its own line. The list
    above scrolls, so a second row here costs the list a row, not the
    window its height. */
-.fc-listenfuss {
+.fc-listfooter {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -362,7 +362,7 @@
   margin-top: 8px;
 }
 
-.fc-schiebepaar {
+.fc-shiftpair {
   display: flex;
   flex: 0 0 auto;
   gap: 2px;
@@ -371,7 +371,7 @@
 /* A gap between the two pairs. Both act on the same list, but one moves
    a single entry a step and the other rearranges all of them -- close
    together they would read as one row of four. */
-.fc-sortierpaar {
+.fc-sortpair {
   margin-left: 8px;
 }
 
@@ -379,7 +379,7 @@
    .is-tablet button:not(.clickable-icon) counts the same as two classes
    and an element, and a tie is decided by whoever loads last -- which is
    not something to rely on. The extra class settles it. */
-.fc-fenster .fc-schiebepaar button.fc-schieben {
+.fc-window .fc-shiftpair button.fc-shift {
   min-width: 30px;
   height: 30px;
   padding: 0;
@@ -390,13 +390,13 @@
    before any padding did, and what is left of it is the round button
    background. That is the picker bug of 0.9.20, and it applies here
    just the same. */
-.fc-fenster .fc-schiebepaar button.fc-schieben svg {
+.fc-window .fc-shiftpair button.fc-shift svg {
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
 }
 
-.fc-fenster .fc-schiebepaar button.fc-schieben:disabled {
+.fc-window .fc-shiftpair button.fc-shift:disabled {
   opacity: 0.35;
   cursor: default;
   background-color: transparent;
@@ -406,19 +406,19 @@
    are hit repeatedly. Tied to Obsidian's own body class rather than to a
    width: the iPad runs this window at its full width, so the phone
    query below would miss exactly the device this is meant for. */
-.is-mobile .fc-fenster .fc-schiebepaar button.fc-schieben {
+.is-mobile .fc-window .fc-shiftpair button.fc-shift {
   min-width: 44px;
   height: 44px;
 }
 
-.is-mobile .fc-fenster .fc-schiebepaar button.fc-schieben svg {
+.is-mobile .fc-window .fc-shiftpair button.fc-shift svg {
   width: 20px;
   height: 20px;
 }
 
 /* --- Settings of the selected category ---------------------------- */
 
-.fc-zeile {
+.fc-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -426,14 +426,14 @@
 
 /* The system colour picker brings its own frame, which looks alien in
    Obsidian. Hence rounded and borderless. */
-/* Holds the colour field and the pipette lying on top of it. */
-.fc-farbfeld {
+/* Holds the colour field and the picker lying on top of it. */
+.fc-colourfield {
   position: relative;
   display: inline-flex;
   flex: 0 0 auto;
 }
 
-.fc-farbe {
+.fc-colour {
   flex: 0 0 auto;
   width: 34px;
   height: 30px;
@@ -447,7 +447,7 @@
 /* Lies on the field and lets every click through to it. Without
    pointer-events: none the icon would swallow exactly the press it is
    there to invite. */
-.fc-farbpipette {
+.fc-colourpicker {
   position: absolute;
   inset: 0;
   display: flex;
@@ -456,7 +456,7 @@
   pointer-events: none;
 }
 
-.fc-farbpipette svg {
+.fc-colourpicker svg {
   width: 15px;
   height: 15px;
   flex: 0 0 auto;
@@ -465,7 +465,7 @@
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.35));
 }
 
-.fc-name {
+.fc-title {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -474,7 +474,7 @@
    into the hints around them (reported 2026-08-27), so they carry the
    normal text colour and some weight -- they are what you scan for when
    looking for a setting. */
-/* Tightened on 2026-08-29 from 14/6. Six headings stand in the settings
+/* Tightened on 2026-08-29 from 14/6. Six headings state in the settings
    column, so every pixel here counts six times over. Height was scarce
    then, with the window pinned to 85vh; since 0.9.44 it grows with its
    content, but a tall column still pushes the window towards the cap,
@@ -503,7 +503,7 @@
   margin: 10px 0 0 0;
 }
 
-.fc-section > .fc-untertitel {
+.fc-section > .fc-subtitle {
   flex: 0 0 7em;
   margin: 0;
   /* Lines the small caps up with the text on the buttons beside them,
@@ -513,12 +513,12 @@
 
 /* min-width: 0 or a long switch row refuses to wrap inside a flex
    child and pushes the column wider than the window. */
-.fc-abschnittinhalt {
+.fc-sectionbody {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.fc-untertitel {
+.fc-subtitle {
   margin: 10px 0 4px 0;
   font-size: var(--font-ui-smaller);
   text-transform: uppercase;
@@ -527,14 +527,14 @@
   color: var(--text-normal);
 }
 
-.fc-schalter {
+.fc-switches {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.fc-schalter button,
-.fc-gruppe button {
+.fc-switches button,
+.fc-group button {
   font-size: var(--font-ui-smaller);
   padding: 4px 10px;
   height: auto;
@@ -542,26 +542,26 @@
 
 /* Marker: the three belong together and therefore look like one piece
    rather than three separate buttons. */
-.fc-gruppe {
+.fc-group {
   display: inline-flex;
 }
 
-.fc-gruppe button {
+.fc-group button {
   border-radius: 0;
   margin: 0;
 }
 
-.fc-gruppe button:first-child {
+.fc-group button:first-child {
   border-radius: var(--radius-s) 0 0 var(--radius-s);
 }
 
-.fc-gruppe button:last-child {
+.fc-group button:last-child {
   border-radius: 0 var(--radius-s) var(--radius-s) 0;
 }
 
 /* Coloured text while the background is on: the setting is kept, it
    just has no effect right now. */
-.fc-wirkungslos {
+.fc-noeffect {
   opacity: 0.45;
   text-decoration: line-through;
 }
@@ -573,7 +573,7 @@
    section below it moved up as soon as a category had no icon and no
    background -- and "Delete" moved with them, right under the pointer.
    Reported 2026-08-28: "die rechte seite huepft". */
-.fc-hinweis {
+.fc-hint {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   margin-top: 6px;
@@ -582,12 +582,12 @@
 
 /* Keeps a control's space without showing it. Used for "Remove" next to
    the icon, which only does something once an icon is chosen. */
-.fc-platzhalter {
+.fc-placeholder {
   visibility: hidden;
   pointer-events: none;
 }
 
-.fc-leer {
+.fc-empty {
   color: var(--text-muted);
   font-style: italic;
   padding: 8px 0;
@@ -595,7 +595,7 @@
 
 /* --- Footers ------------------------------------------------------- */
 
-.fc-detailfuss {
+.fc-detailfooter {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -607,7 +607,7 @@
 
 /* The word in front of the group field. Quiet on purpose -- it names
    the field, it is not a control. */
-.fc-fussname {
+.fc-footername {
   flex: 0 0 auto;
   font-size: var(--font-ui-smaller);
   color: var(--text-muted);
@@ -615,7 +615,7 @@
 
 /* Gives way before the buttons do, and never grows past its share of
    the row -- a long group name would otherwise push Delete off it. */
-.fc-gruppenwahl {
+.fc-groupchoice {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 45%;
@@ -625,17 +625,17 @@
 /* Delete keeps to the far right of the row, whatever stands beside it.
    The one button here that cannot be taken back should not sit under the
    hand by accident. */
-.fc-weg {
+.fc-remove {
   margin-left: auto;
   color: var(--text-muted);
 }
 
-.fc-weg:hover {
+.fc-remove:hover {
   color: var(--text-on-accent);
   background-color: var(--text-error);
 }
 
-.fc-fuss {
+.fc-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
@@ -646,7 +646,7 @@
    allows. Backing up and restoring belong to the file on disk, not to
    the edits in this window, and Restore in particular must not sit
    where a hand goes looking for Save. */
-.fc-fussnebenan {
+.fc-footeraside {
   display: flex;
   gap: 8px;
   margin-right: auto;
@@ -654,7 +654,7 @@
 
 /* One backup per row, full width, so the file names line up and the
    whole row is the target -- these get tapped on a phone too. */
-.fc-sicherungliste {
+.fc-backuplist {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -663,7 +663,7 @@
   margin-bottom: 4px;
 }
 
-.fc-sicherungzeile {
+.fc-backuprow {
   display: block;
   width: 100%;
   text-align: left;
@@ -679,22 +679,22 @@
   /* Hands the width back to Obsidian. The 900px at the top of this file
      is meant for the desktop; on a phone Obsidian runs its dialogs at
      the full screen width, and a fixed 900 would stick out of it. */
-  .fc-fenster {
+  .fc-window {
     --dialog-width: 100vw;
   }
 
   /* Stacked, not side by side: the list takes what it needs up to its
      cap, the settings take the rest. */
-  .fc-spalten {
+  .fc-columns {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
     gap: 12px;
   }
 
   /* The surface brings its own border all the way round, so the divider
-     that used to stand between the columns is not needed here either --
+     that used to state between the columns is not needed here either --
      stacked, the two boxes already read as two areas. */
-  .fc-liste {
+  .fc-list {
     max-height: 180px;
   }
 
@@ -704,7 +704,7 @@
      off the screen, and reaching them would mean scrolling past every
      category first. The cap above needs a scrollbar to go with it, or
      the rows below it would simply be cut off. */
-  .fc-listenrollen {
+  .fc-listscroll {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
@@ -713,7 +713,7 @@
   /* Once the arrows are 44 pixels wide, nothing else fits beside them.
      The name field takes a line of its own; the row above it already
      wraps by itself. */
-  .fc-gruppenname {
+  .fc-groupname {
     flex: 1 1 100%;
     order: 1;
   }
@@ -725,7 +725,7 @@
     display: block;
   }
 
-  .fc-section > .fc-untertitel {
+  .fc-section > .fc-subtitle {
     margin-bottom: 4px;
     padding-top: 0;
   }
@@ -736,7 +736,7 @@
 /* In the preview a real icon with a colour set on it. In the file
    explorer it is a tinted mask -- both look the same, only the route
    there differs. */
-.fc-symbolzeile {
+.fc-iconrow {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -744,7 +744,7 @@
 
 /* The icon as a picture, in front of the field. Fixed width and centred
    so the field does not shift sideways when an icon appears. */
-.fc-symbolbild {
+.fc-iconimage {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -752,14 +752,14 @@
   width: 16px;
 }
 
-.fc-symbolbild svg {
+.fc-iconimage svg {
   width: 16px;
   height: 16px;
 }
 
 /* The id as text, so it can be pasted. Working through many categories
    with the grid alone was a window per category. */
-.fc-symboltext {
+.fc-icontext {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -767,14 +767,14 @@
 /* A name that matches no icon. Only the frame turns, no extra line
    appears -- the sentence below is reserved either way, and a line
    jumping in would move everything under it. */
-.fc-symboltext.fc-unbekannt {
+.fc-icontext.fc-unknown {
   border-color: var(--text-error);
 }
 
 /* Opens the grid. Same build as the arrows for the order: Obsidian's
    own clickable-icon class, so the tablet padding rule leaves it alone,
    and three classes plus an element so nothing else can. */
-.fc-fenster .fc-symbolzeile button.fc-symbolblaettern {
+.fc-window .fc-iconrow button.fc-iconpaging {
   min-width: 30px;
   height: 30px;
   padding: 0;
@@ -782,32 +782,32 @@
   flex: 0 0 auto;
 }
 
-.fc-fenster .fc-symbolzeile button.fc-symbolblaettern svg {
+.fc-window .fc-iconrow button.fc-iconpaging svg {
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
 }
 
-.is-mobile .fc-fenster .fc-symbolzeile button.fc-symbolblaettern {
+.is-mobile .fc-window .fc-iconrow button.fc-iconpaging {
   min-width: 44px;
   height: 44px;
 }
 
-.is-mobile .fc-fenster .fc-symbolzeile button.fc-symbolblaettern svg {
+.is-mobile .fc-window .fc-iconrow button.fc-iconpaging svg {
   width: 20px;
   height: 20px;
 }
 
 /* --- Icon picker --------------------------------------------------- */
 
-.fc-symbolsuche {
+.fc-iconsearch {
   width: 100%;
   margin-bottom: 10px;
 }
 
 /* Fixed height with its own scrollbar: without it the window grows
    with the number of matches and pushes the hint below out of view. */
-.fc-symbolraster {
+.fc-icongrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
   gap: 4px;
@@ -818,12 +818,12 @@
 /* THE LONG SELECTOR IS THE POINT -- DO NOT SHORTEN IT
    On a tablet Obsidian adds 20px of padding either side of every
    button: ".is-tablet button:not(.clickable-icon)". A plain
-   ".fc-symbolfeld" is the weaker selector and loses. The 40px of
+   ".fc-iconfield" is the weaker selector and loses. The 40px of
    padding then eat a cell that is only 38px wide, the icon inside is
    squeezed to nothing, and all that is left is the round button
    background -- a grid of circles with no icons, on the iPad only.
    Three classes plus the element name beat the app rule for good. */
-.fc-symbolfenster .fc-symbolraster button.fc-symbolfeld {
+.fc-iconwindow .fc-icongrid button.fc-iconfield {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -833,7 +833,7 @@
 
 /* And the icon itself must not give way either: as a flex child it
    would shrink before the padding does. */
-.fc-symbolfenster .fc-symbolraster button.fc-symbolfeld svg {
+.fc-iconwindow .fc-icongrid button.fc-iconfield svg {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
@@ -843,12 +843,12 @@
    cells, fewer of them side by side. The cell selector has to match
    the one above, or the height set there would win over this one. */
 @media (max-width: 600px) {
-  .fc-symbolraster {
+  .fc-icongrid {
     grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
     max-height: 260px;
   }
 
-  .fc-symbolfenster .fc-symbolraster button.fc-symbolfeld {
+  .fc-iconwindow .fc-icongrid button.fc-iconfield {
     height: 44px;
   }
 }
@@ -857,7 +857,7 @@
 
 /* Name, version, author, help. Deliberately small and faint: it is an
    attribution, not a control. */
-.fc-herkunft {
+.fc-origin {
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid var(--background-modifier-border);
@@ -866,12 +866,12 @@
   text-align: center;
 }
 
-.fc-herkunft a {
+.fc-origin a {
   color: var(--text-muted);
   text-decoration: none;
 }
 
-.fc-herkunft a:hover {
+.fc-origin a:hover {
   color: var(--text-accent);
   text-decoration: underline;
 }
