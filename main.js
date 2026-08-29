@@ -1561,10 +1561,10 @@ class KategorienFenster extends Modal {
     const sortierpaar = fuss.createDiv({ cls: 'fc-schiebepaar fc-sortierpaar' });
     const genug = kategorien.length > 1;
 
-    this.schiebeKnopf(sortierpaar, 'arrow-down-a-z', TEXTE.sortierenAuf, genug, () =>
+    this.schiebeKnopf(sortierpaar, 'arrow-down-az', TEXTE.sortierenAuf, genug, () =>
       this.kategorienSortieren(false)
     );
-    this.schiebeKnopf(sortierpaar, 'arrow-up-a-z', TEXTE.sortierenAb, genug, () =>
+    this.schiebeKnopf(sortierpaar, 'arrow-up-az', TEXTE.sortierenAb, genug, () =>
       this.kategorienSortieren(true)
     );
 
