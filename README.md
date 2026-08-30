@@ -154,13 +154,19 @@ the list to `LANGUAGES`. Nothing else changes. Pull requests welcome.
 
 ## Installing
 
+Explorer Categories is not in Obsidian's community directory yet, so
+there are two ways in for now.
+
 **From a release.** Download `main.js`, `manifest.json` and `styles.css`
 from the [latest release](https://github.com/jdaehler/explorer-categories/releases/latest)
-into `<vault>/.obsidian/plugins/explorer-categories/`, then enable the
-plugin under Settings → Community plugins.
+into `<vault>/.obsidian/plugins/explorer-categories/`, then turn the
+plugin on under Settings → Community plugins.
 
-**With BRAT.** Install the BRAT plugin, choose "Add beta plugin" and give
-it `jdaehler/explorer-categories`. BRAT keeps it up to date for you.
+**With BRAT.** [BRAT](https://github.com/TfTHacker/obsidian42-brat), the
+Beta Reviewers Auto-update Tool, is a community plugin that installs
+other plugins straight from GitHub — before they reach the directory —
+and keeps them up to date afterwards. Install BRAT, then hand it this
+repository: `jdaehler/explorer-categories`.
 
 ## How it works
 

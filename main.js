@@ -174,7 +174,7 @@ const TEXTS_EN = {
   newCategoryDefault: 'New category',
   remove: 'Delete',
   namePlaceholder: 'Name',
-  pickColour: 'Choose the colour',
+  pickColour: 'Choose the color',
   nothingChosen: 'Select a category on the left.',
   markierung: 'Marker',
   extra: 'Additional',
@@ -412,9 +412,8 @@ const timestamp = () => {
  * repository name.
  *
  * An empty string means no help link at all -- a link that goes nowhere
- * is worse than none. That is why it is empty right now: the repository
- * does not exist yet. Fill it in when the plugin is published. */
-const HELP_URL = '';
+ * is worse than none. It stood empty until the repository existed. */
+const HELP_URL = 'https://github.com/jdaehler/explorer-categories';
 
 class ExplorerCategoriesPlugin extends Plugin {
   async onload() {
@@ -917,7 +916,7 @@ class ExplorerCategoriesPlugin extends Plugin {
    * different one than the visible one would be a trap. It does mean a
    * backup can outlive a Cancel: the file stays, the edits do not. */
   async writeBackup() {
-    const name = `kategorien-${timestamp()}.json`;
+    const name = `categories-${timestamp()}.json`;
     const body = JSON.stringify(
       {
         plugin: 'explorer-categories',
