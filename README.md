@@ -182,15 +182,6 @@ hundred colored folders still produces a short stylesheet.
 
 Obsidian 1.12.0 or newer. Works on desktop and mobile.
 
-## Credits
-
-This is an independent plugin, not a fork: it shares no code with any
-other project. What it does borrow is an idea — generating CSS rules
-instead of manipulating the DOM — from [Color Folders and
-Files](https://github.com/Mithadon/obsidian-color-folders-files) by
-Mithadon (MIT), which is worth a look if you want colors on single files
-rather than categories on folders.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).

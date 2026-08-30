@@ -7,9 +7,7 @@
  * HOW IT IS BUILT
  * The plugin never touches the file explorer. It writes one <style>
  * element into the document head and lets Obsidian do the drawing. No
- * MutationObserver, nothing running in the background. The approach is
- * borrowed from "Color Folders and Files" (MIT,
- * github.com/Mithadon/obsidian-color-folders-files).
+ * MutationObserver, nothing running in the background.
  *
  * NO PERSONAL DATA IN THE SOURCE
  * The three categories below are neutral examples. Real assignments live
