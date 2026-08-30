@@ -7,6 +7,8 @@ all of them follow at once.
 That is the whole idea. You are not painting folders one by one; you are
 sorting them into groups that happen to be visible.
 
+![The file explorer with categories applied](screenshots/explorer.png)
+
 ## What a category holds
 
 A category is a name plus an appearance, and the appearance is complete:
@@ -26,6 +28,8 @@ quieter is. The whole row fades together, marker and icon included, so a
 dot in full color cannot pull your eye back to the line that is meant to
 step aside.
 
+![A dimmed category next to a loud one](screenshots/dim.png)
+
 ## One legend per part of the vault
 
 The same color rarely means the same thing everywhere. Red is "software"
@@ -40,9 +44,13 @@ context menu each legend becomes its own submenu.
 Until you create a second one, none of this is visible. One legend means
 one list and a flat menu, exactly as if groups did not exist.
 
+![Two groups as tabs](screenshots/groups.png)
+
 ## Working with it
 
 **Assign a category.** Right-click a folder, pick a category. Done.
+
+![The context menu on a folder](screenshots/menu.png)
 
 **Assign many at once.** Alt-click or shift-click several folders in the
 file explorer, then right-click. The menu title tells you how many folders
@@ -73,6 +81,8 @@ inheritance switches. The list on the left is the preview: every row
 shows its category exactly as the file explorer will, so you see all of
 them at once rather than only the selected one.
 
+![The management window](screenshots/window.png)
+
 **Icons come from Obsidian.** Any icon Obsidian ships with, searchable,
 shown in the color of its category. An icon takes the place of the bar or
 dot rather than adding to it.
@@ -86,6 +96,8 @@ colored text, its own icon, its own marker, or the children a shade
 fainter. Where a choice would have no effect — the category is bold
 throughout anyway, or a background already decides the text color — the
 button says so and is struck through instead of quietly doing nothing.
+
+![A parent folder set apart from the folders inheriting below it](screenshots/inheritance.png)
 
 **Put the list in the order you want.** Two arrows below the list move the
 selected category one place; two more sort the open group by name, A to Z
@@ -118,22 +130,37 @@ other change: **Save** keeps it, **Cancel** drops it. The file is checked
 before you are asked to confirm, so picking the wrong one costs a message,
 not your colors.
 
+## Privacy
+
+**The plugin makes no network requests.** Nothing is sent anywhere, there
+is no telemetry, no account and no paid tier. Your categories and folder
+assignments live in `data.json` inside your vault, and that is the only
+file the plugin reads or writes on its own.
+
+**Two actions leave the vault, and only when you ask for them.** Pressing
+"Backup" on the desktop hands the file to your browser as a download, the
+way any web page does — it lands in your downloads folder. Pressing
+"Restore" opens the system file dialog and reads the one file you pick.
+The plugin has no access to your disk beyond those two dialogs; it uses no
+Node.js or Electron APIs, which is why it runs on mobile as well.
+
 ## Interface language
 
 The plugin follows the language set in Obsidian. English and German are
 built in; every other language gets English.
 
-To add one, copy `TEXTE_EN` in `main.js`, translate the entries, and add
-the list to `SPRACHEN`. Nothing else changes. Pull requests welcome.
+To add one, copy `TEXTS_EN` in `main.js`, translate the entries, and add
+the list to `LANGUAGES`. Nothing else changes. Pull requests welcome.
 
 ## Installing
 
-From Obsidian: Settings → Community plugins → Browse, then search for
-"Explorer Categories".
+**From a release.** Download `main.js`, `manifest.json` and `styles.css`
+from the [latest release](https://github.com/jdaehler/explorer-categories/releases/latest)
+into `<vault>/.obsidian/plugins/explorer-categories/`, then enable the
+plugin under Settings → Community plugins.
 
-Manually: download `main.js`, `manifest.json` and `styles.css` from the
-latest release into `<vault>/.obsidian/plugins/explorer-categories/`, then
-enable the plugin.
+**With BRAT.** Install the BRAT plugin, choose "Add beta plugin" and give
+it `jdaehler/explorer-categories`. BRAT keeps it up to date for you.
 
 ## How it works
 
@@ -143,19 +170,18 @@ MutationObserver, nothing running in the background, nothing to slow the
 explorer down. Rules of the same kind are merged, so a vault with several
 hundred colored folders still produces a short stylesheet.
 
-Your assignments live in `data.json` inside your vault. The plugin makes
-no network requests and reads nothing outside its own settings.
-
 ## Requirements
 
 Obsidian 1.12.0 or newer. Works on desktop and mobile.
 
 ## Credits
 
-The approach of generating CSS rules instead of manipulating the DOM is
-borrowed from [Color Folders and
+This is an independent plugin, not a fork: it shares no code with any
+other project. What it does borrow is an idea — generating CSS rules
+instead of manipulating the DOM — from [Color Folders and
 Files](https://github.com/Mithadon/obsidian-color-folders-files) by
-Mithadon (MIT).
+Mithadon (MIT), which is worth a look if you want colors on single files
+rather than categories on folders.
 
 ## License
 
