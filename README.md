@@ -62,9 +62,11 @@ category, and every folder in it passes its color down, including folders
 you create later. A subfolder with a category of its own keeps it.
 
 **Let the notes inherit too.** "Also applies to the notes inside" is a
-second, separate switch. Turn it on and the notes below those folders
-carry the color as well — canvases included. It reaches the whole subtree,
-and a deeper folder with the same switch takes over from there.
+second, separate switch. Turn it on and the files below those folders
+carry the color as well — and that means every file, not only notes:
+canvases, PDFs and images sit in the same list and are drawn the same
+way. It reaches the whole subtree, and a deeper folder with the same
+switch takes over from there.
 
 It is deliberately not the same switch as the one above. Folding the two
 together would have turned every folder that already inherits colorful in
