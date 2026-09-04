@@ -462,7 +462,7 @@ class ExplorerCategoriesPlugin extends Plugin {
     this.writeStyle();
 
     /* Right-click on a single entry -- folder or file alike. Files were
-       excluded until 1.0.1; they are in because the inheritance switch
+       excluded until 1.1.0; they are in because the inheritance switch
        already colours every file below a folder, attachments included.
        Leaving them out of the menu meant a coloured PDF with no way to
        change it, which reads as a fault rather than a decision. */
@@ -480,7 +480,7 @@ class ExplorerCategoriesPlugin extends Plugin {
 
        Verified against Obsidian 1.12.7: the file explorer triggers
        "files-menu" with every selected entry and only filters out
-       unsupported *files*, never folders. Since 1.0.1 both kinds are
+       unsupported *files*, never folders. Since 1.1.0 both kinds are
        kept -- the title says which, so a mixed selection cannot claim to
        be five folders when three of them are notes. */
     this.registerEvent(
@@ -760,7 +760,7 @@ class ExplorerCategoriesPlugin extends Plugin {
      one and forgetting the second.
    *
      Reads only, and never creates the file table on the way: data older
-     than 1.0.1 has no such key, and quietly adding an empty one would
+     than 1.1.0 has no such key, and quietly adding an empty one would
      count as an edit the moment the draft is compared against its
      safety copy. A rename arriving from outside would then have the
      window asking whether to throw away changes nobody made. */
