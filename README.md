@@ -48,14 +48,19 @@ one list and a flat menu, exactly as if groups did not exist.
 
 ## Working with it
 
-**Assign a category.** Right-click a folder, pick a category. Done.
+**Assign a category.** Right-click a folder — or a single note, canvas,
+PDF or image — and pick a category. Done.
 
 ![The context menu on a folder](screenshots/menu.png)
 
-**Assign many at once.** Alt-click or shift-click several folders in the
-file explorer, then right-click. The menu title tells you how many folders
-you picked. Notes in the selection are skipped — a category is always
-assigned to a folder, never to a single file.
+**Assign many at once.** Alt-click or shift-click several entries in the
+file explorer, then right-click. The menu title tells you how many you
+picked, and in which words: folders, files, or plain items for a mixed
+selection.
+
+**A file with its own category keeps it.** Where a file has been given a
+category directly, that one wins over anything it would otherwise inherit
+from the folder above.
 
 **Let subfolders inherit.** Turn on "Also applies to subfolders" for a
 category, and every folder in it passes its color down, including folders
@@ -89,8 +94,8 @@ them at once rather than only the selected one.
 shown in the color of its category. An icon takes the place of the bar or
 dot rather than adding to it.
 
-**Renaming keeps the category.** Move a folder, rename it, rename a folder
-above it — the assignment follows.
+**Renaming keeps the category.** Move a folder or a file, rename it,
+rename a folder above it — the assignment follows.
 
 **Set the parent apart.** A folder that carries the category itself can
 look different from the folders inheriting below it: bold, a background,

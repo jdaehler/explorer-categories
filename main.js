@@ -20,6 +20,7 @@ const {
   Plugin,
   Modal,
   TFolder,
+  TFile,
   Notice,
   Platform,
   setIcon,
@@ -119,15 +120,26 @@ const TEXTS_DE = {
   gedimmt: 'Abdunkeln',
   textAutomatic: 'Bei Hintergrund wählt das Plugin die Schriftfarbe selbst, damit sie lesbar bleibt.',
   dimmedHint: 'Abgedunkelt tritt die ganze Zeile zurück, Markierung und Symbol werden blasser.',
-  /* With a multi-selection the count goes in the title. It counts
-     folders, not selected items: select five folders and three notes and
-     this reads "5 folders", making it obvious that notes are left
-     alone. */
+  /* With a multi-selection the count goes in the title. Three wordings,
+     because a selection can hold folders, files, or both -- "5 folders"
+     in front of a selection that is half notes would be a lie. */
   menuTitleMany: (n) => `Farbkategorie (${n} Ordner)`,
+  menuTitleManyFiles: (n) => `Farbkategorie (${n} Dateien)`,
+  menuTitleManyMixed: (n) => `Farbkategorie (${n} Einträge)`,
   assigned: (n, name) =>
     n === 1 ? `1 Ordner → „${name}"` : `${n} Ordner → „${name}"`,
+  assignedFiles: (n, name) =>
+    n === 1 ? `1 Datei → „${name}"` : `${n} Dateien → „${name}"`,
+  assignedMixed: (n, name) =>
+    n === 1 ? `1 Eintrag → „${name}"` : `${n} Einträge → „${name}"`,
   removed: (n) =>
     n === 1 ? 'Farbe von 1 Ordner entfernt.' : `Farbe von ${n} Ordnern entfernt.`,
+  removedFiles: (n) =>
+    n === 1 ? 'Farbe von 1 Datei entfernt.' : `Farbe von ${n} Dateien entfernt.`,
+  removedMixed: (n) =>
+    n === 1
+      ? 'Farbe von 1 Eintrag entfernt.'
+      : `Farbe von ${n} Einträgen entfernt.`,
   exampleName: (n) => `Kategorie ${n}`,
   help: 'Hilfe',
   /* Groups: one legend per part of the vault. */
@@ -238,10 +250,20 @@ const TEXTS_EN = {
   textAutomatic: 'With a background, the plugin picks the text color itself so it stays readable.',
   dimmedHint: 'Dimmed, the whole row steps back: marker and icon fade with it.',
   menuTitleMany: (n) => `Color category (${n} folders)`,
+  menuTitleManyFiles: (n) => `Color category (${n} files)`,
+  menuTitleManyMixed: (n) => `Color category (${n} items)`,
   assigned: (n, name) =>
     n === 1 ? `1 folder → "${name}"` : `${n} folders → "${name}"`,
+  assignedFiles: (n, name) =>
+    n === 1 ? `1 file → "${name}"` : `${n} files → "${name}"`,
+  assignedMixed: (n, name) =>
+    n === 1 ? `1 item → "${name}"` : `${n} items → "${name}"`,
   removed: (n) =>
     n === 1 ? 'Color removed from 1 folder.' : `Color removed from ${n} folders.`,
+  removedFiles: (n) =>
+    n === 1 ? 'Color removed from 1 file.' : `Color removed from ${n} files.`,
+  removedMixed: (n) =>
+    n === 1 ? 'Color removed from 1 item.' : `Color removed from ${n} items.`,
   exampleName: (n) => `Category ${n}`,
   help: 'Help',
   exampleGroup: 'Legend 1',
@@ -373,6 +395,18 @@ const DEFAULT_DATA = {
      down is not stored here: that hangs off the category, see
      STYLE_DEFAULT above. */
   zuordnung: {},
+  /* file path -> category id. Files kept apart from folders on purpose,
+     rather than thrown into one table: the two need different CSS
+     selectors, and a path alone does not say which it is -- a folder may
+     carry a dot in its name just as a file does.
+   *
+     English key, unlike the German ones around it. Those are what they
+     are because renaming them would need a migration step through
+     everybody's data.json; a table that starts out empty has nothing to
+     carry over, so it follows the house rule that new code is written in
+     English. An older version simply does not see it: files lose their
+     own colour there and fall back to what they inherit. */
+  fileAssignments: {},
 };
 
 const STYLE_ID = 'explorer-categories-stil';
@@ -427,10 +461,16 @@ class ExplorerCategoriesPlugin extends Plugin {
     document.head.appendChild(this.styleEl);
     this.writeStyle();
 
-    /* Right-click on a single folder */
+    /* Right-click on a single entry -- folder or file alike. Files were
+       excluded until 1.0.1; they are in because the inheritance switch
+       already colours every file below a folder, attachments included.
+       Leaving them out of the menu meant a coloured PDF with no way to
+       change it, which reads as a fault rather than a decision. */
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
-        if (file instanceof TFolder) this.buildMenuEntry(menu, [file]);
+        if (file instanceof TFolder || file instanceof TFile) {
+          this.buildMenuEntry(menu, [file]);
+        }
       })
     );
 
@@ -440,12 +480,15 @@ class ExplorerCategoriesPlugin extends Plugin {
 
        Verified against Obsidian 1.12.7: the file explorer triggers
        "files-menu" with every selected entry and only filters out
-       unsupported *files*, never folders. Notes are included, so they
-       are filtered here -- only folders ever get colored. */
+       unsupported *files*, never folders. Since 1.0.1 both kinds are
+       kept -- the title says which, so a mixed selection cannot claim to
+       be five folders when three of them are notes. */
     this.registerEvent(
       this.app.workspace.on('files-menu', (menu, files) => {
-        const folder = (files || []).filter((d) => d instanceof TFolder);
-        if (folder.length) this.buildMenuEntry(menu, folder);
+        const picked = (files || []).filter(
+          (d) => d instanceof TFolder || d instanceof TFile
+        );
+        if (picked.length) this.buildMenuEntry(menu, picked);
       })
     );
 
@@ -704,9 +747,41 @@ class ExplorerCategoriesPlugin extends Plugin {
      The inheritance flags need no cleaning up: they went with the
      category. */
   removeAssignments(catId) {
-    for (const path of Object.keys(this.data.zuordnung)) {
-      if (this.data.zuordnung[path] === catId) delete this.data.zuordnung[path];
+    for (const table of this.assignmentTables()) {
+      for (const path of Object.keys(table)) {
+        if (table[path] === catId) delete table[path];
+      }
     }
+  }
+
+  /* Both tables, folders first. Everything that has to treat an
+     assignment as an assignment -- deleting a category, counting, a
+     rename -- walks them through here instead of naming them one by
+     one and forgetting the second.
+   *
+     Reads only, and never creates the file table on the way: data older
+     than 1.0.1 has no such key, and quietly adding an empty one would
+     count as an edit the moment the draft is compared against its
+     safety copy. A rename arriving from outside would then have the
+     window asking whether to throw away changes nobody made. */
+  assignmentTables() {
+    return [this.data.zuordnung || {}, this.data.fileAssignments || {}];
+  }
+
+  /* Which table an entry belongs in. The caller knows whether it is
+     holding a folder or a file; a path on its own does not say, because
+     a folder may carry a dot in its name just as a file does.
+   *
+     This one does create the table -- it is only ever called to write
+     into it, and the write itself is the change. */
+  tableFor(ordner) {
+    if (ordner) return this.data.zuordnung;
+    if (!this.data.fileAssignments) this.data.fileAssignments = {};
+    return this.data.fileAssignments;
+  }
+
+  assignmentOf(path, ordner) {
+    return this.tableFor(ordner)[path] || null;
   }
 
   styleOf(catId) {
@@ -717,8 +792,14 @@ class ExplorerCategoriesPlugin extends Plugin {
 
   /* Which folder further up gives this one its color? Searched from
      near to far, because the closest ancestor wins -- the same order the
-     CSS rules are sorted in. */
-  inheritsFrom(path) {
+     CSS rules are sorted in.
+   *
+     Which switch counts depends on what is asking. A subfolder follows
+     "vererbt", a file follows "vererbtDateien" -- the two are separate
+     switches, and answering with the wrong one would name a source the
+     colour does not actually come from. */
+  inheritsFrom(path, ordner = true) {
+    const field = ordner ? 'vererbt' : 'vererbtDateien';
     const parts = path.split('/');
 
     for (let i = parts.length - 1; i > 0; i--) {
@@ -726,7 +807,7 @@ class ExplorerCategoriesPlugin extends Plugin {
       const catId = this.data.zuordnung[parents];
       if (!catId) continue;
       const stil = this.styleOf(catId);
-      if (!stil || !stil.vererbt) continue;
+      if (!stil || !stil[field]) continue;
       const cat = this.data.kategorien.find((k) => k.id === catId);
       if (cat) return { folder: parents, category: cat.name };
     }
@@ -738,21 +819,46 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* Context menu                                                      */
   /* ---------------------------------------------------------------- */
 
-  /* Takes a list of folders, never a single one. Right-clicking one
+  /* Takes a list of entries, never a single one. Right-clicking one
      folder simply passes a list of one -- that way there is a single
-     path through this code instead of two that drift apart. */
-  buildMenuEntry(menu, folderList) {
-    const paths = folderList.map((o) => o.path);
+     path through this code instead of two that drift apart.
+   *
+     Folders and files travel together here and part company only where
+     they have to: which table an assignment is written to, and which
+     word the count is given in. */
+  buildMenuEntry(menu, items) {
+    const entries = items.map((o) => ({
+      path: o.path,
+      ordner: o instanceof TFolder,
+    }));
+    const paths = entries.map((e) => e.path);
     const several = paths.length > 1;
 
-    /* With several folders, a checkmark only when all of them really
+    const folderCount = entries.filter((e) => e.ordner).length;
+    const fileCount = entries.length - folderCount;
+    /* Which of the three wordings the count gets. A pure selection is
+       named for what it is; a mixed one falls back to "items". */
+    const countTitle = (n) => {
+      if (!fileCount) return TEXTS.menuTitleMany(n);
+      if (!folderCount) return TEXTS.menuTitleManyFiles(n);
+      return TEXTS.menuTitleManyMixed(n);
+    };
+
+    /* One flat lookup over both tables. A path is either a folder or a
+       file, never both, so the two cannot collide here -- and the check
+       for a shared category stays the one function it always was. */
+    const lookup = {};
+    for (const e of entries) {
+      lookup[e.path] = this.assignmentOf(e.path, e.ordner) || undefined;
+    }
+
+    /* With several entries, a checkmark only when all of them really
        share a category. Otherwise the mark would claim something that
        is wrong for half of the selection. */
-    const current = sharedCategory(this.data.zuordnung, paths);
-    /* For "remove" and "inherit", a single coloured folder in the
-       selection is enough -- otherwise the entry would be missing
-       exactly when it is needed. */
-    const anyOf = paths.some((p) => this.data.zuordnung[p]);
+    const current = sharedCategory(lookup, paths);
+    /* For "remove", a single coloured entry in the selection is enough
+       -- otherwise it would be missing exactly when it is needed. */
+    const anyOf = paths.some((p) => lookup[p]);
 
     /* One row per category. Pulled out because it is needed in three
        places: flat, inside the one submenu, and inside a group's
@@ -763,7 +869,7 @@ class ExplorerCategoriesPlugin extends Plugin {
           i
             .setTitle(title(cat.name))
             .setChecked(current === cat.id)
-            .onClick(() => this.assignMany(paths, cat.id))
+            .onClick(() => this.assignMany(entries, cat.id))
         );
       }
     };
@@ -775,7 +881,7 @@ class ExplorerCategoriesPlugin extends Plugin {
        known from the outer entry: if that one could not open a submenu,
        nothing below it can either. */
     const fillEntries = (target, mitPraefix, mitUnter) => {
-      const head = several ? TEXTS.menuTitleMany(paths.length) : TEXTS.menuTitle;
+      const head = several ? countTitle(paths.length) : TEXTS.menuTitle;
       const title = (t) => (mitPraefix ? `${head}: ${t}` : t);
 
       const gruppen = this.data.gruppen;
@@ -813,7 +919,9 @@ class ExplorerCategoriesPlugin extends Plugin {
          plugin. Single folder only: twenty selected folders would mean
          twenty different sources, which fits in no single line. */
       const source =
-        !several && current === null ? this.inheritsFrom(paths[0]) : null;
+        !several && current === null
+          ? this.inheritsFrom(paths[0], entries[0].ordner)
+          : null;
       if (source) {
         if (typeof target.addSeparator === 'function') target.addSeparator();
         target.addItem((i) => {
@@ -840,7 +948,7 @@ class ExplorerCategoriesPlugin extends Plugin {
           i
             .setTitle(title(TEXTS.removeColour))
             .setIcon('eraser')
-            .onClick(() => this.assignMany(paths, null))
+            .onClick(() => this.assignMany(entries, null))
         );
       }
 
@@ -861,7 +969,7 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     menu.addItem((entry) => {
       entry
-        .setTitle(several ? TEXTS.menuTitleMany(paths.length) : TEXTS.menuTitle)
+        .setTitle(several ? countTitle(paths.length) : TEXTS.menuTitle)
         .setIcon('palette');
       if (typeof entry.setSubmenu !== 'function') return;
 
@@ -1062,34 +1170,60 @@ class ExplorerCategoriesPlugin extends Plugin {
     return JSON.stringify(this.data) !== JSON.stringify(this.original);
   }
 
-  /* Changes every path and then saves ONCE. With forty selected folders,
-     forty separate writes to data.json would be most of the waiting time
-     -- and the stylesheet would be rebuilt forty times over. */
-  async assignMany(paths, catId) {
-    for (const path of paths) {
-      if (catId === null) delete this.data.zuordnung[path];
-      else this.data.zuordnung[path] = catId;
+  /* Changes every entry and then saves ONCE. With forty selected
+     folders, forty separate writes to data.json would be most of the
+     waiting time -- and the stylesheet would be rebuilt forty times
+     over.
+   *
+     Takes {path, ordner} pairs rather than plain paths: the pair says
+     which of the two tables the assignment belongs in, and the caller
+     had that in hand anyway. */
+  async assignMany(entries, catId) {
+    for (const { path, ordner } of entries) {
+      const table = this.tableFor(ordner);
+      if (catId === null) delete table[path];
+      else table[path] = catId;
     }
     await this.save();
 
-    /* Feedback only for multiple folders: with a single one you see the
+    /* Feedback only for multiple entries: with a single one you see the
        color appear in the explorer straight away, so a notice would just
-       be in the way. With forty, the folders that changed may not even
+       be in the way. With forty, the entries that changed may not even
        be on screen. */
-    if (paths.length > 1) {
+    if (entries.length > 1) {
+      const n = entries.length;
+      const folders = entries.filter((e) => e.ordner).length;
+      const pick = (plain, files, mixed) =>
+        folders === n ? plain : folders === 0 ? files : mixed;
+
       if (catId === null) {
-        new Notice(TEXTS.removed(paths.length));
+        new Notice(
+          pick(TEXTS.removed, TEXTS.removedFiles, TEXTS.removedMixed)(n)
+        );
       } else {
         const cat = this.data.kategorien.find((k) => k.id === catId);
-        if (cat) new Notice(TEXTS.assigned(paths.length, cat.name));
+        if (cat) {
+          new Notice(
+            pick(TEXTS.assigned, TEXTS.assignedFiles, TEXTS.assignedMixed)(
+              n,
+              cat.name
+            )
+          );
+        }
       }
     }
   }
 
-  /* How many folders hang off this category? Needed before deleting, so
-     nobody throws something away blind. */
+  /* How many entries hang off this category? Needed before deleting, so
+     nobody throws something away blind. Folders and files counted
+     together: what matters here is how much loses its colour, not what
+     kind of thing it was. */
   folderCount(catId) {
-    return Object.values(this.data.zuordnung).filter((id) => id === catId).length;
+    return this.assignmentTables().reduce(
+      (sum, table) =>
+        sum + Object.values(table).filter((id) => id === catId).length,
+      0
+    );
   }
 
   /* A new category always lands in a group -- the one the window is
@@ -1202,9 +1336,17 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* Renaming or moving a folder changes the paths of everything inside
      it too. So not just the one key, but every key below it. */
   async rewritePath(old, fresh) {
-    /* One table to carry along. Inheritance needs no rewriting since it
-       moved to the category -- it knows no paths. */
-    let changed = rewriteKeys(this.data.zuordnung, old, fresh);
+    /* Two tables to carry along, folders and files. Inheritance needs no
+       rewriting since it moved to the category -- it knows no paths.
+
+       A renamed folder is written in both: its own key sits in the
+       folder table, and every file coloured below it sits in the file
+       one. Missing the second would strip a note of its own colour the
+       moment the folder above it is moved. */
+    let changed = false;
+    for (const table of this.assignmentTables()) {
+      if (rewriteKeys(table, old, fresh)) changed = true;
+    }
 
     /* The safety copy has to follow along. A rename can arrive while
        the window is open -- not by right-click, the modal blocks that,
@@ -1217,7 +1359,15 @@ class ExplorerCategoriesPlugin extends Plugin {
        outside is nothing the user typed here, so it must not make the
        window ask "throw away your changes?". */
     if (this.draftRunning && this.original) {
-      if (rewriteKeys(this.original.zuordnung, old, fresh)) {
+      const copies = [
+        this.original.zuordnung,
+        this.original.fileAssignments,
+      ].filter(Boolean);
+      let copyChanged = false;
+      for (const table of copies) {
+        if (rewriteKeys(table, old, fresh)) copyChanged = true;
+      }
+      if (copyChanged) {
         /* And straight to disk. save() deliberately writes nothing while
            the window is open -- that is what makes Cancel possible. But
            this.original IS what stands on disk (nothing else writes
@@ -2815,7 +2965,8 @@ function prefixHits(index, prefix) {
  *      its category says so. A single selector using ^= ("starts with")
  *      covers any number of folders, including ones that do not exist
  *      yet.
- *   2. The folder itself -- an exact selector.
+ *   2. The entry itself -- an exact selector. Folders and files both,
+ *      each in its own table and each with its own class in the tree.
  *
  * Order decides who wins, because both kinds of selector carry the same
  * specificity. So: inheritance first, shallow to deep (the nearer parent
@@ -2827,6 +2978,7 @@ function prefixHits(index, prefix) {
  * background. */
 function buildTargets(data, nachschlagen) {
   const zuordnung = data.zuordnung || {};
+  const fileAssignments = data.fileAssignments || {};
   const targets = [];
 
   const depth = (path) => path.split('/').length;
@@ -2956,6 +3108,7 @@ function buildTargets(data, nachschlagen) {
   const fileSources = sourcesWith('vererbtDateien');
 
   const fileIndex = buildIndex(fileSources);
+  const ownFileIndex = buildIndex(Object.keys(fileAssignments));
 
   for (const source of fileSources) {
     const { farbe, stil, icon } = nachschlagen(zuordnung[source]);
@@ -2970,6 +3123,15 @@ function buildTargets(data, nachschlagen) {
       exceptions.push(`[data-path^="${toMask(path + '/')}"]`);
     }
 
+    /* And a file that carries a category of its own is left out
+       altogether. Coming later in the sheet would already win on
+       colour, but not on the switches: the inherited bar would sit
+       there next to the file's own background, because the two rules
+       set different properties. */
+    for (const { path } of prefixHits(ownFileIndex, prefix)) {
+      exceptions.push(`[data-path="${toMask(path)}"]`);
+    }
+
     targets.push({
       selector: `.nav-file-title[data-path^="${toMask(prefix)}"]${exceptions
         .map((a) => `:not(${a})`)
@@ -2978,6 +3140,23 @@ function buildTargets(data, nachschlagen) {
       farbe,
       stil: inheritedStyle(stil),
       icon: inheritedIcon(stil, icon),
+    });
+  }
+
+  /* --- 4. the files themselves ------------------------------------ */
+  /* Last, so an assignment of its own beats anything the file inherits.
+     Drawn with the plain style, never the parent one: "set the parent
+     apart" is about a folder standing out from what hangs below it, and
+     a file has nothing below it. */
+  for (const [path, catId] of Object.entries(fileAssignments)) {
+    const { farbe, stil, icon } = nachschlagen(catId);
+    if (!farbe || !stil) continue;
+    targets.push({
+      selector: `.nav-file-title[data-path="${toMask(path)}"]`,
+      body: 'nav-file-title-content',
+      farbe,
+      stil,
+      icon: icon || null,
     });
   }
 
