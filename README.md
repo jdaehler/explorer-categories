@@ -97,12 +97,18 @@ dot rather than adding to it.
 **Renaming keeps the category.** Move a folder or a file, rename it,
 rename a folder above it — the assignment follows.
 
-**Set the parent apart.** A folder that carries the category itself can
-look different from the folders inheriting below it: bold, a background,
-colored text, its own icon, its own marker, or the children a shade
-fainter. Where a choice would have no effect — the category is bold
-throughout anyway, or a background already decides the text color — the
-button says so and is struck through instead of quietly doing nothing.
+**Give the children a look of their own.** Where a category inherits, the
+panel gains a switch at the top: **Parent** or **Children**. Everything
+below it — marker, icon, background, colored text, bold, dim — is then set
+for that side alone.
+
+So the folder carrying the category can have colored text and an icon
+while the folders below it carry neither, or only a quiet bar. Any
+combination works, not one difference at a time.
+
+Children start out looking exactly like the parent, and "Same as parent"
+puts them back. What you do not set apart keeps following: change the
+category's color and both sides change with it.
 
 ![A parent folder set apart from the folders inheriting below it](screenshots/inheritance.png)
 

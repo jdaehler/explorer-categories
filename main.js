@@ -59,24 +59,19 @@ const TEXTS_DE = {
   areaCategories: 'Kategorien',
   /* Telling the folder that carries the assignment apart from the ones
      that only inherit from it. */
-  parentApart: 'Vater hervorheben',
-  parentNone: 'Ohne',
-  parentBold: 'Fett',
-  parentBackground: 'Hintergrund',
-  parentText: 'Schrift farbig',
-  parentIcon: 'Symbol',
-  parentMarker: 'Markierung',
-  parentDim: 'Kinder blasser',
+  /* Zwei Aussehen je Kategorie, seit 1.1.0. Der Umschalter steht ueber
+     den Schaltern, die er umstellt -- man sieht also, was man gerade
+     einstellt, bevor man etwas drueckt. */
+  editingFor: 'Einstellen für',
+  viewParent: 'Vater',
+  viewChildren: 'Kinder',
+  childFollows: 'Wie der Vater',
+  childFollowsHint: 'Die Kinder sehen aus wie der Vater. Stell etwas um, damit sie ein eigenes Aussehen bekommen.',
+  childOwnHint: 'Die Kinder haben ein eigenes Aussehen. Alles Übrige folgt weiter dem Vater.',
+  childOnlyWithReach: 'Erst mit Vererbung gibt es Kinder.',
   /* Short on purpose: these share one reserved line with the sentence
      above them, and a second line would push the window a step taller
      for everyone, not just for the case that needs it. */
-  parentAlreadyBold: 'Die Kategorie ist ohnehin ganz fett.',
-  parentAlreadyBackground: 'Die Kategorie hat ohnehin einen Hintergrund.',
-  parentAlreadyText: 'Die Kategorie hat ohnehin farbige Schrift.',
-  parentTextUnderBackground: 'Mit Hintergrund wählt das Plugin die Schriftfarbe selbst.',
-  parentAlreadyDim: 'Die Kategorie ist ohnehin abgedunkelt.',
-  parentWithoutIcon: 'Dafür muss oben ein Symbol gesetzt sein.',
-  parentIconBeats: 'Mit Symbol tragen beide dasselbe Zeichen.',
   iconName: 'Symbol',
   pickIcon: 'Symbol wählen …',
   iconLabel: 'Name des Symbols',
@@ -191,21 +186,13 @@ const TEXTS_EN = {
   inheritance: 'Inheritance',
   areaGroups: 'Groups',
   areaCategories: 'Categories',
-  parentApart: 'Set the parent apart',
-  parentNone: 'None',
-  parentBold: 'Bold',
-  parentBackground: 'Background',
-  parentText: 'Colored text',
-  parentIcon: 'Icon',
-  parentMarker: 'Marker',
-  parentDim: 'Children fainter',
-  parentAlreadyBold: 'The category is bold throughout anyway.',
-  parentAlreadyBackground: 'The category already has a background.',
-  parentAlreadyText: 'The category already has colored text.',
-  parentTextUnderBackground: 'With a background, the plugin picks the text color itself.',
-  parentAlreadyDim: 'The category is dimmed anyway.',
-  parentWithoutIcon: 'An icon has to be set above for this.',
-  parentIconBeats: 'With an icon, both carry the same mark.',
+  editingFor: 'Editing',
+  viewParent: 'Parent',
+  viewChildren: 'Children',
+  childFollows: 'Same as parent',
+  childFollowsHint: 'Children look like the parent. Change anything to give them a look of their own.',
+  childOwnHint: 'Children have a look of their own. Everything else still follows the parent.',
+  childOnlyWithReach: 'There are no children until something inherits.',
   iconName: 'Icon',
   pickIcon: 'Choose icon …',
   iconLabel: 'Icon name',
@@ -321,24 +308,6 @@ const MARKERS = [
   { id: 'punkt', name: TEXTS.markerDot },
 ];
 
-/* How the folder carrying the assignment is told apart from the ones
- * that only inherit from it. One choice, not a set of switches: two of
- * these at once would fight each other for the same row.
- *
- * "blass" is the odd one out -- it does not touch the parent at all, it
- * takes the children down. The result is the same, the parent is the
- * row that stands out, and it is the only way to do that without making
- * anything louder. */
-const PARENT_MODES = [
-  { id: 'keine', name: TEXTS.parentNone },
-  { id: 'fett', name: TEXTS.parentBold },
-  { id: 'hintergrund', name: TEXTS.parentBackground },
-  { id: 'schrift', name: TEXTS.parentText },
-  { id: 'symbol', name: TEXTS.parentIcon },
-  { id: 'markierung', name: TEXTS.parentMarker },
-  { id: 'blass', name: TEXTS.parentDim },
-];
-
 /* What a freshly created category starts out with. */
 const STYLE_DEFAULT = {
   markierung: 'lasche',
@@ -360,7 +329,12 @@ const STYLE_DEFAULT = {
      because subfolders do. */
   vererbt: false,
   vererbtDateien: false,
-  /* Nothing by default: a folder and what inherits from it look the
+  /* Kept for reading old data only -- the window does not set it any
+     more. migrateChildStyle() turns it into a child style on the first
+     start and leaves it in place, so an older version installed
+     alongside still finds what it expects.
+
+     Nothing by default: a folder and what inherits from it look the
      same, the way they always did. */
   vaterHervor: 'keine',
 };
@@ -541,7 +515,66 @@ class ExplorerCategoriesPlugin extends Plugin {
     }
 
     this.migrateInheritance();
+    this.migrateChildStyle();
     catchUpGroups(this.data, TEXTS.exampleGroup);
+  }
+
+  /* Until 1.1.0 the parent could differ from its children in exactly one
+     respect, chosen from a list ("vaterHervor"). That was too narrow --
+     a parent with coloured text AND an icon while the children carry
+     neither was not expressible at all.
+   *
+     Now the two sides have separate styles, and the old choice is turned
+     into one on the first start. Every case is translated so the tree
+     looks the same afterwards as it did before; a category without the
+     old field simply gets no child style, which means "children follow
+     the parent".
+   *
+     Runs off the category, not the folder, so it costs one pass over a
+     list that is a dozen entries long at most.
+   *
+     "vaterHervor" is left in the data on purpose rather than deleted. An
+     older version of the plugin -- on a phone whose iCloud has not caught
+     up -- still reads it and keeps behaving as it did. */
+  migrateChildStyle() {
+    for (const cat of this.data.kategorien) {
+      if (cat.childStyle) continue;
+
+      const stil = Object.assign({}, STYLE_DEFAULT, cat.stil || {});
+      const mode = stil.vaterHervor || 'keine';
+      if (mode === 'keine') continue;
+
+      /* Only ever had an effect where something inherits. Without that,
+         translating it would turn a folder bold that never was. */
+      if (!stil.vererbt && !stil.vererbtDateien) continue;
+
+      /* The old wording is "set the parent apart", so each case is read
+         as: what did the parent have that the children did not? */
+      if (mode === 'fett') {
+        cat.stil = Object.assign({}, cat.stil, { fett: true });
+        cat.childStyle = { fett: false };
+      } else if (mode === 'hintergrund') {
+        cat.stil = Object.assign({}, cat.stil, { hintergrund: true });
+        cat.childStyle = { hintergrund: false };
+      } else if (mode === 'schrift') {
+        cat.stil = Object.assign({}, cat.stil, { schriftFarbig: true });
+        cat.childStyle = { schriftFarbig: false };
+      } else if (mode === 'markierung') {
+        /* The parent used to take whichever marker the category did not
+           show. Written out now, so nothing has to be worked out at
+           drawing time. */
+        const other = stil.markierung === 'punkt' ? 'lasche' : 'punkt';
+        cat.stil = Object.assign({}, cat.stil, { markierung: other });
+        cat.childStyle = { markierung: stil.markierung };
+      } else if (mode === 'symbol') {
+        /* The one case that works on the icon rather than the style. */
+        cat.childStyle = { icon: null };
+      } else if (mode === 'blass') {
+        /* The odd one out: it never touched the parent, it took the
+           children back. */
+        cat.childStyle = { gedimmt: true };
+      }
+    }
   }
 
   /* Inheritance used to be two tables of folder paths. It is a property
@@ -788,6 +821,29 @@ class ExplorerCategoriesPlugin extends Plugin {
     const cat = this.data.kategorien.find((k) => k.id === catId);
     if (!cat) return null;
     return Object.assign({}, STYLE_DEFAULT, cat.stil || {});
+  }
+
+  /* How the inheriting rows are drawn. Null means "same as the folder
+     that carries the category" -- that is the default, and it is what
+     every category did before 1.1.0.
+   *
+     The reach switches are deliberately not part of it: how far a colour
+     carries is a property of the category, not of a single row, and two
+     places to set it would drift apart. */
+  childStyleOf(catId) {
+    const cat = this.data.kategorien.find((k) => k.id === catId);
+    if (!cat || !cat.childStyle) return null;
+    return Object.assign({}, STYLE_DEFAULT, cat.stil || {}, cat.childStyle);
+  }
+
+  /* The icon the inheriting rows carry. Undefined in the child style
+     means "same as the parent"; an explicit null means "none", which is
+     how a parent keeps an icon the children do not get. */
+  childIconOf(catId) {
+    const cat = this.data.kategorien.find((k) => k.id === catId);
+    if (!cat) return null;
+    if (cat.childStyle && 'icon' in cat.childStyle) return cat.childStyle.icon;
+    return cat.icon || null;
   }
 
   /* Which folder further up gives this one its color? Searched from
@@ -1256,6 +1312,43 @@ class ExplorerCategoriesPlugin extends Plugin {
     await this.save();
   }
 
+  /* The child style holds differences, not a second full copy.
+   *
+     That is the whole point: change the category's colour, its marker or
+     anything else on the parent, and the children follow -- except in
+     the one or two respects somebody deliberately set apart. A full copy
+     would freeze the children at the moment they were separated, and
+     every later change to the category would have to be made twice.
+   *
+     A category with no child style at all is the normal case and means
+     "children look like the parent". */
+  async changeChildStyle(catId, felder) {
+    const cat = this.data.kategorien.find((k) => k.id === catId);
+    if (!cat) return;
+    cat.childStyle = Object.assign({}, cat.childStyle || {}, felder);
+    await this.save();
+  }
+
+  /* The icon sits beside the style rather than in it, so it needs its own
+     way in. Null means "no icon for the children" and is a real setting,
+     which is why it cannot be expressed by leaving the field out. */
+  async changeChildIcon(catId, name) {
+    const cat = this.data.kategorien.find((k) => k.id === catId);
+    if (!cat) return;
+    cat.childStyle = Object.assign({}, cat.childStyle || {}, { icon: name });
+    await this.save();
+  }
+
+  /* Back to "children look like the parent". Drops the differences
+     rather than filling them with the parent's values: the second would
+     look the same today and stop following tomorrow. */
+  async childFollowParent(catId) {
+    const cat = this.data.kategorien.find((k) => k.id === catId);
+    if (!cat) return;
+    delete cat.childStyle;
+    await this.save();
+  }
+
   async deleteCategory(catId) {
     this.data.kategorien = this.data.kategorien.filter((k) => k.id !== catId);
     /* Without a category there is nothing left to inherit either. An
@@ -1472,6 +1565,8 @@ class ExplorerCategoriesPlugin extends Plugin {
         farbe: this.colourOf(catId),
         stil: this.styleOf(catId),
         icon: this.iconOf(catId),
+        childStil: this.childStyleOf(catId),
+        childIcon: this.childIconOf(catId),
       })),
       (id) => this.maskOf(id)
     );
@@ -1493,6 +1588,11 @@ class CategoriesModal extends Modal {
     this.chosenGroup = plugin.data.gruppen[0].id;
     const first = plugin.categoriesIn(this.chosenGroup)[0];
     this.chosen = first ? first.id : null;
+
+    /* Which of the two looks the right-hand panel edits. Always starts
+       at the parent: that is the one every category has, and for the
+       many that pass nothing down it is the only one. */
+    this.ansicht = 'vater';
   }
 
   onOpen() {
@@ -2142,7 +2242,37 @@ class CategoriesModal extends Modal {
       return;
     }
 
-    const stil = this.plugin.styleOf(cat.id);
+    const vaterStil = this.plugin.styleOf(cat.id);
+
+    /* Since 1.1.0 a category has two looks, and this panel edits one of
+       them at a time. Which one is a property of the window, not of the
+       data -- closing and reopening starts at the parent again.
+
+       The children's view only exists where something inherits. Without
+       that there are no children, and a switch that edits nothing is
+       worse than a missing one. */
+    const hatKinder = Boolean(vaterStil.vererbt || vaterStil.vererbtDateien);
+    const kinderAnsicht = this.ansicht === 'kinder' && hatKinder;
+    const folgt = !cat.childStyle;
+
+    /* What the switches below show, and what they write to. Everything
+       further down goes through these three, so a switch cannot end up
+       editing the parent while the panel says "children". */
+    const stil = kinderAnsicht
+      ? this.plugin.childStyleOf(cat.id) || vaterStil
+      : vaterStil;
+    const zeigeIcon = kinderAnsicht
+      ? this.plugin.childIconOf(cat.id)
+      : cat.icon || null;
+
+    const setzeStil = async (felder) => {
+      if (kinderAnsicht) await this.plugin.changeChildStyle(cat.id, felder);
+      else await this.plugin.changeStyle(cat.id, felder);
+    };
+    const setzeIcon = async (name) => {
+      if (kinderAnsicht) await this.plugin.changeChildIcon(cat.id, name);
+      else await this.plugin.changeCategory(cat.id, { icon: name });
+    };
 
     /* The row in the list is the preview since 0.9.43, so it has to
        follow every change made here -- not only the ones with a handler
@@ -2153,7 +2283,10 @@ class CategoriesModal extends Modal {
        Reported 2026-08-29: pressing "Background" left the row in the
        list uncoloured until something else was changed. */
     const listRow = this.rows && this.rows.get(cat.id);
-    if (listRow) this.drawRowStyle(listRow, cat.farbe, stil, cat.icon);
+    /* Always the parent: the row stands for the category as a whole, and
+       it would be a strange preview that changed depending on which tab
+       of the panel happens to be open. */
+    if (listRow) this.drawRowStyle(listRow, cat.farbe, vaterStil, cat.icon);
 
     /* --- Colour and name ------------------------------------------ */
     const head = this.detailEl.createDiv({ cls: 'fc-row' });
@@ -2194,6 +2327,53 @@ class CategoriesModal extends Modal {
     });
     name.value = cat.name;
 
+    /* --- Vater oder Kinder ----------------------------------------- */
+    /* Sits above everything it switches, so you can see what you are
+       about to edit before you press anything.
+
+       Only drawn where something inherits. Elsewhere the panel looks
+       exactly as it did before 1.1.0 -- one folder, one look, no tabs to
+       understand. */
+    if (hatKinder) {
+      const viewField = this.section(TEXTS.editingFor);
+      const viewRow = viewField.createDiv({ cls: 'fc-group' });
+
+      for (const view of [
+        { id: 'vater', name: TEXTS.viewParent },
+        { id: 'kinder', name: TEXTS.viewChildren },
+      ]) {
+        const button = viewRow.createEl('button', { text: view.name });
+        if ((view.id === 'kinder') === kinderAnsicht) button.addClass('mod-cta');
+        button.addEventListener('click', () => {
+          this.ansicht = view.id;
+          this.fillDetail();
+        });
+      }
+
+      /* The way back. Only in the children's view, and only usable once
+         they have a look of their own -- pressing it while they already
+         follow would do nothing and say nothing. */
+      if (kinderAnsicht) {
+        /* Its own row, not part of the pair above: those two are a
+           choice between views, this one changes the data. Sharing a
+           joined group would read as a third view. */
+        const followRow = viewField.createDiv({ cls: 'fc-switches' });
+        const follow = followRow.createEl('button', { text: TEXTS.childFollows });
+        if (folgt) follow.addClass('mod-cta');
+        follow.addEventListener('click', async () => {
+          if (folgt) return;
+          await this.plugin.childFollowParent(cat.id);
+          this.fillList();
+          this.fillDetail();
+        });
+
+        viewField.createDiv({
+          cls: 'fc-hint',
+          text: folgt ? TEXTS.childFollowsHint : TEXTS.childOwnHint,
+        });
+      }
+    }
+
     /* --- Markierung ------------------------------------------------ */
     const markerField = this.section(TEXTS.markierung);
 
@@ -2209,7 +2389,7 @@ class CategoriesModal extends Modal {
       if (stil.markierung === m.id) button.addClass('mod-cta');
       if (m.id !== 'keine') markButtons.push(button);
       button.addEventListener('click', async () => {
-        await this.plugin.changeStyle(cat.id, { markierung: m.id });
+        await setzeStil({ markierung: m.id });
         /* The list carries the marker too, so it has to follow. */
         this.fillList();
         this.fillDetail();
@@ -2241,7 +2421,7 @@ class CategoriesModal extends Modal {
       cls: 'fc-icontext',
       placeholder: TEXTS.iconLabel,
     });
-    iconField.value = shortIconName(cat.icon);
+    iconField.value = shortIconName(zeigeIcon);
 
     const paging = iconRow.createEl('button', {
       cls: 'clickable-icon fc-iconpaging',
@@ -2249,8 +2429,8 @@ class CategoriesModal extends Modal {
     setIcon(paging, 'layout-grid');
     paging.setAttribute('aria-label', TEXTS.pickIcon);
     paging.addEventListener('click', () => {
-      new IconModal(this.app, cat.icon || null, async (chosen) => {
-        await this.plugin.changeCategory(cat.id, { icon: chosen });
+      new IconModal(this.app, zeigeIcon, async (chosen) => {
+        await setzeIcon(chosen);
         this.fillList();
         this.fillDetail();
       }).open();
@@ -2261,10 +2441,10 @@ class CategoriesModal extends Modal {
        clicked a category without an icon -- including "Delete", which
        then slid under the pointer. Reported 2026-08-28. */
     const iconRemove = iconRow.createEl('button', { text: TEXTS.removeIcon });
-    if (!cat.icon) iconRemove.addClass('fc-placeholder');
+    if (!zeigeIcon) iconRemove.addClass('fc-placeholder');
     iconRemove.addEventListener('click', async () => {
-      if (!cat.icon) return;
-      await this.plugin.changeCategory(cat.id, { icon: null });
+      if (!zeigeIcon) return;
+      await setzeIcon(null);
       this.fillList();
       this.fillDetail();
     });
@@ -2282,7 +2462,7 @@ class CategoriesModal extends Modal {
        survives and takes effect again as soon as a marker comes back.
        Same pattern as "coloured text" underneath a background. */
     const showIconState = (unbekannt) => {
-      const noEffect = Boolean(cat.icon) && stil.markierung === 'keine';
+      const noEffect = Boolean(zeigeIcon) && stil.markierung === 'keine';
       iconRow.classList.toggle('fc-noeffect', noEffect);
       iconField.classList.toggle('fc-unknown', Boolean(unbekannt));
 
@@ -2295,20 +2475,20 @@ class CategoriesModal extends Modal {
          caret would jump out of the field), and this line runs on every
          keystroke. */
       for (const button of markButtons) {
-        button.classList.toggle('fc-noeffect', Boolean(cat.icon));
+        button.classList.toggle('fc-noeffect', Boolean(zeigeIcon));
       }
 
       if (unbekannt) iconHintEl.setText(TEXTS.iconUnknown);
       else if (noEffect) iconHintEl.setText(TEXTS.iconNoEffect);
-      else iconHintEl.setText(cat.icon ? TEXTS.iconReplaces : '');
+      else iconHintEl.setText(zeigeIcon ? TEXTS.iconReplaces : '');
     };
 
     /* Draws the icon in front of the field, in the category colour --
        the same picture the tree will show. */
     const showIconImage = () => {
       iconImage.empty();
-      if (!cat.icon) return;
-      setIcon(iconImage, cat.icon);
+      if (!zeigeIcon) return;
+      setIcon(iconImage, zeigeIcon);
       iconImage.style.color = cat.farbe;
     };
 
@@ -2339,7 +2519,7 @@ class CategoriesModal extends Modal {
       if (field === 'schriftFarbig' && stil.hintergrund) button.addClass('fc-noeffect');
 
       button.addEventListener('click', async () => {
-        await this.plugin.changeStyle(cat.id, { [field]: !stil[field] });
+        await setzeStil({ [field]: !stil[field] });
         this.fillDetail();
       });
     }
@@ -2387,92 +2567,13 @@ class CategoriesModal extends Modal {
       });
     }
 
-    /* --- telling the parent apart ---------------------------------- */
-    /* Only there while something actually inherits. Without children
-       there is nobody for the parent to state out from, and the row
-       would be three lines of window explaining that it does nothing.
-       What does not earn its place still costs height, and the window
-       grows with it since 0.9.44.
-
-       Moving it in and out shifts what is below it, which is exactly
-       what 0.9.16 fixed elsewhere. The difference: this only moves on a
-       deliberate press of the switch right above it, and it moves the
-       footer down, away from the hand -- not up under it.
-
-       One choice out of six, not six switches: two of them at once
-       would be fighting over the same row. Built like the switches
-       above rather than as one joined block -- six do not fit on a
-       line, and a joined block cannot wrap without the rounded ends
-       landing in the middle. */
-    const parentMode = stil.vaterHervor || 'keine';
-    let parentHint = '';
-
-    if (stil.vererbt || stil.vererbtDateien) {
-      const parentField = this.section(TEXTS.parentApart);
-      const parentChoice = parentField.createDiv({ cls: 'fc-switches' });
-
-      let chosenButton = null;
-      for (const mode of PARENT_MODES) {
-        const button = parentChoice.createEl('button', { text: mode.name });
-        if (mode.id === parentMode) {
-          button.addClass('mod-cta');
-          chosenButton = button;
-        }
-        button.addEventListener('click', async () => {
-          await this.plugin.changeStyle(cat.id, { vaterHervor: mode.id });
-          this.fillDetail();
-        });
-      }
-
-      /* Every way this setting can end up doing nothing gets said out
-         loud. Without that it looks broken: the choice is made, the tree
-         does not change, and there is nothing to go by. */
-      if (parentMode === 'fett' && stil.fett) parentHint = TEXTS.parentAlreadyBold;
-      else if (parentMode === 'hintergrund' && stil.hintergrund) {
-        parentHint = TEXTS.parentAlreadyBackground;
-      } else if (parentMode === 'schrift' && stil.hintergrund) {
-        /* Checked before the "already coloured" case: under a background
-           the plugin works out the text colour itself, so colouring the
-           parent's text does nothing whether or not the category itself
-           has coloured text switched on. The background is the reason,
-           and the reason is what has to be said. */
-        parentHint = TEXTS.parentTextUnderBackground;
-      } else if (parentMode === 'schrift' && stil.schriftFarbig) {
-        parentHint = TEXTS.parentAlreadyText;
-      } else if (parentMode === 'blass' && stil.gedimmt) {
-        parentHint = TEXTS.parentAlreadyDim;
-      } else if (parentMode === 'symbol' && !cat.icon) {
-        parentHint = TEXTS.parentWithoutIcon;
-      } else if (parentMode === 'markierung' && cat.icon && stil.markierung !== 'keine') {
-        /* The marker check has to come along: with "None" the icon is
-           not drawn either (see "showsIcon"), so the parent -- which
-           gets the other marker, and that is "punkt" -- is the only row
-           showing anything at all. The choice works, and saying it does
-           not would send the user looking for a fault that is not
-           there. Reported 2026-08-29. */
-        parentHint = TEXTS.parentIconBeats;
-      }
-
-      /* Only the chosen button is struck through, never the whole row.
-         The other five still work, and striking all six out reads as if
-         the setting were dead altogether -- exactly the wrong message,
-         because switching to one of them is the way out. */
-      if (parentHint && chosenButton) {
-        chosenButton.addClass('fc-noeffect');
-      }
-
-      /* The row appears only when a choice really has no effect. There
-         used to be a standing sentence about what inheriting reaches,
-         and a reserved row so nothing jumped when the hint replaced it.
-         Both went in 0.9.32: sitting under "Set the parent apart", that
-         sentence read as a statement about that setting and made no
-         sense there. Nothing below this but the footer, so the row
-         coming and going moves only the footer -- downwards, away from
-         the hand. */
-      if (parentHint) {
-        parentField.createDiv({ cls: 'fc-hint', text: parentHint });
-      }
-    }
+    /* The reach switches are the last thing set here. What used to
+       follow -- the row "set the parent apart" -- is gone since 1.1.0:
+       the children have a style of their own now, chosen with the
+       switch at the top of this panel. That row could express exactly
+       one difference between parent and children, and the first person
+       who wanted two (coloured text AND an icon, only on the parent)
+       ran into a wall. */
 
     /* --- Loeschen -------------------------------------------------- */
     const footer = this.detailEl.createDiv({ cls: 'fc-detailfooter' });
@@ -2983,56 +3084,21 @@ function buildTargets(data, nachschlagen) {
 
   const depth = (path) => path.split('/').length;
 
-  /* --- telling the parent apart ----------------------------------- */
+  /* --- parent and children ---------------------------------------- */
 
-  /* Does this category set the folder carrying the assignment apart
-     from the ones inheriting from it? Only where something inherits at
-     all -- with nothing below, there is nobody to state out from, and
-     every coloured folder would silently turn bold. */
-  const standsApart = (stil) =>
-    Boolean(
-      (stil.vererbt || stil.vererbtDateien) &&
-        stil.vaterHervor &&
-        stil.vaterHervor !== 'keine'
-    );
-
-  /* The other one of the two markers. Used when the parent should carry
-     a different mark from its children: whichever the category shows,
-     the parent shows the other. With no marker at all the parent gets
-     the dot -- it has to show something, that is the whole point. */
-  const otherMarker = (mode) => (mode === 'punkt' ? 'lasche' : 'punkt');
-
-  /* The style the parent itself is drawn with. */
-  const parentStyle = (stil) => {
-    if (!standsApart(stil)) return stil;
-    if (stil.vaterHervor === 'fett') {
-      return Object.assign({}, stil, { fett: true });
-    }
-    if (stil.vaterHervor === 'hintergrund') {
-      return Object.assign({}, stil, { hintergrund: true });
-    }
-    if (stil.vaterHervor === 'schrift') {
-      return Object.assign({}, stil, { schriftFarbig: true });
-    }
-    if (stil.vaterHervor === 'markierung') {
-      return Object.assign({}, stil, { markierung: otherMarker(stil.markierung) });
-    }
-    return stil;
-  };
-
-  /* The style the inherited rows are drawn with. Only "blass" changes
-     anything here -- it is the one setting that works on the children
-     instead of the parent. */
-  const inheritedStyle = (stil) => {
-    if (!standsApart(stil) || stil.vaterHervor !== 'blass') return stil;
-    return Object.assign({}, stil, { gedimmt: true });
-  };
-
-  /* The icon the inherited rows are drawn with. With "icon" chosen for
-     the parent they give it up and fall back to bar or dot -- that is
-     exactly what leaves the parent as the only row carrying it. */
-  const inheritedIcon = (stil, icon) =>
-    standsApart(stil) && stil.vaterHervor === 'symbol' ? null : icon || null;
+  /* Since 1.1.0 a category carries two looks: the one for the folder it
+     is assigned to, and the one for everything inheriting below it. The
+     second is optional -- without it the children look like the parent,
+     which is what every category did before and what most still want.
+   *
+     Both come ready-made from the lookup. Nothing is worked out here any
+     more; the old "set the parent apart" needed three helpers to derive
+     one look from the other, and could still only express one difference
+     at a time. */
+  const childLook = (entry) => ({
+    stil: entry.childStil || entry.stil,
+    icon: 'childIcon' in entry ? entry.childIcon : entry.icon || null,
+  });
 
   /* Which folders pass their colour down? Every folder whose category
      says so. There is no table of its own for this any more -- the
@@ -3054,8 +3120,10 @@ function buildTargets(data, nachschlagen) {
   const sourceIndex = buildIndex(sources);
 
   for (const source of sources) {
-    const { farbe, stil, icon } = nachschlagen(zuordnung[source]);
+    const entry = nachschlagen(zuordnung[source]);
+    const { farbe, stil } = entry;
     if (!farbe || !stil) continue;
+    const kinder = childLook(entry);
 
     const prefix = source + '/';
 
@@ -3079,8 +3147,8 @@ function buildTargets(data, nachschlagen) {
         .map((a) => `:not(${a})`)
         .join('')}`,
       farbe,
-      stil: inheritedStyle(stil),
-      icon: inheritedIcon(stil, icon),
+      stil: kinder.stil,
+      icon: kinder.icon,
     });
   }
 
@@ -3091,7 +3159,7 @@ function buildTargets(data, nachschlagen) {
     targets.push({
       selector: `.nav-folder-title[data-path="${toMask(path)}"]`,
       farbe,
-      stil: parentStyle(stil),
+      stil,
       icon: icon || null,
     });
   }
@@ -3111,8 +3179,10 @@ function buildTargets(data, nachschlagen) {
   const ownFileIndex = buildIndex(Object.keys(fileAssignments));
 
   for (const source of fileSources) {
-    const { farbe, stil, icon } = nachschlagen(zuordnung[source]);
+    const entry = nachschlagen(zuordnung[source]);
+    const { farbe, stil } = entry;
     if (!farbe || !stil) continue;
+    const kinder = childLook(entry);
 
     const prefix = source + '/';
 
@@ -3138,8 +3208,8 @@ function buildTargets(data, nachschlagen) {
         .join('')}`,
       body: 'nav-file-title-content',
       farbe,
-      stil: inheritedStyle(stil),
-      icon: inheritedIcon(stil, icon),
+      stil: kinder.stil,
+      icon: kinder.icon,
     });
   }
 
