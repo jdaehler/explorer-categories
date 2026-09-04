@@ -90,9 +90,11 @@ them at once rather than only the selected one.
 
 ![The management window](screenshots/window.png)
 
-**Icons come from Obsidian.** Any icon Obsidian ships with, searchable,
-shown in the color of its category. An icon takes the place of the bar or
-dot rather than adding to it.
+**Icons come from Obsidian.** "Icon" is the fourth marker, beside None,
+Bar and Dot, and exactly one of the four is on. Pick it and the row below
+says which icon: any icon Obsidian ships with, searchable, drawn in the
+category's colour. If the name is unknown — or none has been picked yet —
+the row falls back to the bar rather than going unmarked.
 
 **Renaming keeps the category.** Move a folder or a file, rename it,
 rename a folder above it — the assignment follows.

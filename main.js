@@ -80,8 +80,8 @@ const TEXTS_DE = {
   iconSearch: 'Symbol suchen',
   iconNothingFound: 'Kein Symbol gefunden.',
   iconWindowTitle: 'Symbol wählen',
-  iconReplaces: 'Das Symbol tritt an die Stelle von Lasche und Punkt.',
-  iconNoEffect: 'Bei „Ohne" bleibt der Ordner unmarkiert, auch mit Symbol.',
+  iconNeeded: 'Wähle ein Symbol, sonst bleibt die Zeile unmarkiert.',
+  iconOnlyWithMarker: 'Wirkt erst, wenn die Markierung auf „Symbol" steht.',
   iconMore: (gezeigt, gesamt) => `${gezeigt} von ${gesamt} — weiter eingrenzen.`,
   folderCountText: (n) => (n === 1 ? '1 Ordner' : `${n} Ordner`),
   deleteQuestion: (name, n) =>
@@ -109,6 +109,7 @@ const TEXTS_DE = {
   markerNone: 'Ohne',
   markerBar: 'Lasche',
   markerDot: 'Punkt',
+  markerIcon: 'Symbol',
   hintergrund: 'Hintergrund',
   schriftFarbig: 'Schrift farbig',
   fett: 'Fett',
@@ -201,8 +202,8 @@ const TEXTS_EN = {
   iconSearch: 'Search icons',
   iconNothingFound: 'No icon found.',
   iconWindowTitle: 'Choose icon',
-  iconReplaces: 'The icon takes the place of the bar and the dot.',
-  iconNoEffect: 'With "None" the folder stays unmarked, icon or not.',
+  iconNeeded: 'Pick an icon, or the row stays unmarked.',
+  iconOnlyWithMarker: 'Takes effect once the marker is set to "Icon".',
   iconMore: (gezeigt, gesamt) => `${gezeigt} of ${gesamt} — narrow the search.`,
   folderCountText: (n) => (n === 1 ? '1 folder' : `${n} folders`),
   deleteQuestion: (name, n) =>
@@ -230,6 +231,7 @@ const TEXTS_EN = {
   markerNone: 'None',
   markerBar: 'Bar',
   markerDot: 'Dot',
+  markerIcon: 'Icon',
   hintergrund: 'Background',
   schriftFarbig: 'Colored text',
   fett: 'Bold',
@@ -302,10 +304,18 @@ function chooseLanguage() {
 
 const TEXTS = chooseLanguage();
 
+/* Four ways to mark a row, and exactly one of them is on.
+ *
+ * Until 1.1.0 the icon stood beside this row as a field of its own and
+ * quietly beat the bar and the dot -- but not "None", which beat the
+ * icon in turn. Both facts were true and neither was visible; the
+ * buttons were struck through and left the reader to work out why.
+ * Reported by the Captain on 2026-09-04: "es ist etwas unlogisch". */
 const MARKERS = [
   { id: 'keine', name: TEXTS.markerNone },
   { id: 'lasche', name: TEXTS.markerBar },
   { id: 'punkt', name: TEXTS.markerDot },
+  { id: 'symbol', name: TEXTS.markerIcon },
 ];
 
 /* What a freshly created category starts out with. */
@@ -516,6 +526,7 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     this.migrateInheritance();
     this.migrateChildStyle();
+    this.migrateMarkerIcon();
     catchUpGroups(this.data, TEXTS.exampleGroup);
   }
 
@@ -574,6 +585,37 @@ class ExplorerCategoriesPlugin extends Plugin {
            children back. */
         cat.childStyle = { gedimmt: true };
       }
+    }
+  }
+
+  /* Until 1.1.0 the icon was a field beside the marker row that beat
+     the bar and the dot. Now it is one of the four markers, so anything
+     that used to show an icon has to be moved onto that value -- and
+     only that, or a category would start or stop showing one.
+   *
+     Runs after migrateChildStyle, because a child style carrying
+     "icon: null" (the old "only the parent shows it") needs a marker of
+     its own here: without one it would inherit "symbol" from the parent,
+     have no icon to go with it, and end up unmarked. It used to fall
+     back to the bar or the dot, and that is what gets written out. */
+  migrateMarkerIcon() {
+    for (const cat of this.data.kategorien) {
+      const stil = Object.assign({}, STYLE_DEFAULT, cat.stil || {});
+      if (!cat.icon) continue;
+      if (stil.markierung === 'keine' || stil.markierung === 'symbol') continue;
+
+      const alteMarke = stil.markierung;
+
+      /* The children kept bar or dot whenever the icon was taken from
+         them. Written out before the parent moves, or the value is
+         gone. */
+      if (cat.childStyle && 'icon' in cat.childStyle && cat.childStyle.icon === null) {
+        if (!cat.childStyle.markierung) {
+          cat.childStyle = Object.assign({}, cat.childStyle, { markierung: alteMarke });
+        }
+      }
+
+      cat.stil = Object.assign({}, cat.stil, { markierung: 'symbol' });
     }
   }
 
@@ -2379,15 +2421,13 @@ class CategoriesModal extends Modal {
 
     const gruppe = markerField.createDiv({ cls: 'fc-group' });
 
-    /* Collected because the icon field strikes them through as you type
-       -- see showIconState below. "None" is not in here: it keeps
-       working with an icon set, it is what leaves the folder unmarked. */
-    const markButtons = [];
-
+    /* Four buttons, one of them lit. Nothing is struck through here any
+       more: until 1.1.0 a set icon crossed out the bar and the dot,
+       while "None" stayed upright because it beat the icon in turn.
+       Both true, neither visible. */
     for (const m of MARKERS) {
       const button = gruppe.createEl('button', { text: m.name });
       if (stil.markierung === m.id) button.addClass('mod-cta');
-      if (m.id !== 'keine') markButtons.push(button);
       button.addEventListener('click', async () => {
         await setzeStil({ markierung: m.id });
         /* The list carries the marker too, so it has to follow. */
@@ -2397,9 +2437,11 @@ class CategoriesModal extends Modal {
     }
 
     /* --- Icon ------------------------------------------------------ */
-    /* Sits directly under the marker because it takes the marker's
-       place: choose one here and the tree shows no bar and no dot any
-       more, but the icon in the category colour. */
+    /* Sits directly under the marker row because it belongs to one of
+       its buttons: pick "Icon" up there and this is where you say
+       which. With any other marker chosen the row stays put but is
+       dimmed -- taking it out would move everything below it, and a
+       chosen icon has to survive a trip through "Dot" and back. */
     const iconSection = this.section(TEXTS.iconName);
 
     /* The name of the icon stands in a field you can type and paste
@@ -2462,25 +2504,19 @@ class CategoriesModal extends Modal {
        survives and takes effect again as soon as a marker comes back.
        Same pattern as "coloured text" underneath a background. */
     const showIconState = (unbekannt) => {
-      const noEffect = Boolean(zeigeIcon) && stil.markierung === 'keine';
-      iconRow.classList.toggle('fc-noeffect', noEffect);
+      /* Runs on every keystroke as well as on drawing, so what the line
+         says and how it looks can never drift apart. */
+      const gilt = stil.markierung === 'symbol';
+      iconRow.classList.toggle('fc-noeffect', !gilt);
       iconField.classList.toggle('fc-unknown', Boolean(unbekannt));
 
-      /* The other direction of the same dependency: with an icon set,
-         the bar and the dot both draw the icon, so the choice between
-         them changes nothing and is struck through. Reported 2026-08-29
-         -- "Lasche" looked selected and active while an icon was named
-         right below it. Done here rather than where the buttons are
-         built, because typing a name must not redraw the panel (the
-         caret would jump out of the field), and this line runs on every
-         keystroke. */
-      for (const button of markButtons) {
-        button.classList.toggle('fc-noeffect', Boolean(zeigeIcon));
-      }
-
       if (unbekannt) iconHintEl.setText(TEXTS.iconUnknown);
-      else if (noEffect) iconHintEl.setText(TEXTS.iconNoEffect);
-      else iconHintEl.setText(zeigeIcon ? TEXTS.iconReplaces : '');
+      else if (!gilt) iconHintEl.setText(TEXTS.iconOnlyWithMarker);
+      /* The one thing left to do: the marker says "icon" and there is
+         none. Said out loud, because the tree falls back to the bar in
+         the meantime and that looks like the setting was ignored. */
+      else if (!zeigeIcon) iconHintEl.setText(TEXTS.iconNeeded);
+      else iconHintEl.setText('');
     };
 
     /* Draws the icon in front of the field, in the category colour --
@@ -3268,12 +3304,14 @@ function buildRules(eintraege, maskOf) {
   const markColour = (e) =>
     e.stil.hintergrund ? readableText(e.farbe) : e.farbe;
 
-  /* Which entries actually show an icon? Only those that have one, that
-     show a marker at all, and whose icon can be resolved. Worked out
-     once so the blocks below agree with each other. */
+  /* Which entries actually show an icon? Those whose marker IS the
+     icon and whose icon can be resolved. An entry set to "icon" without
+     one stays unmarked -- falling back to a bar would draw something
+     nobody chose, and the window says so while it is being set.
+     Worked out once so the blocks below agree with each other. */
   const masks = new Map();
   const showsIcon = (e) => {
-    if (!e.icon || e.stil.markierung === 'keine') return false;
+    if (!e.icon || e.stil.markierung !== 'symbol') return false;
     if (!masks.has(e.icon)) {
       masks.set(e.icon, (maskOf && maskOf(e.icon)) || null);
     }
@@ -3324,8 +3362,21 @@ ${colours}`);
 
   /* --- marker: bar and dot ---------------------------------------- */
   for (const mode of ['lasche', 'punkt']) {
+    /* The four markers rule each other out, so nothing has to be
+       excluded here -- but the bar takes in one more group: everything
+       set to "icon" that cannot show one, because Obsidian does not know
+       the name or because none has been picked yet.
+
+       A row with no marker at all is the worse surprise: the colour
+       looks gone, and there is nothing to click on to find out why. The
+       bar was the fallback for an unknown icon before 1.1.0 as well;
+       what is new is that it now also catches "icon chosen, none picked
+       yet", which is what the window is telling the user to fix at that
+       very moment. */
     const fitting = eintraege.filter(
-      (e) => e.stil.markierung === mode && !showsIcon(e)
+      (e) =>
+        e.stil.markierung === mode ||
+        (mode === 'lasche' && e.stil.markierung === 'symbol' && !showsIcon(e))
     );
     if (!fitting.length) continue;
 
