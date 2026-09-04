@@ -62,7 +62,7 @@ const TEXTS_DE = {
   /* Zwei Aussehen je Kategorie, seit 1.1.0. Der Umschalter steht ueber
      den Schaltern, die er umstellt -- man sieht also, was man gerade
      einstellt, bevor man etwas drueckt. */
-  editingFor: 'Einstellen für',
+  editingFor: 'Aussehen',
   viewParent: 'Vater',
   viewChildren: 'Kinder',
   childFollows: 'Wie der Vater',
@@ -80,7 +80,7 @@ const TEXTS_DE = {
   iconSearch: 'Symbol suchen',
   iconNothingFound: 'Kein Symbol gefunden.',
   iconWindowTitle: 'Symbol wählen',
-  iconNeeded: 'Wähle ein Symbol, sonst bleibt die Zeile unmarkiert.',
+  iconNeeded: 'Wähle ein Symbol — bis dahin bleibt die Zeile unmarkiert.',
   iconOnlyWithMarker: 'Wirkt erst, wenn die Markierung auf „Symbol" steht.',
   iconMore: (gezeigt, gesamt) => `${gezeigt} von ${gesamt} — weiter eingrenzen.`,
   folderCountText: (n) => (n === 1 ? '1 Ordner' : `${n} Ordner`),
@@ -187,7 +187,7 @@ const TEXTS_EN = {
   inheritance: 'Inheritance',
   areaGroups: 'Groups',
   areaCategories: 'Categories',
-  editingFor: 'Editing',
+  editingFor: 'Look of',
   viewParent: 'Parent',
   viewChildren: 'Children',
   childFollows: 'Same as parent',
@@ -202,7 +202,7 @@ const TEXTS_EN = {
   iconSearch: 'Search icons',
   iconNothingFound: 'No icon found.',
   iconWindowTitle: 'Choose icon',
-  iconNeeded: 'Pick an icon, or the row stays unmarked.',
+  iconNeeded: 'Pick an icon — until then the row stays unmarked.',
   iconOnlyWithMarker: 'Takes effect once the marker is set to "Icon".',
   iconMore: (gezeigt, gesamt) => `${gezeigt} of ${gesamt} — narrow the search.`,
   folderCountText: (n) => (n === 1 ? '1 folder' : `${n} folders`),
@@ -310,13 +310,43 @@ const TEXTS = chooseLanguage();
  * quietly beat the bar and the dot -- but not "None", which beat the
  * icon in turn. Both facts were true and neither was visible; the
  * buttons were struck through and left the reader to work out why.
- * Reported by the Captain on 2026-09-04: "es ist etwas unlogisch". */
+ * Reported 2026-09-04 as simply not making sense. */
 const MARKERS = [
   { id: 'keine', name: TEXTS.markerNone },
   { id: 'lasche', name: TEXTS.markerBar },
   { id: 'punkt', name: TEXTS.markerDot },
   { id: 'symbol', name: TEXTS.markerIcon },
 ];
+
+/* Which of the three shapes a row actually draws: the icon, the bar,
+ * the dot, or nothing at all.
+ *
+ * One function for the whole plugin, because three places need the
+ * answer and they must not disagree: the stylesheet that paints the file
+ * tree, the preview in the category list, and the sentence the window
+ * puts under the icon field. On 2026-09-04 all three said something
+ * different -- tree drew a bar, list drew a dot, text said "unmarked".
+ * Nobody could be expected to make sense of that.
+ *
+ * Two arguments, and the difference between them is the whole point:
+ *
+ *   named  -- an icon name is written in the field
+ *   usable -- and Obsidian can actually draw it
+ *
+ * No name means the setting is half finished, and half finished draws
+ * nothing. The window says so in the same breath, and the moment a name
+ * is typed the icon appears.
+ *
+ * A name that Obsidian does not know is something else entirely: a
+ * fault, and one nobody would ever spot, because it looks exactly like a
+ * folder somebody chose to leave unmarked. That case falls back to the
+ * bar, as it has since long before the icon became a marker. */
+function markKind(stil, named, usable) {
+  if (stil.markierung === 'keine') return null;
+  if (stil.markierung !== 'symbol') return stil.markierung;
+  if (!named) return null;
+  return usable ? 'symbol' : 'lasche';
+}
 
 /* What a freshly created category starts out with. */
 const STYLE_DEFAULT = {
@@ -2205,16 +2235,19 @@ class CategoriesModal extends Modal {
        for the tree. */
     const markColour = stil.hintergrund ? readableText(farbe) : farbe;
 
-    if (stil.markierung !== 'keine') {
-      if (icon) {
-        const iconName = target.createSpan({ cls: 'fc-listicon' });
-        setIcon(iconName, icon);
-        iconName.style.color = markColour;
-      } else {
-        const mark = target.createSpan({ cls: 'fc-listmark' });
-        mark.addClass(stil.markierung === 'lasche' ? 'fc-bar' : 'fc-dot');
-        mark.style.backgroundColor = farbe;
-      }
+    /* Same function the stylesheet asks, so list and tree cannot drift
+       apart. Whether Obsidian really knows the name shows up by itself
+       here: setIcon simply draws nothing. */
+    const kind = markKind(stil, Boolean(icon), true);
+
+    if (kind === 'symbol') {
+      const iconName = target.createSpan({ cls: 'fc-listicon' });
+      setIcon(iconName, icon);
+      iconName.style.color = markColour;
+    } else if (kind) {
+      const mark = target.createSpan({ cls: 'fc-listmark' });
+      mark.addClass(kind === 'lasche' ? 'fc-bar' : 'fc-dot');
+      mark.style.backgroundColor = farbe;
     }
 
     if (stil.hintergrund) {
@@ -2325,10 +2358,23 @@ class CategoriesModal extends Modal {
        Reported 2026-08-29: pressing "Background" left the row in the
        list uncoloured until something else was changed. */
     const listRow = this.rows && this.rows.get(cat.id);
-    /* Always the parent: the row stands for the category as a whole, and
-       it would be a strange preview that changed depending on which tab
-       of the panel happens to be open. */
-    if (listRow) this.drawRowStyle(listRow, cat.farbe, vaterStil, cat.icon);
+    /* The selected row follows the open view, the other rows stay with
+       the parent.
+     *
+       Asked on 2026-09-04 why the parent showed a bar while the
+       children were being set to a dot -- there was no feedback at all
+       for the side being edited. Only the selected row switches,
+       because it is the one already marked as belonging to the panel;
+       switching all of them would make four rows claim something about a
+       category nobody is editing. */
+    if (listRow) {
+      this.drawRowStyle(
+        listRow,
+        cat.farbe,
+        kinderAnsicht ? stil : vaterStil,
+        kinderAnsicht ? zeigeIcon : cat.icon
+      );
+    }
 
     /* --- Colour and name ------------------------------------------ */
     const head = this.detailEl.createDiv({ cls: 'fc-row' });
@@ -3310,13 +3356,15 @@ function buildRules(eintraege, maskOf) {
      nobody chose, and the window says so while it is being set.
      Worked out once so the blocks below agree with each other. */
   const masks = new Map();
-  const showsIcon = (e) => {
-    if (!e.icon || e.stil.markierung !== 'symbol') return false;
+  const iconUsable = (e) => {
+    if (!e.icon) return false;
     if (!masks.has(e.icon)) {
       masks.set(e.icon, (maskOf && maskOf(e.icon)) || null);
     }
     return masks.get(e.icon) !== null;
   };
+  const showsIcon = (e) =>
+    markKind(e.stil, Boolean(e.icon), iconUsable(e)) === 'symbol';
 
   /* --- marker: icon ----------------------------------------------- */
   /* Grouped by icon, not by entry: that way the image data appears once
@@ -3362,21 +3410,10 @@ ${colours}`);
 
   /* --- marker: bar and dot ---------------------------------------- */
   for (const mode of ['lasche', 'punkt']) {
-    /* The four markers rule each other out, so nothing has to be
-       excluded here -- but the bar takes in one more group: everything
-       set to "icon" that cannot show one, because Obsidian does not know
-       the name or because none has been picked yet.
-
-       A row with no marker at all is the worse surprise: the colour
-       looks gone, and there is nothing to click on to find out why. The
-       bar was the fallback for an unknown icon before 1.1.0 as well;
-       what is new is that it now also catches "icon chosen, none picked
-       yet", which is what the window is telling the user to fix at that
-       very moment. */
+    /* markKind sorts out who draws what, including everything set to
+       "icon" that cannot show one and falls back to the bar. */
     const fitting = eintraege.filter(
-      (e) =>
-        e.stil.markierung === mode ||
-        (mode === 'lasche' && e.stil.markierung === 'symbol' && !showsIcon(e))
+      (e) => markKind(e.stil, Boolean(e.icon), iconUsable(e)) === mode
     );
     if (!fitting.length) continue;
 

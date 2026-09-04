@@ -566,6 +566,16 @@
   text-decoration: line-through;
 }
 
+/* Struck-through placeholder text reads as broken rather than inactive:
+   the line runs through a grey hint that was never a value in the first
+   place. The whole row still dims, only the strike is taken back off the
+   field and the button beside it. Reported 2026-09-04. */
+.fc-noeffect .fc-icontext,
+.fc-noeffect .fc-icontext::placeholder,
+.fc-noeffect .fc-iconpaging {
+  text-decoration: none;
+}
+
 /* --- Preview ------------------------------------------------------- */
 
 /* Looks like a row in the file explorer, so the comparison holds. */
