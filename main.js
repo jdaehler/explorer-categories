@@ -507,7 +507,16 @@ function isInTitleStrip(evt, stripBottom) {
   if (!evt || typeof stripBottom !== 'number') return false;
   const target = evt.target;
   if (!target || typeof target.closest !== 'function') return false;
-  if (target.closest('.modal-close-button')) return false;
+  /* Anything that can be pressed stays pressable -- the close button
+     first of all, but not by its class name alone: that name was read
+     from one Obsidian version, and another may call it differently. */
+  if (
+    target.closest(
+      '.modal-close-button, .clickable-icon, button, a, input, select, textarea'
+    )
+  ) {
+    return false;
+  }
   return evt.clientY <= stripBottom;
 }
 
@@ -1843,15 +1852,24 @@ class CategoriesModal extends Modal {
       return title ? title.getBoundingClientRect().bottom : null;
     };
 
+    /* How far the pointer has to travel before a press becomes a drag. */
+    const DRAG_THRESHOLD = 4;
+
     win.addEventListener('pointerdown', (evt) => {
       if (evt.button !== 0) return;
       if (!isInTitleStrip(evt, stripBottom())) return;
 
-      /* No text selection while dragging across the window. */
-      evt.preventDefault();
+      /* Only noted, nothing taken over yet. No preventDefault and no
+         pointer capture here: capturing on press sends the release to
+         the window, and the browser then fires the click on the window
+         rather than on whatever was pressed. A press that never moves
+         must stay an ordinary click. */
       const rect = win.getBoundingClientRect();
       drag = {
         id: evt.pointerId,
+        downX: evt.clientX,
+        downY: evt.clientY,
+        moving: false,
         startX: evt.clientX - offset.x,
         startY: evt.clientY - offset.y,
         base: {
@@ -1860,15 +1878,20 @@ class CategoriesModal extends Modal {
           top: rect.top - offset.y,
         },
       };
-      win.classList.add('fc-dragging');
-      /* Keeps the pointer's events coming even when it outruns the
-         window. On the window rather than the title, which draw() may
-         replace. */
-      win.setPointerCapture(evt.pointerId);
     });
 
     win.addEventListener('pointermove', (evt) => {
       if (!drag || evt.pointerId !== drag.id) return;
+      if (!drag.moving) {
+        const travelled = Math.hypot(evt.clientX - drag.downX, evt.clientY - drag.downY);
+        if (travelled < DRAG_THRESHOLD) return;
+        drag.moving = true;
+        win.classList.add('fc-dragging');
+        /* From here on it is a drag. The capture keeps the pointer's
+           events coming even when it outruns the window -- on the
+           window rather than the title, which draw() may replace. */
+        win.setPointerCapture(evt.pointerId);
+      }
       const next = clampWindowOffset(
         drag.base,
         evt.clientX - drag.startX,
