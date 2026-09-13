@@ -479,19 +479,22 @@ function isFolderNameClick(evt) {
  * dx, dy the offset the pointer asks for
  * viewW, viewH the size of the Obsidian window
  *
- * The top strip is the only grip, so it must never leave the screen:
- * the top edge stays at or below the top, and at least GRIP pixels of
- * the window stay inside on the left, right and bottom. A window that
- * slips out of reach could only be closed with Escape.
+ * The window stays whole: it stops at every edge of the Obsidian window
+ * instead of sliding behind it. A dialog is part of Obsidian's page and
+ * cannot be drawn outside it, so whatever passes the edge is simply cut
+ * off -- and a half-hidden window cannot be used.
  *
- * On a screen smaller than the window the two limits can cross. Then
- * the lower one wins, which keeps the title reachable. */
+ * Until 1.2.0 it could be pushed out until only 48 pixels were left.
+ * Changed after the first release, on request: it vanished at the edge.
+ *
+ * On a screen smaller than the window the two limits cross. Then the
+ * lower one wins: left and top edge stay in view, and with them the
+ * title strip the window is moved by. */
 function clampWindowOffset(base, dx, dy, viewW, viewH) {
-  const GRIP = 48;
   const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
   return {
-    x: clamp(dx, GRIP - base.right, viewW - GRIP - base.left),
-    y: clamp(dy, -base.top, viewH - GRIP - base.top),
+    x: clamp(dx, -base.left, viewW - base.right),
+    y: clamp(dy, -base.top, viewH - base.bottom),
   };
 }
 
@@ -1880,6 +1883,7 @@ class CategoriesModal extends Modal {
           left: rect.left - offset.x,
           right: rect.right - offset.x,
           top: rect.top - offset.y,
+          bottom: rect.bottom - offset.y,
         },
       };
     });
