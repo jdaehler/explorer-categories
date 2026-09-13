@@ -74,16 +74,29 @@
   --dialog-width: 900px;
 }
 
-/* The title is the grip for moving the window, on the desktop only --
-   the class is set there and nowhere else. No text selection, or a
-   drag would highlight the title instead of moving the window. */
+/* Moving the window, desktop only -- the classes are set there and
+   nowhere else.
+
+   fc-grip sits on the window while the pointer is over the top strip
+   (header row, padding and title, see isInTitleStrip in main.js). The
+   strip has no element of its own, so the cursor goes on the whole
+   window for as long as the pointer is there, and comes off again below
+   it or over the close button.
+
+   fc-dragging sits on it while the window is being moved. */
 .fc-window.fc-draggable .modal-content > h2 {
-  cursor: grab;
   user-select: none;
 }
 
-.fc-window.fc-draggable .modal-content > h2:active {
+.fc-window.fc-grip,
+.fc-window.fc-grip .modal-content > h2 {
+  cursor: grab;
+}
+
+.fc-window.fc-dragging,
+.fc-window.fc-dragging * {
   cursor: grabbing;
+  user-select: none;
 }
 
 .fc-window .modal-content {

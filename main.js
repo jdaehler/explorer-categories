@@ -475,7 +475,7 @@ function isFolderNameClick(evt) {
  * dx, dy the offset the pointer asks for
  * viewW, viewH the size of the Obsidian window
  *
- * The title row is the only grip, so it must never leave the screen:
+ * The top strip is the only grip, so it must never leave the screen:
  * the top edge stays at or below the top, and at least GRIP pixels of
  * the window stay inside on the left, right and bottom. A window that
  * slips out of reach could only be closed with Escape.
@@ -489,6 +489,26 @@ function clampWindowOffset(base, dx, dy, viewW, viewH) {
     x: clamp(dx, GRIP - base.right, viewW - GRIP - base.left),
     y: clamp(dy, -base.top, viewH - GRIP - base.top),
   };
+}
+
+/* Is the pointer on the strip the window is moved by?
+ *
+ * The strip is everything from the top edge of the window down to the
+ * bottom of our title: Obsidian's own header row (left empty, the title
+ * lives in the content), the padding above it and the title itself.
+ * Checked in the obsidian.asar on 2026-09-13: a dialog is built as
+ * close button, .modal-header, .modal-content -- in that order.
+ *
+ * The close button sits in that strip too and stays a button.
+ *
+ * Only the title was the grip at first. In testing, the header row above
+ * it was grabbed first, nothing moved, and that felt unusual. */
+function isInTitleStrip(evt, stripBottom) {
+  if (!evt || typeof stripBottom !== 'number') return false;
+  const target = evt.target;
+  if (!target || typeof target.closest !== 'function') return false;
+  if (target.closest('.modal-close-button')) return false;
+  return evt.clientY <= stripBottom;
 }
 
 /* The phone's backup folder, and only the phone's.
@@ -1795,8 +1815,9 @@ class CategoriesModal extends Modal {
     this.draw();
   }
 
-  /* Lets the window be moved by its title, so the file explorer can be
-   * seen next to it -- the tree shows every change straight away.
+  /* Lets the window be moved by its top strip, so the file explorer can
+   * be seen next to it -- the tree shows every change straight away.
+   * Which part counts as the strip: see isInTitleStrip.
    *
    * Checked in the obsidian.asar on 2026-09-13: Obsidian centres a
    * dialog with flexbox on .modal-container, and .modal itself is
@@ -1815,12 +1836,16 @@ class CategoriesModal extends Modal {
     const offset = { x: 0, y: 0 };
     let drag = null;
 
+    /* Measured afresh each time: the title moves with the window, and
+       draw() replaces it. */
+    const stripBottom = () => {
+      const title = win.querySelector('.modal-content > h2');
+      return title ? title.getBoundingClientRect().bottom : null;
+    };
+
     win.addEventListener('pointerdown', (evt) => {
       if (evt.button !== 0) return;
-      const target = evt.target;
-      if (!target || typeof target.closest !== 'function') return;
-      const grip = target.closest('.modal-content > h2');
-      if (!grip || !win.contains(grip)) return;
+      if (!isInTitleStrip(evt, stripBottom())) return;
 
       /* No text selection while dragging across the window. */
       evt.preventDefault();
@@ -1835,13 +1860,22 @@ class CategoriesModal extends Modal {
           top: rect.top - offset.y,
         },
       };
+      win.classList.add('fc-dragging');
       /* Keeps the pointer's events coming even when it outruns the
-         title. */
-      grip.setPointerCapture(evt.pointerId);
+         window. On the window rather than the title, which draw() may
+         replace. */
+      win.setPointerCapture(evt.pointerId);
     });
 
     win.addEventListener('pointermove', (evt) => {
-      if (!drag || evt.pointerId !== drag.id) return;
+      /* Not dragging: only say whether this is the place to grab. The
+         strip has no element of its own to hang a cursor rule on -- the
+         padding above the header belongs to the window itself. */
+      if (!drag) {
+        win.classList.toggle('fc-grip', isInTitleStrip(evt, stripBottom()));
+        return;
+      }
+      if (evt.pointerId !== drag.id) return;
       const next = clampWindowOffset(
         drag.base,
         evt.clientX - drag.startX,
@@ -1856,10 +1890,16 @@ class CategoriesModal extends Modal {
     });
 
     const stop = (evt) => {
-      if (drag && evt.pointerId === drag.id) drag = null;
+      if (drag && evt.pointerId === drag.id) {
+        drag = null;
+        win.classList.remove('fc-dragging');
+      }
     };
     win.addEventListener('pointerup', stop);
     win.addEventListener('pointercancel', stop);
+    win.addEventListener('pointerleave', () => {
+      if (!drag) win.classList.remove('fc-grip');
+    });
   }
 
   /* The last line of defence. Whoever gets here without going through
