@@ -484,13 +484,17 @@ function isFolderNameClick(evt) {
 const BACKUP_FOLDER = 'explorer-categories-backup';
 
 /* Sorts by name, so the file name has to carry the date in an order
-   that sorts: year, month, day, hour, minute. */
+   that sorts: year, month, day, hour, minute, second.
+
+   Seconds since 1.2.0. With minutes only, two backups in the same
+   minute got the same name -- on the phone, where the file is written
+   into the vault, the second one could not stand next to the first. */
 const timestamp = () => {
   const now = new Date();
   const pad2 = (n) => String(n).padStart(2, '0');
   return (
     `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}` +
-    `-${pad2(now.getHours())}${pad2(now.getMinutes())}`
+    `-${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`
   );
 };
 
