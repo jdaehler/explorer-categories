@@ -75,27 +75,21 @@
 }
 
 /* Moving the window, desktop only -- the classes are set there and
-   nowhere else.
+   nowhere else. The top strip is the grip (header row, padding and
+   title, see isInTitleStrip in main.js).
 
-   fc-grip sits on the window while the pointer is over the top strip
-   (header row, padding and title, see isInTitleStrip in main.js). The
-   strip has no element of its own, so the cursor goes on the whole
-   window for as long as the pointer is there, and comes off again below
-   it or over the close button.
+   No hand cursor, on purpose: a window's title bar shows the ordinary
+   arrow on macOS and Windows, while dragging as well. A hand was there
+   at first and read as unusual.
 
-   fc-dragging sits on it while the window is being moved. */
+   fc-dragging sits on the window while it is being moved, so the drag
+   does not select text on its way across. */
 .fc-window.fc-draggable .modal-content > h2 {
   user-select: none;
 }
 
-.fc-window.fc-grip,
-.fc-window.fc-grip .modal-content > h2 {
-  cursor: grab;
-}
-
 .fc-window.fc-dragging,
 .fc-window.fc-dragging * {
-  cursor: grabbing;
   user-select: none;
 }
 

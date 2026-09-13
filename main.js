@@ -1868,14 +1868,7 @@ class CategoriesModal extends Modal {
     });
 
     win.addEventListener('pointermove', (evt) => {
-      /* Not dragging: only say whether this is the place to grab. The
-         strip has no element of its own to hang a cursor rule on -- the
-         padding above the header belongs to the window itself. */
-      if (!drag) {
-        win.classList.toggle('fc-grip', isInTitleStrip(evt, stripBottom()));
-        return;
-      }
-      if (evt.pointerId !== drag.id) return;
+      if (!drag || evt.pointerId !== drag.id) return;
       const next = clampWindowOffset(
         drag.base,
         evt.clientX - drag.startX,
@@ -1897,9 +1890,6 @@ class CategoriesModal extends Modal {
     };
     win.addEventListener('pointerup', stop);
     win.addEventListener('pointercancel', stop);
-    win.addEventListener('pointerleave', () => {
-      if (!drag) win.classList.remove('fc-grip');
-    });
   }
 
   /* The last line of defence. Whoever gets here without going through
