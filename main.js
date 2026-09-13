@@ -23,6 +23,8 @@ const {
   TFile,
   Notice,
   Platform,
+  PluginSettingTab,
+  Setting,
   setIcon,
   getIconIds,
   getLanguage,
@@ -164,6 +166,10 @@ const TEXTS_DE = {
   sortDescending: 'Nach Namen sortieren, Z bis A',
   groupLeft: 'Gruppe nach links',
   groupRight: 'Gruppe nach rechts',
+  /* Plugin settings in Obsidian's own settings window. */
+  settingArrowOnly: 'Ordner nur über den Pfeil aufklappen',
+  settingArrowOnlyDesc:
+    'Ein Klick auf den Ordnernamen klappt nicht mehr auf oder zu. Das geht dann nur noch über den Pfeil davor.',
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
@@ -278,6 +284,9 @@ const TEXTS_EN = {
   sortDescending: 'Sort by name, Z to A',
   groupLeft: 'Move group left',
   groupRight: 'Move group right',
+  settingArrowOnly: 'Expand folders only with the arrow',
+  settingArrowOnlyDesc:
+    'Clicking a folder name no longer expands or collapses it. Only the arrow in front of it does.',
 };
 
 const LANGUAGES = { de: TEXTS_DE, en: TEXTS_EN };
@@ -421,9 +430,44 @@ const DEFAULT_DATA = {
      English. An older version simply does not see it: files lose their
      own colour there and fall back to what they inherit. */
   fileAssignments: {},
+  /* A plugin setting, not category data: folders expand only through
+     their arrow. Off by default, which is Obsidian's own behaviour. */
+  arrowOnlyCollapse: false,
 };
 
 const STYLE_ID = 'explorer-categories-stil';
+
+/* Would this click expand or collapse a folder by its name?
+ *
+ * Checked against the obsidian.asar in /Applications on 2026-09-13: the
+ * file explorer calls a folder's onSelfClick only when the click is not
+ * defaultPrevented, and onSelfClick is what toggles the folder. The arrow
+ * has a listener of its own, which toggles and then calls preventDefault
+ * itself -- that is why an arrow click does not toggle twice.
+ *
+ * So preventDefault on a name click is enough, and it is the gentle way:
+ * the event still reaches everyone else. stopPropagation would also
+ * silence plugins such as Folder Notes, which open a note on that very
+ * click and do not look at defaultPrevented.
+ *
+ * Left alone on purpose:
+ *   - the arrow itself
+ *   - clicks with a modifier key: Alt and Shift select, and a selection
+ *     never toggles anyway
+ *   - any button but the left one
+ *   - a name being renamed (contenteditable), where the click places the
+ *     cursor
+ *   - everything outside the file explorer, bookmarks included */
+function isFolderNameClick(evt) {
+  if (!evt || evt.button !== 0) return false;
+  if (evt.altKey || evt.shiftKey || evt.ctrlKey || evt.metaKey) return false;
+  const target = evt.target;
+  if (!target || typeof target.closest !== 'function') return false;
+  if (!target.closest('.nav-files-container .nav-folder-title')) return false;
+  if (target.closest('.collapse-icon')) return false;
+  if (target.closest('[contenteditable="true"]')) return false;
+  return true;
+}
 
 /* The phone's backup folder, and only the phone's.
  *
@@ -517,6 +561,22 @@ class ExplorerCategoriesPlugin extends Plugin {
        context menu, which is where you already are. The ribbon is
        crowded enough. The command stays so the window is reachable
        without a mouse. */
+    this.addSettingTab(new CategoriesSettingTab(this.app, this));
+
+    /* Capture phase, so the decision is made before the file explorer
+       sees the click. See isFolderNameClick for why preventDefault and
+       nothing stronger. */
+    this.registerDomEvent(
+      document,
+      'click',
+      (evt) => {
+        if (this.data.arrowOnlyCollapse && isFolderNameClick(evt)) {
+          evt.preventDefault();
+        }
+      },
+      true
+    );
+
     this.addCommand({
       id: 'open-categories',
       name: TEXTS.openWindow,
@@ -1257,10 +1317,14 @@ class ExplorerCategoriesPlugin extends Plugin {
      start, so a file from an older version arrives in today's shape
      instead of half-filled. */
   restoreBackup(data) {
+    /* A backup holds categories. How folders open is a setting of this
+       device's vault and should not flip because an old file came back. */
+    const arrowOnly = this.data.arrowOnlyCollapse;
     this.data = Object.assign(
       JSON.parse(JSON.stringify(DEFAULT_DATA)),
       JSON.parse(JSON.stringify(data))
     );
+    this.data.arrowOnlyCollapse = arrowOnly;
     this.migrateOldData();
     this.writeStyle();
   }
@@ -1648,6 +1712,35 @@ class ExplorerCategoriesPlugin extends Plugin {
 /* ------------------------------------------------------------------ */
 /* The management window                                               */
 /* ------------------------------------------------------------------ */
+
+/* The plugin's page in Obsidian's settings window.
+ *
+ * Only for what is not about categories. Everything about categories
+ * stays in the management window, which is reached from the context
+ * menu where the work happens. */
+class CategoriesSettingTab extends PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+
+    new Setting(containerEl)
+      .setName(TEXTS.settingArrowOnly)
+      .setDesc(TEXTS.settingArrowOnlyDesc)
+      .addToggle((toggle) =>
+        toggle
+          .setValue(Boolean(this.plugin.data.arrowOnlyCollapse))
+          .onChange(async (value) => {
+            this.plugin.data.arrowOnlyCollapse = value;
+            await this.plugin.save();
+          })
+      );
+  }
+}
 
 /* List on the left, settings on the right. This keeps the window the
    same height whether there are three categories or thirty. On narrow
