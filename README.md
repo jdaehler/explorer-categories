@@ -126,6 +126,23 @@ already works, instead of setting seven things again.
 **Move a category to another group** when a legend turns out to be the
 wrong one. The folders keep their color.
 
+**Move the window.** On the desktop, grab the management window by its
+top strip and drag it aside, next to the file explorer for instance. The
+explorer shows every change as you make it. Next time the window opens in
+the middle again.
+
+## Settings
+
+Settings → Explorer Categories holds one switch, and it has nothing to do
+with categories: **Expand folders only with the arrow.** Turn it on, and
+a click on a folder's name no longer opens or closes the folder. Only the
+arrow in front of it does. It is off by default.
+
+One combination still opens a folder on a click. The Folder notes plugin
+opens the note that lives inside the folder, and if the file explorer is
+set to reveal the active file, Obsidian then expands the folders above
+that note. Closing a folder by its name stays blocked either way.
+
 ## Nothing is written until you save
 
 The window works on a draft. Change a color, rename, delete, restore a
@@ -180,11 +197,15 @@ plugin on under Settings → Community plugins.
 
 ## How it works
 
-The plugin never touches the file explorer. It writes a single `<style>`
-element into the document head and lets Obsidian do the drawing — no
-MutationObserver, nothing running in the background, nothing to slow the
-explorer down. Rules of the same kind are merged, so a vault with several
-hundred colored folders still produces a short stylesheet.
+The plugin does not redraw the file explorer. It writes a single
+`<style>` element into the document head and lets Obsidian do the
+drawing — no MutationObserver, nothing running in the background, nothing
+to slow the explorer down. Rules of the same kind are merged, so a vault
+with several hundred colored folders still produces a short stylesheet.
+
+The one exception is the arrow switch under Settings. While it is on, the
+plugin listens for clicks on folder names and tells Obsidian to ignore
+them. It changes nothing else in the explorer.
 
 ## Requirements
 

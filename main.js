@@ -5,9 +5,13 @@
  * whole point of the plugin.
  *
  * HOW IT IS BUILT
- * The plugin never touches the file explorer. It writes one <style>
+ * The plugin does not redraw the file explorer. It writes one <style>
  * element into the document head and lets Obsidian do the drawing. No
  * MutationObserver, nothing running in the background.
+ *
+ * The one exception is the setting "Expand folders only with the
+ * arrow": while it is on, a click listener tells Obsidian to ignore
+ * clicks on folder names. It changes nothing in the explorer itself.
  *
  * NO PERSONAL DATA IN THE SOURCE
  * The three categories below are neutral examples. Real assignments live
