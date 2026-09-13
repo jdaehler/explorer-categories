@@ -2455,22 +2455,17 @@ class CategoriesModal extends Modal {
        Reported 2026-08-29: pressing "Background" left the row in the
        list uncoloured until something else was changed. */
     const listRow = this.rows && this.rows.get(cat.id);
-    /* The selected row follows the open view, the other rows stay with
-       the parent.
+    /* Every row shows the parent, the selected one included, whichever
+       view is open. A row stands for the category, and the category's
+       own look is the parent's.
      *
-       Asked on 2026-09-04 why the parent showed a bar while the
-       children were being set to a dot -- there was no feedback at all
-       for the side being edited. Only the selected row switches,
-       because it is the one already marked as belonging to the panel;
-       switching all of them would make four rows claim something about a
-       category nobody is editing. */
+       From 2026-09-04 to 2026-09-13 the selected row switched to the
+       children's look in the children's view, as feedback while editing.
+       Taken back on 2026-09-13: setting the children to a dot put a dot
+       on the row that stands for the parent, which read as a fault. The
+       lit buttons and the file explorer show the children's look. */
     if (listRow) {
-      this.drawRowStyle(
-        listRow,
-        cat.farbe,
-        kinderAnsicht ? stil : vaterStil,
-        kinderAnsicht ? zeigeIcon : cat.icon
-      );
+      this.drawRowStyle(listRow, cat.farbe, vaterStil, cat.icon);
     }
 
     /* --- Colour and name ------------------------------------------ */
