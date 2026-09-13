@@ -469,6 +469,28 @@ function isFolderNameClick(evt) {
   return true;
 }
 
+/* Where a dragged management window may go.
+ *
+ * base   the window's rectangle as it stands without any offset
+ * dx, dy the offset the pointer asks for
+ * viewW, viewH the size of the Obsidian window
+ *
+ * The title row is the only grip, so it must never leave the screen:
+ * the top edge stays at or below the top, and at least GRIP pixels of
+ * the window stay inside on the left, right and bottom. A window that
+ * slips out of reach could only be closed with Escape.
+ *
+ * On a screen smaller than the window the two limits can cross. Then
+ * the lower one wins, which keeps the title reachable. */
+function clampWindowOffset(base, dx, dy, viewW, viewH) {
+  const GRIP = 48;
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+  return {
+    x: clamp(dx, GRIP - base.right, viewW - GRIP - base.left),
+    y: clamp(dy, -base.top, viewH - GRIP - base.top),
+  };
+}
+
 /* The phone's backup folder, and only the phone's.
  *
  * On the desktop a backup leaves the vault altogether and goes to the
@@ -1766,8 +1788,78 @@ class CategoriesModal extends Modal {
 
   onOpen() {
     this.modalEl.addClass('fc-window');
+    /* Desktop only. On iPhone and iPad the window fills the screen, so
+       there is nowhere to move it to. */
+    if (Platform.isDesktopApp) this.makeDraggable();
     this.plugin.startDraft();
     this.draw();
+  }
+
+  /* Lets the window be moved by its title, so the file explorer can be
+   * seen next to it -- the tree shows every change straight away.
+   *
+   * Checked in the obsidian.asar on 2026-09-13: Obsidian centres a
+   * dialog with flexbox on .modal-container, and .modal itself is
+   * position: relative. Setting left and top on our own window moves it
+   * without touching a single rule of Obsidian's.
+   *
+   * The listeners sit on the window, not on the title: draw() rebuilds
+   * the content, and a listener on the old h2 would go with it.
+   *
+   * Not remembered: every opening starts in the middle again, as
+   * agreed. */
+  makeDraggable() {
+    const win = this.modalEl;
+    win.addClass('fc-draggable');
+    const view = win.ownerDocument.defaultView || window;
+    const offset = { x: 0, y: 0 };
+    let drag = null;
+
+    win.addEventListener('pointerdown', (evt) => {
+      if (evt.button !== 0) return;
+      const target = evt.target;
+      if (!target || typeof target.closest !== 'function') return;
+      const grip = target.closest('.modal-content > h2');
+      if (!grip || !win.contains(grip)) return;
+
+      /* No text selection while dragging across the window. */
+      evt.preventDefault();
+      const rect = win.getBoundingClientRect();
+      drag = {
+        id: evt.pointerId,
+        startX: evt.clientX - offset.x,
+        startY: evt.clientY - offset.y,
+        base: {
+          left: rect.left - offset.x,
+          right: rect.right - offset.x,
+          top: rect.top - offset.y,
+        },
+      };
+      /* Keeps the pointer's events coming even when it outruns the
+         title. */
+      grip.setPointerCapture(evt.pointerId);
+    });
+
+    win.addEventListener('pointermove', (evt) => {
+      if (!drag || evt.pointerId !== drag.id) return;
+      const next = clampWindowOffset(
+        drag.base,
+        evt.clientX - drag.startX,
+        evt.clientY - drag.startY,
+        view.innerWidth,
+        view.innerHeight
+      );
+      offset.x = next.x;
+      offset.y = next.y;
+      win.style.left = `${next.x}px`;
+      win.style.top = `${next.y}px`;
+    });
+
+    const stop = (evt) => {
+      if (drag && evt.pointerId === drag.id) drag = null;
+    };
+    win.addEventListener('pointerup', stop);
+    win.addEventListener('pointercancel', stop);
   }
 
   /* The last line of defence. Whoever gets here without going through

@@ -74,6 +74,18 @@
   --dialog-width: 900px;
 }
 
+/* The title is the grip for moving the window, on the desktop only --
+   the class is set there and nowhere else. No text selection, or a
+   drag would highlight the title instead of moving the window. */
+.fc-window.fc-draggable .modal-content > h2 {
+  cursor: grab;
+  user-select: none;
+}
+
+.fc-window.fc-draggable .modal-content > h2:active {
+  cursor: grabbing;
+}
+
 .fc-window .modal-content {
   display: flex;
   flex-direction: column;
