@@ -152,6 +152,17 @@ const TEXTS_DE = {
   deleteGroup: 'Gruppe löschen',
   duplicateGroup: 'Gruppe duplizieren',
   duplicateLabel: 'Duplizieren',
+  /* Copy and paste: a group or one category into another vault. */
+  copyGroup: 'Gruppe kopieren',
+  copyLabel: 'Kopieren',
+  pasteLabel: 'Einfügen',
+  pasteHint: 'Eine kopierte Gruppe oder Kategorie hier einfügen',
+  copied: (name) =>
+    `„${name}" liegt in der Zwischenablage. Im anderen Vault mit „Einfügen" holen.`,
+  pastedGroup: (name) => `Gruppe „${name}" eingefügt.`,
+  pastedCategory: (name) => `„${name}" eingefügt.`,
+  pasteNothing: 'In der Zwischenablage liegt keine kopierte Gruppe oder Kategorie.',
+  clipboardFailed: 'Die Zwischenablage ließ sich nicht erreichen.',
   groupField: 'Gruppe',
   groupSwitch: 'In eine andere Gruppe verschieben',
   copyName: (name) => `${name} (Kopie)`,
@@ -272,6 +283,16 @@ const TEXTS_EN = {
   deleteGroup: 'Delete group',
   duplicateGroup: 'Duplicate group',
   duplicateLabel: 'Duplicate',
+  copyGroup: 'Copy group',
+  copyLabel: 'Copy',
+  pasteLabel: 'Paste',
+  pasteHint: 'Paste a copied group or category here',
+  copied: (name) =>
+    `"${name}" is on the clipboard. Use Paste in the other vault.`,
+  pastedGroup: (name) => `Group "${name}" pasted.`,
+  pastedCategory: (name) => `"${name}" pasted.`,
+  pasteNothing: 'The clipboard holds no copied group or category.',
+  clipboardFailed: 'The clipboard could not be reached.',
   groupField: 'Group',
   groupSwitch: 'Move to another group',
   copyName: (name) => `${name} copy`,
@@ -936,13 +957,138 @@ class ExplorerCategoriesPlugin extends Plugin {
      than handed on: sharing the object would tie the two categories
      together, and a switch flipped on one would move on the other. */
   categoryCopy(template, id, groupId, name) {
-    return {
+    const copy = {
       id,
       name,
       farbe: template.farbe,
       gruppe: groupId,
       icon: template.icon || null,
       stil: Object.assign({}, STYLE_DEFAULT, template.stil || {}),
+    };
+    /* The children's own look travels too. Missing until 1.3.0: a
+       duplicate lost it and its subfolders fell back to the parent's
+       look. Copied, not shared, for the same reason as the style. */
+    if (template.childStyle) {
+      copy.childStyle = Object.assign({}, template.childStyle);
+    }
+    return copy;
+  }
+
+  /* --- Copy and paste between vaults ------------------------------- */
+
+  /* A group, or one category, as text for the clipboard.
+   *
+   * The way to carry part of a legend into another vault. A backup
+   * takes everything and, loaded, replaces everything; this takes one
+   * piece and adds it on the other side.
+   *
+   * Folder assignments stay behind: they are paths in this vault, and
+   * the other vault has folders of its own. What travels is what the
+   * category looks like -- through categoryCopy, so a field added there
+   * one day travels without anybody remembering this place. */
+  clipText(kind, id) {
+    let group = null;
+    let cats;
+    if (kind === 'group') {
+      group = this.data.gruppen.find((g) => g.id === id);
+      if (!group) return null;
+      cats = this.categoriesIn(id);
+    } else {
+      const cat = this.data.kategorien.find((k) => k.id === id);
+      if (!cat) return null;
+      cats = [cat];
+    }
+
+    const looks = cats.map((k) => {
+      const look = this.categoryCopy(k, null, null, k.name);
+      delete look.id;
+      delete look.gruppe;
+      return look;
+    });
+
+    return JSON.stringify(
+      {
+        plugin: 'explorer-categories',
+        kind: group ? 'group' : 'category',
+        version: this.manifest ? this.manifest.version : '',
+        group: group ? { name: group.name } : null,
+        kategorien: looks,
+      },
+      null,
+      2
+    );
+  }
+
+  /* Reads what clipText wrote and adds it. Hands back where it landed,
+   * or throws with a sentence that can go straight in front of a person.
+   *
+   * A group arrives as a new group at the end, with all its categories.
+   * A category arrives at the end of the group that is open. Nothing
+   * already here is touched -- pasting only ever adds, which is the
+   * whole difference to loading a backup.
+   *
+   * A name already taken gets the same suffix a duplicate gets: two
+   * entries called alike in one list cannot be told apart. */
+  async pasteText(text, targetGroupId) {
+    let raw = null;
+    try {
+      raw = JSON.parse(text);
+    } catch (e) {
+      raw = null;
+    }
+
+    const usable =
+      raw && raw.plugin === 'explorer-categories' && Array.isArray(raw.kategorien)
+        ? raw.kategorien.filter(
+            (k) => k && typeof k.name === 'string' && typeof k.farbe === 'string'
+          )
+        : [];
+    if (!usable.length) throw new Error(TEXTS.pasteNothing);
+
+    const gruppen = this.data.gruppen;
+    let groupId;
+    let groupName = null;
+
+    if (raw.kind === 'group') {
+      const wanted = (raw.group && raw.group.name) || TEXTS.groupNewDefault;
+      groupName = gruppen.some((g) => g.name === wanted)
+        ? TEXTS.copyName(wanted)
+        : wanted;
+      groupId = newId('grp', gruppen.map((g) => g.id));
+      gruppen.push({ id: groupId, name: groupName });
+    } else {
+      groupId = gruppen.some((g) => g.id === targetGroupId)
+        ? targetGroupId
+        : gruppen[0].id;
+    }
+
+    /* Grows with every category added, same as in duplicateGroup: all
+       of them fall in the same millisecond. */
+    const assigned = this.data.kategorien.map((k) => k.id);
+    const namesHere = this.categoriesIn(groupId).map((k) => k.name);
+    let firstId = null;
+    let firstName = null;
+
+    for (const look of usable) {
+      const id = newId('kat', assigned);
+      assigned.push(id);
+      const name = namesHere.includes(look.name)
+        ? TEXTS.copyName(look.name)
+        : look.name;
+      namesHere.push(name);
+      this.data.kategorien.push(this.categoryCopy(look, id, groupId, name));
+      if (!firstId) {
+        firstId = id;
+        firstName = name;
+      }
+    }
+
+    await this.save();
+    return {
+      kind: raw.kind === 'group' ? 'group' : 'category',
+      groupId,
+      catId: firstId,
+      name: groupName || firstName,
     };
   }
 
@@ -2274,6 +2420,53 @@ class CategoriesModal extends Modal {
     new Notice(TEXTS.backupLoaded);
   }
 
+  /* The system clipboard, so the text survives switching vaults --
+     another vault is another window, and only the clipboard is shared
+     between them. */
+  async copyToClipboard(kind, id, name) {
+    const text = this.plugin.clipText(kind, id);
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      new Notice(TEXTS.clipboardFailed);
+      return;
+    }
+    new Notice(TEXTS.copied(name));
+  }
+
+  /* Lands in the draft like every other change here: Save keeps it,
+     Cancel takes it out again. What arrived is selected, so it is in
+     view even when a whole group came and opened a tab of its own. */
+  async pasteFromClipboard() {
+    let text;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch (e) {
+      new Notice(TEXTS.clipboardFailed);
+      return;
+    }
+
+    let result;
+    try {
+      result = await this.plugin.pasteText(text, this.chosenGroup);
+    } catch (e) {
+      new Notice(e.message || TEXTS.pasteNothing);
+      return;
+    }
+
+    this.chosenGroup = result.groupId;
+    this.chosen = result.catId;
+    this.fillTabs();
+    this.fillList();
+    this.fillDetail();
+    new Notice(
+      result.kind === 'group'
+        ? TEXTS.pastedGroup(result.name)
+        : TEXTS.pastedCategory(result.name)
+    );
+  }
+
   /* Only the list is redrawn, same as for the arrows: sorting changes
      the order, not the settings of the category that stays selected. */
   async sortCategories(absteigend) {
@@ -2411,6 +2604,26 @@ class CategoriesModal extends Modal {
       this.fillList();
       this.fillDetail();
     });
+
+    /* Copy and paste carry a legend, or one category of it, into
+       another vault. Paste lives here and not under the category: it
+       does not act on the category shown, it adds to this group -- or,
+       with a whole group on the clipboard, next to it. One button for
+       both, since the clipboard already says which it is. */
+    const copy = row.createEl('button', {
+      cls: 'fc-groupcopy',
+      text: TEXTS.copyGroup,
+    });
+    copy.addEventListener('click', () =>
+      this.copyToClipboard('group', gruppe.id, gruppe.name)
+    );
+
+    const paste = row.createEl('button', {
+      cls: 'fc-grouppaste',
+      text: TEXTS.pasteLabel,
+    });
+    paste.setAttribute('title', TEXTS.pasteHint);
+    paste.addEventListener('click', () => this.pasteFromClipboard());
 
     /* Hidden rather than disabled while there is only one group: a
        button that can never be pressed is just a thing to wonder
@@ -2918,6 +3131,12 @@ class CategoriesModal extends Modal {
       this.fillList();
       this.fillDetail();
     });
+
+    /* For another vault; Paste sits in the group row above. */
+    const copy = footer.createEl('button', { text: TEXTS.copyLabel });
+    copy.addEventListener('click', () =>
+      this.copyToClipboard('category', cat.id, cat.name)
+    );
 
     /* Moving to another group, in the row that is already there rather
        than in a line of its own: the settings column has no height to

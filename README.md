@@ -126,6 +126,13 @@ already works, instead of setting seven things again.
 **Move a category to another group** when a legend turns out to be the
 wrong one. The folders keep their color.
 
+**Copy a group or a single category into another vault.** "Copy group"
+in the group row, or "Copy" under a category, puts it on the clipboard.
+In the other vault, "Paste" in the group row adds it: a group arrives as
+a new group, a category lands in the group that is open. Nothing there is
+replaced. Folder assignments stay behind, since the other vault has
+folders of its own. A name that is already taken gets "copy" added.
+
 **Move the window.** On the desktop, grab the management window by its
 top strip and drag it aside, next to the file explorer for instance. The
 explorer shows every change as you make it. Next time the window opens in

@@ -218,7 +218,9 @@
   min-width: 0;
 }
 
-.fc-groupduplicate {
+.fc-groupduplicate,
+.fc-groupcopy,
+.fc-grouppaste {
   flex: 0 0 auto;
   font-size: var(--font-ui-smaller);
 }
