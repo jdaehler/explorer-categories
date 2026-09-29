@@ -201,7 +201,7 @@
 }
 
 /* Name and delete for the active group, under the tabs. */
-/* Arrows, name, duplicate, delete. Five things in one row: it may wrap
+/* Arrows, name, copy, paste, delete. Six things in one row: it may wrap
    rather than squeeze the name field to nothing. */
 .fc-grouprow {
   display: flex;
@@ -218,7 +218,6 @@
   min-width: 0;
 }
 
-.fc-groupduplicate,
 .fc-groupcopy,
 .fc-grouppaste {
   flex: 0 0 auto;

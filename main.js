@@ -150,22 +150,23 @@ const TEXTS_DE = {
   groupNewDefault: 'Neue Gruppe',
   groupName: 'Name der Gruppe',
   deleteGroup: 'Gruppe löschen',
-  duplicateGroup: 'Gruppe duplizieren',
-  duplicateLabel: 'Duplizieren',
-  /* Copy and paste: a group or one category into another vault. */
+  /* Copy and paste: a group or one category, into this vault or
+     another. Pasting into the same vault is what "Duplicate" used to
+     be. */
   copyGroup: 'Gruppe kopieren',
   copyLabel: 'Kopieren',
   pasteLabel: 'Einfügen',
   pasteHint: 'Eine kopierte Gruppe oder Kategorie hier einfügen',
   copied: (name) =>
-    `„${name}" liegt in der Zwischenablage. Im anderen Vault mit „Einfügen" holen.`,
+    `„${name}" kopiert. Einfügen geht hier oder in einem anderen Vault.`,
   pastedGroup: (name) => `Gruppe „${name}" eingefügt.`,
   pastedCategory: (name) => `„${name}" eingefügt.`,
   pasteNothing: 'In der Zwischenablage liegt keine kopierte Gruppe oder Kategorie.',
   clipboardFailed: 'Die Zwischenablage ließ sich nicht erreichen.',
-  groupField: 'Gruppe',
+  groupField: 'Verschieben nach',
   groupSwitch: 'In eine andere Gruppe verschieben',
   copyName: (name) => `${name} (Kopie)`,
+  copyNameNumbered: (name, n) => `${name} (Kopie ${n})`,
   groupDeleteQuestion: (name, n) =>
     n === 0
       ? `Gruppe „${name}" löschen?`
@@ -281,21 +282,19 @@ const TEXTS_EN = {
   groupNewDefault: 'New group',
   groupName: 'Group name',
   deleteGroup: 'Delete group',
-  duplicateGroup: 'Duplicate group',
-  duplicateLabel: 'Duplicate',
   copyGroup: 'Copy group',
   copyLabel: 'Copy',
   pasteLabel: 'Paste',
   pasteHint: 'Paste a copied group or category here',
-  copied: (name) =>
-    `"${name}" is on the clipboard. Use Paste in the other vault.`,
+  copied: (name) => `"${name}" copied. Paste it here or in another vault.`,
   pastedGroup: (name) => `Group "${name}" pasted.`,
   pastedCategory: (name) => `"${name}" pasted.`,
   pasteNothing: 'The clipboard holds no copied group or category.',
   clipboardFailed: 'The clipboard could not be reached.',
-  groupField: 'Group',
+  groupField: 'Move to',
   groupSwitch: 'Move to another group',
   copyName: (name) => `${name} copy`,
+  copyNameNumbered: (name, n) => `${name} copy ${n}`,
   groupDeleteQuestion: (name, n) =>
     n === 0
       ? `Delete group "${name}"?`
@@ -859,74 +858,6 @@ class ExplorerCategoriesPlugin extends Plugin {
     return true;
   }
 
-  /* Copies a whole legend: the group and every category in it.
-   *
-   * Made for the case the groups exist for -- one legend per book. A new
-   * book with a similar legend would otherwise mean building nine
-   * categories again by hand.
-   *
-   * The copied group lands directly behind the original, so it stands
-   * where it was made rather than at the far end of the tab strip.
-   *
-   * The categories are appended at the end of the array. Order only ever
-   * counts within a group, and these are all new, so appending keeps
-   * them in the order they were copied in.
-   *
-   * Only the group's name gets "(copy)". The categories keep theirs --
-   * the legend is being copied, not renamed.
-   *
-   * The folder assignments stay behind on purpose. A copy colouring the
-   * same folders would put two categories on one folder, and the tree
-   * can only show one. */
-  async duplicateGroup(groupId) {
-    const gruppen = this.data.gruppen;
-    const from = gruppen.findIndex((g) => g.id === groupId);
-    if (from < 0) return null;
-
-    const template = gruppen[from];
-    const fresh = {
-      id: newId('grp', gruppen.map((g) => g.id)),
-      name: TEXTS.copyName(template.name),
-    };
-    gruppen.splice(from + 1, 0, fresh);
-
-    /* The ids taken grow with every copy made here -- all of them fall
-       in the same millisecond, so asking the array once at the start
-       would not be enough. */
-    const assigned = this.data.kategorien.map((k) => k.id);
-    for (const cat of this.categoriesIn(groupId)) {
-      const id = newId('kat', assigned);
-      assigned.push(id);
-      this.data.kategorien.push(this.categoryCopy(cat, id, fresh.id, cat.name));
-    }
-
-    await this.save();
-    return fresh.id;
-  }
-
-  /* Copies a category with everything that makes it look the way it
-     does, and puts the copy directly behind the original -- the place
-     you were looking at when you asked for it.
-
-     No folder assignments, same reason as above. */
-  async duplicateCategory(catId) {
-    const all = this.data.kategorien;
-    const from = all.findIndex((k) => k.id === catId);
-    if (from < 0) return null;
-
-    const template = all[from];
-    const id = newId('kat', all.map((k) => k.id));
-
-    all.splice(
-      from + 1,
-      0,
-      this.categoryCopy(template, id, template.gruppe, TEXTS.copyName(template.name))
-    );
-
-    await this.save();
-    return id;
-  }
-
   /* Moves a category into another group.
    *
    * Only the field changes -- the folders keep their colour, because
@@ -966,26 +897,30 @@ class ExplorerCategoriesPlugin extends Plugin {
       stil: Object.assign({}, STYLE_DEFAULT, template.stil || {}),
     };
     /* The children's own look travels too. Missing until 1.3.0: a
-       duplicate lost it and its subfolders fell back to the parent's
-       look. Copied, not shared, for the same reason as the style. */
+       copy lost it and its subfolders fell back to the parent's look.
+       Copied, not shared, for the same reason as the style. */
     if (template.childStyle) {
       copy.childStyle = Object.assign({}, template.childStyle);
     }
     return copy;
   }
 
-  /* --- Copy and paste between vaults ------------------------------- */
+  /* --- Copy and paste --------------------------------------------- */
 
   /* A group, or one category, as text for the clipboard.
    *
-   * The way to carry part of a legend into another vault. A backup
-   * takes everything and, loaded, replaces everything; this takes one
-   * piece and adds it on the other side.
+   * Pasted into another vault, it carries part of a legend across: a
+   * backup takes everything and, loaded, replaces everything; this takes
+   * one piece and adds it. Pasted into the same vault, it is what the
+   * "Duplicate" buttons did until 1.3.0 -- they went, since the two did
+   * the same thing under two names.
    *
-   * Folder assignments stay behind: they are paths in this vault, and
-   * the other vault has folders of its own. What travels is what the
-   * category looks like -- through categoryCopy, so a field added there
-   * one day travels without anybody remembering this place. */
+   * Folder assignments stay behind either way. In another vault they
+   * are paths that do not exist; in this one a copy colouring the same
+   * folders would put two categories on one folder, and the tree can
+   * only show one. What travels is what the category looks like --
+   * through categoryCopy, so a field added there one day travels without
+   * anybody remembering this place. */
   clipText(kind, id) {
     let group = null;
     let cats;
@@ -1022,14 +957,17 @@ class ExplorerCategoriesPlugin extends Plugin {
   /* Reads what clipText wrote and adds it. Hands back where it landed,
    * or throws with a sentence that can go straight in front of a person.
    *
-   * A group arrives as a new group at the end, with all its categories.
-   * A category arrives at the end of the group that is open. Nothing
+   * A group arrives as a new group directly behind the open one, with
+   * all its categories. A category arrives in the open group, directly
+   * behind the selected one, or at the end with nothing selected there.
+   * Copy and paste on the same entry therefore puts the copy right
+   * behind the original, where "Duplicate" used to put it. Nothing
    * already here is touched -- pasting only ever adds, which is the
    * whole difference to loading a backup.
    *
-   * A name already taken gets the same suffix a duplicate gets: two
-   * entries called alike in one list cannot be told apart. */
-  async pasteText(text, targetGroupId) {
+   * A group's categories keep their names: the legend is copied, not
+   * renamed. Only a name already taken changes, see freeName. */
+  async pasteText(text, targetGroupId, afterCatId) {
     let raw = null;
     try {
       raw = JSON.parse(text);
@@ -1046,25 +984,38 @@ class ExplorerCategoriesPlugin extends Plugin {
     if (!usable.length) throw new Error(TEXTS.pasteNothing);
 
     const gruppen = this.data.gruppen;
+    const all = this.data.kategorien;
     let groupId;
     let groupName = null;
+    /* Where in the category array the new ones go. Order only counts
+       within a group, so for a new group the end is as good as any. */
+    let slot = all.length;
 
     if (raw.kind === 'group') {
       const wanted = (raw.group && raw.group.name) || TEXTS.groupNewDefault;
-      groupName = gruppen.some((g) => g.name === wanted)
-        ? TEXTS.copyName(wanted)
-        : wanted;
+      groupName = freeName(wanted, gruppen.map((g) => g.name));
       groupId = newId('grp', gruppen.map((g) => g.id));
-      gruppen.push({ id: groupId, name: groupName });
+      const open = gruppen.findIndex((g) => g.id === targetGroupId);
+      gruppen.splice(open < 0 ? gruppen.length : open + 1, 0, {
+        id: groupId,
+        name: groupName,
+      });
     } else {
       groupId = gruppen.some((g) => g.id === targetGroupId)
         ? targetGroupId
         : gruppen[0].id;
+      /* Behind the selection only if it stands in this very group --
+         the array interleaves the groups, and behind a category of
+         another group would mean nowhere in particular in this one. */
+      const selected = all.findIndex(
+        (k) => k.id === afterCatId && k.gruppe === groupId
+      );
+      if (selected >= 0) slot = selected + 1;
     }
 
-    /* Grows with every category added, same as in duplicateGroup: all
-       of them fall in the same millisecond. */
-    const assigned = this.data.kategorien.map((k) => k.id);
+    /* Grows with every category added: all of them fall in the same
+       millisecond, so asking the array once would not be enough. */
+    const assigned = all.map((k) => k.id);
     const namesHere = this.categoriesIn(groupId).map((k) => k.name);
     let firstId = null;
     let firstName = null;
@@ -1072,11 +1023,10 @@ class ExplorerCategoriesPlugin extends Plugin {
     for (const look of usable) {
       const id = newId('kat', assigned);
       assigned.push(id);
-      const name = namesHere.includes(look.name)
-        ? TEXTS.copyName(look.name)
-        : look.name;
+      const name = freeName(look.name, namesHere);
       namesHere.push(name);
-      this.data.kategorien.push(this.categoryCopy(look, id, groupId, name));
+      all.splice(slot, 0, this.categoryCopy(look, id, groupId, name));
+      slot++;
       if (!firstId) {
         firstId = id;
         firstName = name;
@@ -2437,7 +2387,8 @@ class CategoriesModal extends Modal {
 
   /* Lands in the draft like every other change here: Save keeps it,
      Cancel takes it out again. What arrived is selected, so it is in
-     view even when a whole group came and opened a tab of its own. */
+     view even when a whole group came and opened a tab of its own --
+     and a copy made in the same vault is usually renamed next. */
   async pasteFromClipboard() {
     let text;
     try {
@@ -2449,7 +2400,7 @@ class CategoriesModal extends Modal {
 
     let result;
     try {
-      result = await this.plugin.pasteText(text, this.chosenGroup);
+      result = await this.plugin.pasteText(text, this.chosenGroup, this.chosen);
     } catch (e) {
       new Notice(e.message || TEXTS.pasteNothing);
       return;
@@ -2587,30 +2538,14 @@ class CategoriesModal extends Modal {
       if (button) button.setText(name.value);
     });
 
-    /* Copies the whole legend. Stands before Delete, so the harmless
-       button is the one closer to the middle of the row. */
-    const duplicate = row.createEl('button', {
-      cls: 'fc-groupduplicate',
-      text: TEXTS.duplicateGroup,
-    });
-    duplicate.addEventListener('click', async () => {
-      const id = await this.plugin.duplicateGroup(gruppe.id);
-      if (!id) return;
-
-      this.chosenGroup = id;
-      const first = this.plugin.categoriesIn(id)[0];
-      this.chosen = first ? first.id : null;
-      this.fillTabs();
-      this.fillList();
-      this.fillDetail();
-    });
-
-    /* Copy and paste carry a legend, or one category of it, into
-       another vault. Paste adds to this group -- or, with a whole group
-       on the clipboard, next to it. One button for both, since the
-       clipboard already says which it is. A second one stands beside
-       Copy under the category; this one is for an empty group, which
-       has no category and so no footer. */
+    /* Copy and paste carry a legend, or one category of it, into this
+       vault or another. Paste adds to this group -- or, with a whole
+       group on the clipboard, next to it. One button for both, since
+       the clipboard already says which it is. A second one stands
+       beside Copy under the category; this one is for an empty group,
+       which has no category and so no footer. Both stand before
+       Delete, so the harmless buttons are the ones closer to the middle
+       of the row. */
     const copy = row.createEl('button', {
       cls: 'fc-groupcopy',
       text: TEXTS.copyGroup,
@@ -3119,24 +3054,15 @@ class CategoriesModal extends Modal {
     /* --- Loeschen -------------------------------------------------- */
     const footer = this.detailEl.createDiv({ cls: 'fc-detailfooter' });
 
-    /* Duplicating sits next to deleting because both act on the category
-       shown above, and nowhere else does. Delete stays on the far right,
-       away from the hand. */
-    const duplicate = footer.createEl('button', { text: TEXTS.duplicateLabel });
-    duplicate.addEventListener('click', async () => {
-      const id = await this.plugin.duplicateCategory(cat.id);
-      if (!id) return;
-      /* The copy is selected straight away: it is called "... (copy)"
-         and the first thing anyone does is rename it. */
-      this.chosen = id;
-      this.fillList();
-      this.fillDetail();
-    });
+    /* Copy sits next to Delete because both act on the category shown
+       above, and nowhere else does. Delete stays on the far right, away
+       from the hand.
 
-    /* For another vault. Paste stands right beside Copy, where the hand
-       looks for it -- placed only in the group row above at first, it
-       was searched for here and not found. The one in the group row
-       stays: an empty group shows no footer at all. */
+       Paste stands right beside Copy, where the hand looks for it --
+       placed only in the group row above at first, it was searched for
+       here and not found. The one in the group row stays: an empty
+       group shows no footer at all. Copy and Paste in a row on the same
+       category is what "Duplicate" was until 1.3.0. */
     const copy = footer.createEl('button', { text: TEXTS.copyLabel });
     copy.addEventListener('click', () =>
       this.copyToClipboard('category', cat.id, cat.name)
@@ -3508,8 +3434,8 @@ function catchUpGroups(data, defaultName) {
 
 /* A fresh id that is really free.
  *
- * Date.now() on its own is not enough any more. Duplicating a group
- * makes a copy of every category in it within the same millisecond --
+ * Date.now() on its own is not enough any more. Pasting a group makes
+ * a copy of every category in it within the same millisecond --
  * they would all come out with the same id, and a category is looked up
  * by id everywhere: in the folder assignments, in the stylesheet, in the
  * window. The second one would quietly state in for the first.
@@ -3524,6 +3450,23 @@ function newId(prefix, assigned) {
   let n = 2;
   while (taken.has(candidate)) {
     candidate = `${prefix}-${now}-${n}`;
+    n++;
+  }
+  return candidate;
+}
+
+/* A name nobody in the list carries yet: the name itself, else
+ * "name (copy)", else "name (copy 2)", "name (copy 3)" and on. Two
+ * entries called alike in one list cannot be told apart -- and pasting
+ * the same category three times is exactly how to get there. */
+function freeName(name, taken) {
+  const names = new Set(taken || []);
+  if (!names.has(name)) return name;
+
+  let candidate = TEXTS.copyName(name);
+  let n = 2;
+  while (names.has(candidate)) {
+    candidate = TEXTS.copyNameNumbered(name, n);
     n++;
   }
   return candidate;

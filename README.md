@@ -120,19 +120,22 @@ or back. The same pair of arrows sits next to the group tabs and moves the
 whole group left or right. Sorting touches the open group only — the other
 legends keep their places.
 
-**Duplicate a category** to start a new one from an appearance that
-already works, instead of setting seven things again.
+**Copy and paste a category or a whole group**, in the same vault or
+into another one. "Copy" under a category, or "Copy group" in the group
+row, puts it on the clipboard. "Paste" sits right next to "Copy", and in
+the group row as well for an empty group. A category lands in the open
+group, right behind the selected one. A group arrives as a new group
+right behind the open one.
 
-**Move a category to another group** when a legend turns out to be the
-wrong one. The folders keep their color.
+In the same vault this is how you start a new category from an
+appearance that already works, instead of setting seven things again.
+In another vault it carries part of a legend across without touching
+what is there. Either way nothing is replaced, and folder assignments
+stay behind. A name that is already taken gets "copy" added, then
+"copy 2" and so on.
 
-**Copy a group or a single category into another vault.** "Copy group"
-in the group row, or "Copy" under a category, puts it on the clipboard.
-In the other vault, "Paste" adds it, next to "Copy" or in the group row
-for an empty group: a group arrives as a new group, a category lands in
-the group that is open. Nothing there is
-replaced. Folder assignments stay behind, since the other vault has
-folders of its own. A name that is already taken gets "copy" added.
+**Move a category to another group** with "Move to" when a legend turns
+out to be the wrong one. Unlike a copy, the folders keep their color.
 
 **Move the window.** On the desktop, grab the management window by its
 top strip and drag it aside, next to the file explorer for instance. The
