@@ -128,8 +128,9 @@ wrong one. The folders keep their color.
 
 **Copy a group or a single category into another vault.** "Copy group"
 in the group row, or "Copy" under a category, puts it on the clipboard.
-In the other vault, "Paste" in the group row adds it: a group arrives as
-a new group, a category lands in the group that is open. Nothing there is
+In the other vault, "Paste" adds it, next to "Copy" or in the group row
+for an empty group: a group arrives as a new group, a category lands in
+the group that is open. Nothing there is
 replaced. Folder assignments stay behind, since the other vault has
 folders of its own. A name that is already taken gets "copy" added.
 

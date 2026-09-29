@@ -2606,10 +2606,11 @@ class CategoriesModal extends Modal {
     });
 
     /* Copy and paste carry a legend, or one category of it, into
-       another vault. Paste lives here and not under the category: it
-       does not act on the category shown, it adds to this group -- or,
-       with a whole group on the clipboard, next to it. One button for
-       both, since the clipboard already says which it is. */
+       another vault. Paste adds to this group -- or, with a whole group
+       on the clipboard, next to it. One button for both, since the
+       clipboard already says which it is. A second one stands beside
+       Copy under the category; this one is for an empty group, which
+       has no category and so no footer. */
     const copy = row.createEl('button', {
       cls: 'fc-groupcopy',
       text: TEXTS.copyGroup,
@@ -3132,11 +3133,18 @@ class CategoriesModal extends Modal {
       this.fillDetail();
     });
 
-    /* For another vault; Paste sits in the group row above. */
+    /* For another vault. Paste stands right beside Copy, where the hand
+       looks for it -- placed only in the group row above at first, it
+       was searched for here and not found. The one in the group row
+       stays: an empty group shows no footer at all. */
     const copy = footer.createEl('button', { text: TEXTS.copyLabel });
     copy.addEventListener('click', () =>
       this.copyToClipboard('category', cat.id, cat.name)
     );
+
+    const paste = footer.createEl('button', { text: TEXTS.pasteLabel });
+    paste.setAttribute('title', TEXTS.pasteHint);
+    paste.addEventListener('click', () => this.pasteFromClipboard());
 
     /* Moving to another group, in the row that is already there rather
        than in a line of its own: the settings column has no height to
