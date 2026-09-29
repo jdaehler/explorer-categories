@@ -18,9 +18,14 @@ permissions:
 
 jobs:
   attest:
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest, which moves to 26.04 between
+    # 2026-10-19 and 2026-11-19 (actions/runner-images#14748). Pinned,
+    # the switch happens here, on purpose, and is tested once.
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
+      # v7 runs on Node.js 24; v4 ran on Node.js 20, which GitHub has
+      # deprecated.
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.event.release.tag_name }}
 
