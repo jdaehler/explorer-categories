@@ -93,8 +93,9 @@ them at once rather than only the selected one.
 **Icons come from Obsidian.** "Icon" is the fourth marker, beside None,
 Bar and Dot, and exactly one of the four is on. Pick it and the row below
 says which icon: any icon Obsidian ships with, searchable, drawn in the
-category's colour. If the name is unknown — or none has been picked yet —
-the row falls back to the bar rather than going unmarked.
+category's color. Until an icon is picked, the row stays unmarked, and
+the window says so. A name Obsidian does not know falls back to the bar,
+so the mistake shows.
 
 **Renaming keeps the category.** Move a folder or a file, rename it,
 rename a folder above it — the assignment follows.
@@ -161,7 +162,7 @@ backup — none of it reaches your vault until you press **Save**. **Cancel**
 puts everything back the way it was, and closing the window counts as
 cancelling.
 
-**Back up your work.** "Backup" writes your categories, groups and folder
+**Back up your work.** "Back up" writes your categories, groups and folder
 assignments to a readable JSON file: into your downloads folder on the
 desktop, into `explorer-categories-backup/` inside the vault on a phone or
 tablet, where no downloads folder worth the name exists. "Restore" reads
@@ -180,12 +181,14 @@ is no telemetry, no account and no paid tier. Your categories and folder
 assignments live in `data.json` inside your vault, and that is the only
 file the plugin reads or writes on its own.
 
-**Two actions leave the vault, and only when you ask for them.** Pressing
-"Backup" on the desktop hands the file to your browser as a download, the
-way any web page does — it lands in your downloads folder. Pressing
-"Restore" opens the system file dialog and reads the one file you pick.
-The plugin has no access to your disk beyond those two dialogs; it uses no
-Node.js or Electron APIs, which is why it runs on mobile as well.
+**Four actions reach outside the vault, and only when you press them.**
+Pressing "Back up" on the desktop hands the file to your browser as a
+download, the way any web page does — it lands in your downloads folder.
+Pressing "Restore" opens the system file dialog and reads the one file
+you pick. "Copy" and "Copy group" put that group or category on the
+system clipboard, and "Paste" reads the clipboard. The plugin has no
+access to your disk beyond those two dialogs; it uses no Node.js or
+Electron APIs, which is why it runs on mobile as well.
 
 ## Interface language
 

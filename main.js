@@ -63,11 +63,9 @@ const TEXTS_DE = {
      first row says: a colour and a name. */
   areaGroups: 'Gruppen',
   areaCategories: 'Kategorien',
-  /* Telling the folder that carries the assignment apart from the ones
-     that only inherit from it. */
-  /* Zwei Aussehen je Kategorie, seit 1.1.0. Der Umschalter steht ueber
-     den Schaltern, die er umstellt -- man sieht also, was man gerade
-     einstellt, bevor man etwas drueckt. */
+  /* Two looks per category since 1.1.0. The switch between them stands
+     above the switches it redirects, so you see what you are about to
+     edit before you press anything. */
   editingFor: 'Aussehen',
   viewParent: 'Vater',
   viewChildren: 'Kinder',
@@ -796,7 +794,12 @@ class ExplorerCategoriesPlugin extends Plugin {
      inherits from now on if at least one of its folders used to.
      Deliberately generous rather than exact -- the alternative is a
      folder that quietly loses a colour it had yesterday, and that is
-     harder to notice than one that has too much. */
+     harder to notice than one that has too much.
+   *
+     "vererbung" and "dateiVererbung" are the keys as they stand in old
+     data.json files, so they stay German. The English rename in 0.9.46
+     turned the first one into "inheritance" by mistake, and until 1.3.1
+     this read a key no file has ever carried. */
   migrateInheritance() {
     const applyStyle = (path, field) => {
       const catId = this.data.zuordnung[path];
@@ -806,14 +809,14 @@ class ExplorerCategoriesPlugin extends Plugin {
       cat.stil = Object.assign({}, STYLE_DEFAULT, cat.stil || {}, { [field]: true });
     };
 
-    for (const path of Object.keys(this.data.inheritance || {})) {
-      if (this.data.inheritance[path]) applyStyle(path, 'vererbt');
+    for (const path of Object.keys(this.data.vererbung || {})) {
+      if (this.data.vererbung[path]) applyStyle(path, 'vererbt');
     }
     for (const path of Object.keys(this.data.dateiVererbung || {})) {
       if (this.data.dateiVererbung[path]) applyStyle(path, 'vererbtDateien');
     }
 
-    delete this.data.inheritance;
+    delete this.data.vererbung;
     delete this.data.dateiVererbung;
   }
 
@@ -1427,8 +1430,10 @@ class ExplorerCategoriesPlugin extends Plugin {
       .reverse();
   }
 
-  /* Reads one and hands back its data, or throws with a sentence that
-     can go straight in front of a person.
+  /* The check itself, on text. Split off from reading so the file picker
+   * and the vault list run through exactly the same one -- a file chosen
+   * from the downloads folder deserves no less scrutiny than one lying
+   * inside the vault.
    *
    * Both shapes are accepted: the wrapper this plugin writes, and a bare
    * data object -- somebody exporting by copying data.json by hand ends
@@ -1437,10 +1442,6 @@ class ExplorerCategoriesPlugin extends Plugin {
    * Categories are the one thing checked for. Without them there is
    * nothing to restore, and quietly replacing a working set of colours
    * with an empty one is the worst outcome this window has. */
-  /* The check itself, on text. Split off from reading so the file picker
-     and the vault list run through exactly the same one -- a file chosen
-     from the downloads folder deserves no less scrutiny than one lying
-     inside the vault. */
   backupFromText(text) {
     let raw;
     try {
@@ -1456,6 +1457,8 @@ class ExplorerCategoriesPlugin extends Plugin {
     return data;
   }
 
+  /* Reads one from the vault and hands back its data, or throws with a
+     sentence that can go straight in front of a person. */
   async readBackup(path) {
     let text;
     try {
@@ -1645,9 +1648,9 @@ class ExplorerCategoriesPlugin extends Plugin {
 
   async deleteCategory(catId) {
     this.data.kategorien = this.data.kategorien.filter((k) => k.id !== catId);
-    /* Without a category there is nothing left to inherit either. An
-       inheritance flag left behind would quietly take effect again the
-       next time the same folder is assigned one. */
+    /* Its assignments go with it -- in both tables. Left behind they
+       would colour nothing and sit in data.json for good. Inheritance
+       needs nothing here: it lives on the category and is gone with it. */
     this.removeAssignments(catId);
     await this.save();
   }
@@ -2100,11 +2103,11 @@ class CategoriesModal extends Modal {
     const cancel = footer.createEl('button', { text: TEXTS.cancel });
     cancel.addEventListener('click', () => this.close());
 
-    const backup = footer.createEl('button', {
+    const saveButton = footer.createEl('button', {
       text: TEXTS.save,
       cls: 'mod-cta',
     });
-    backup.addEventListener('click', async () => {
+    saveButton.addEventListener('click', async () => {
       await this.plugin.commitDraft();
       super.close();
     });
@@ -2151,7 +2154,7 @@ class CategoriesModal extends Modal {
     }
   }
 
-  /* ---------------- Liste ----------------------------------------- */
+  /* ---------------- List ------------------------------------------ */
 
   fillList() {
     this.listEl.empty();
@@ -2278,7 +2281,7 @@ class CategoriesModal extends Modal {
     });
   }
 
-  /* ---------------- Reihenfolge ----------------------------------- */
+  /* ---------------- Order ----------------------------------------- */
 
   /* One arrow button.
    *
@@ -2437,7 +2440,7 @@ class CategoriesModal extends Modal {
     this.fillTabs();
   }
 
-  /* ---------------- Gruppen --------------------------------------- */
+  /* ---------------- Groups ---------------------------------------- */
 
   /* One tab per group, plus a button to add one. The tabs scroll
      sideways rather than wrapping: with eight legends a wrapping row
@@ -2596,11 +2599,6 @@ class CategoriesModal extends Modal {
      list showed a coloured dot no matter what was set on the right,
      which read as if the setting had not taken.
 
-     Only the marker is mirrored. Background, coloured text and bold stay
-     out of it: a filled row would compete with the highlight on the
-     selected category, and that highlight is what tells you where you
-     are.
-
      With "no marker" the row stays empty, because that is what the tree
      does. Until 0.9.33 a dot stood in, so that a category without a
      marker still showed its colour somewhere -- but a dot the tree does
@@ -2612,7 +2610,8 @@ class CategoriesModal extends Modal {
      marker: background, coloured text, bold and dimming, exactly as the
      tree shows them. That is what let the separate preview section go,
      and it shows every category at once instead of only the selected
-     one. */
+     one. The background wraps the name only, so the highlight of the
+     selected row stays visible around it. */
   drawRowStyle(row, farbe, stil, icon) {
     const target = row.mark;
     const text = row.name;
@@ -2735,7 +2734,10 @@ class CategoriesModal extends Modal {
     const stil = kinderAnsicht
       ? this.plugin.childStyleOf(cat.id) || vaterStil
       : vaterStil;
-    const zeigeIcon = kinderAnsicht
+    /* Changes while typing in the icon field, so the picture in front of
+       it and the hint below follow the name as it is typed. A constant
+       here left both on the icon the panel was drawn with. */
+    let zeigeIcon = kinderAnsicht
       ? this.plugin.childIconOf(cat.id)
       : cat.icon || null;
 
@@ -2809,7 +2811,7 @@ class CategoriesModal extends Modal {
     });
     name.value = cat.name;
 
-    /* --- Vater oder Kinder ----------------------------------------- */
+    /* --- Parent or children ---------------------------------------- */
     /* Sits above everything it switches, so you can see what you are
        about to edit before you press anything.
 
@@ -2856,7 +2858,7 @@ class CategoriesModal extends Modal {
       }
     }
 
-    /* --- Markierung ------------------------------------------------ */
+    /* --- Marker ---------------------------------------------------- */
     const markerField = this.section(TEXTS.markierung);
 
     const gruppe = markerField.createDiv({ cls: 'fc-group' });
@@ -2953,8 +2955,9 @@ class CategoriesModal extends Modal {
       if (unbekannt) iconHintEl.setText(TEXTS.iconUnknown);
       else if (!gilt) iconHintEl.setText(TEXTS.iconOnlyWithMarker);
       /* The one thing left to do: the marker says "icon" and there is
-         none. Said out loud, because the tree falls back to the bar in
-         the meantime and that looks like the setting was ignored. */
+         none. Said out loud, because the tree draws no marker at all in
+         the meantime (see markKind) and that looks like the setting was
+         ignored. */
       else if (!zeigeIcon) iconHintEl.setText(TEXTS.iconNeeded);
       else iconHintEl.setText('');
     };
@@ -3021,7 +3024,7 @@ class CategoriesModal extends Modal {
       text: switchHint,
     });
 
-    /* --- Vererbung ------------------------------------------------- */
+    /* --- Inheritance ----------------------------------------------- */
     /* This is not about looks but about reach: how far the colour
        carries. Used to be two entries in the context menu, set per
        folder -- hard to find, and the only thing about a category that
@@ -3051,7 +3054,7 @@ class CategoriesModal extends Modal {
        who wanted two (coloured text AND an icon, only on the parent)
        ran into a wall. */
 
-    /* --- Loeschen -------------------------------------------------- */
+    /* --- Footer: copy, paste, move, delete -------------------------- */
     const footer = this.detailEl.createDiv({ cls: 'fc-detailfooter' });
 
     /* Copy sits next to Delete because both act on the category shown
@@ -3108,35 +3111,43 @@ class CategoriesModal extends Modal {
 
     const gone = footer.createEl('button', { cls: 'fc-remove', text: TEXTS.remove });
 
-    /* --- Ereignisse ------------------------------------------------ */
+    /* --- Events ---------------------------------------------------- */
 
     /* The colour takes effect immediately, so you can see the tree
        change while still dragging in the picker. Only the row in the
        list is redrawn -- it is the preview since 0.9.43. */
+    /* The row stands for the parent in either view, so it is drawn with
+       the parent's style -- the same as fillDetail does. */
     farbe.addEventListener('input', () => {
       this.plugin.changeCategory(cat.id, { farbe: farbe.value });
       colourPicker();
       const row = this.rows.get(cat.id);
-      if (row) this.drawRowStyle(row, farbe.value, stil, cat.icon);
+      if (row) this.drawRowStyle(row, farbe.value, vaterStil, cat.icon);
     });
 
     /* Same as the name field: no redraw while typing, only the pieces
        that show the icon. A name that matches nothing changes nothing --
        it says so and leaves the saved icon alone, so a half-typed word
-       does not wipe out what was there. */
-    iconField.addEventListener('input', () => {
+       does not wipe out what was there.
+     *
+       Written through setzeIcon like the grid and the remove button.
+       Until 1.3.1 this went straight to the category, and in the
+       children's view typing a name changed the parent's icon. */
+    iconField.addEventListener('input', async () => {
       const id = resolveIcon(iconField.value, this.iconList());
       if (id === null) {
         showIconState(true);
         return;
       }
 
-      this.plugin.changeCategory(cat.id, { icon: id || null });
+      zeigeIcon = id || null;
+      await setzeIcon(zeigeIcon);
+      iconRemove.classList.toggle('fc-placeholder', !zeigeIcon);
       showIconImage();
       showIconState(false);
 
       const row = this.rows.get(cat.id);
-      if (row) this.drawRowStyle(row, cat.farbe, stil, cat.icon);
+      if (row) this.drawRowStyle(row, cat.farbe, vaterStil, cat.icon);
     });
 
     /* Deliberately no redraw while typing, or the field would lose the
@@ -3712,9 +3723,8 @@ function buildTargets(data, nachschlagen) {
 
   /* --- 4. the files themselves ------------------------------------ */
   /* Last, so an assignment of its own beats anything the file inherits.
-     Drawn with the plain style, never the parent one: "set the parent
-     apart" is about a folder standing out from what hangs below it, and
-     a file has nothing below it. */
+     Drawn with the category's own style, never the children's: that one
+     is for what hangs below a folder, and a file has nothing below it. */
   for (const [path, catId] of Object.entries(fileAssignments)) {
     const { farbe, stil, icon } = nachschlagen(catId);
     if (!farbe || !stil) continue;

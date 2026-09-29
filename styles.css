@@ -596,9 +596,8 @@
   text-decoration: none;
 }
 
-/* --- Preview ------------------------------------------------------- */
+/* --- Hints and placeholders ---------------------------------------- */
 
-/* Looks like a row in the file explorer, so the comparison holds. */
 /* The hint keeps its row even when it is empty. Without that, every
    section below it moved up as soon as a category had no icon and no
    background -- and "Delete" moved with them, right under the pointer.
