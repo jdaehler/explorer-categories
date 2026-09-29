@@ -99,7 +99,6 @@ const TEXTS_DE = {
   discardQuestion: 'Die Änderungen verwerfen? Sie gehen dabei verloren.',
   backup: 'Sichern',
   load: 'Laden',
-  backupRestored: (name) => `„${name}" liegt im Download-Ordner.`,
   backupInVault: (name) => `Gesichert als „${name}" im Vault.`,
   backupFailed: 'Die Sicherung konnte nicht geschrieben werden.',
   backupTitle: 'Sicherung laden',
@@ -237,7 +236,6 @@ const TEXTS_EN = {
   discardQuestion: 'Discard the changes? They will be lost.',
   backup: 'Back up',
   load: 'Restore',
-  backupRestored: (name) => `"${name}" is in your downloads folder.`,
   backupInVault: (name) => `Backed up as "${name}" in the vault.`,
   backupFailed: 'The backup could not be written.',
   backupTitle: 'Restore a backup',
@@ -1390,9 +1388,12 @@ class ExplorerCategoriesPlugin extends Plugin {
      * mishap. In the downloads folder it is a genuine second copy, on
      * disk, outside iCloud.
      *
-     * Verified in Obsidian on 2026-08-29: a link with a download
-     * attribute writes straight into the downloads folder, no prompt,
-     * no Electron internals involved. */
+     * A link with a download attribute, no Electron internals involved.
+     * On 2026-08-29 it wrote straight into the downloads folder with no
+     * prompt. On 2026-09-29, same Obsidian 1.13.7 on the same Mac, a save
+     * dialog came up first -- and a cancelled dialog writes nothing. The
+     * page is never told which of the two happened, so the window says
+     * nothing afterwards on the desktop (see the Back up button). */
     if (Platform.isDesktopApp) {
       const url = URL.createObjectURL(new Blob([body], { type: 'application/json' }));
       const link = document.createElement('a');
@@ -2084,11 +2085,12 @@ class CategoriesModal extends Modal {
     backupButton.addEventListener('click', async () => {
       try {
         const state = await this.plugin.writeBackup();
-        new Notice(
-          state.inVault
-            ? TEXTS.backupInVault(state.name)
-            : TEXTS.backupRestored(state.name)
-        );
+        /* Only the phone gets a message: there the file is written by
+           the time this line runs. On the desktop the download may still
+           wait in a save dialog, and "it is in your downloads folder"
+           turned out wrong whenever that dialog was cancelled. Taken out
+           in 1.3.3, on request. */
+        if (state.inVault) new Notice(TEXTS.backupInVault(state.name));
       } catch (e) {
         new Notice(TEXTS.backupFailed);
       }

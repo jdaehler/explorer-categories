@@ -163,9 +163,11 @@ puts everything back the way it was, and closing the window counts as
 cancelling.
 
 **Back up your work.** "Back up" writes your categories, groups and folder
-assignments to a readable JSON file: into your downloads folder on the
-desktop, into `explorer-categories-backup/` inside the vault on a phone or
-tablet, where no downloads folder worth the name exists. "Restore" reads
+assignments to a readable JSON file. On the desktop it is downloaded like
+any file from a web page: it goes to your downloads folder, or your system
+asks where to save it. On a phone or tablet, where no downloads folder
+worth the name exists, it goes into `explorer-categories-backup/` inside
+the vault. "Restore" reads
 one back — through the system file dialog on the desktop, from a list of
 what is in that folder on mobile.
 
@@ -183,7 +185,8 @@ file the plugin reads or writes on its own.
 
 **Four actions reach outside the vault, and only when you press them.**
 Pressing "Back up" on the desktop hands the file to your browser as a
-download, the way any web page does — it lands in your downloads folder.
+download, the way any web page does — it lands in your downloads folder,
+or wherever you choose if your system asks.
 Pressing "Restore" opens the system file dialog and reads the one file
 you pick. "Copy" and "Copy group" put that group or category on the
 system clipboard, and "Paste" reads the clipboard. The plugin has no
