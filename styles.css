@@ -579,21 +579,12 @@
   border-radius: 0 var(--radius-s) var(--radius-s) 0;
 }
 
-/* Coloured text while the background is on: the setting is kept, it
-   just has no effect right now. */
+/* A setting that is kept but has no effect right now: coloured text
+   under a background, the icon line while the marker is not "icon".
+   Dimmed only, never struck through -- a strike reads as broken rather
+   than inactive. The hint underneath says why. Since 1.3.2. */
 .fc-noeffect {
   opacity: 0.45;
-  text-decoration: line-through;
-}
-
-/* Struck-through placeholder text reads as broken rather than inactive:
-   the line runs through a grey hint that was never a value in the first
-   place. The whole row still dims, only the strike is taken back off the
-   field and the button beside it. Reported 2026-09-04. */
-.fc-noeffect .fc-icontext,
-.fc-noeffect .fc-icontext::placeholder,
-.fc-noeffect .fc-iconpaging {
-  text-decoration: none;
 }
 
 /* --- Hints and placeholders ---------------------------------------- */

@@ -86,7 +86,7 @@ const TEXTS_DE = {
   iconWindowTitle: 'Symbol wählen',
   iconNeeded: 'Wähle ein Symbol — bis dahin bleibt die Zeile unmarkiert.',
   iconOnlyWithMarker: 'Wirkt erst, wenn die Markierung auf „Symbol" steht.',
-  iconMore: (gezeigt, gesamt) => `${gezeigt} von ${gesamt} — weiter eingrenzen.`,
+  iconMore: (shown, total) => `${shown} von ${total} — weiter eingrenzen.`,
   folderCountText: (n) => (n === 1 ? '1 Ordner' : `${n} Ordner`),
   deleteQuestion: (name, n) =>
     n === 0
@@ -224,7 +224,7 @@ const TEXTS_EN = {
   iconWindowTitle: 'Choose icon',
   iconNeeded: 'Pick an icon — until then the row stays unmarked.',
   iconOnlyWithMarker: 'Takes effect once the marker is set to "Icon".',
-  iconMore: (gezeigt, gesamt) => `${gezeigt} of ${gesamt} — narrow the search.`,
+  iconMore: (shown, total) => `${shown} of ${total} — narrow the search.`,
   folderCountText: (n) => (n === 1 ? '1 folder' : `${n} folders`),
   deleteQuestion: (name, n) =>
     n === 0
@@ -774,14 +774,14 @@ class ExplorerCategoriesPlugin extends Plugin {
       if (!cat.icon) continue;
       if (stil.markierung === 'keine' || stil.markierung === 'symbol') continue;
 
-      const alteMarke = stil.markierung;
+      const oldMarker = stil.markierung;
 
       /* The children kept bar or dot whenever the icon was taken from
          them. Written out before the parent moves, or the value is
          gone. */
       if (cat.childStyle && 'icon' in cat.childStyle && cat.childStyle.icon === null) {
         if (!cat.childStyle.markierung) {
-          cat.childStyle = Object.assign({}, cat.childStyle, { markierung: alteMarke });
+          cat.childStyle = Object.assign({}, cat.childStyle, { markierung: oldMarker });
         }
       }
 
@@ -1100,14 +1100,14 @@ class ExplorerCategoriesPlugin extends Plugin {
    *
      This one does create the table -- it is only ever called to write
      into it, and the write itself is the change. */
-  tableFor(ordner) {
-    if (ordner) return this.data.zuordnung;
+  tableFor(isFolder) {
+    if (isFolder) return this.data.zuordnung;
     if (!this.data.fileAssignments) this.data.fileAssignments = {};
     return this.data.fileAssignments;
   }
 
-  assignmentOf(path, ordner) {
-    return this.tableFor(ordner)[path] || null;
+  assignmentOf(path, isFolder) {
+    return this.tableFor(isFolder)[path] || null;
   }
 
   styleOf(catId) {
@@ -1147,8 +1147,8 @@ class ExplorerCategoriesPlugin extends Plugin {
      "vererbt", a file follows "vererbtDateien" -- the two are separate
      switches, and answering with the wrong one would name a source the
      colour does not actually come from. */
-  inheritsFrom(path, ordner = true) {
-    const field = ordner ? 'vererbt' : 'vererbtDateien';
+  inheritsFrom(path, isFolder = true) {
+    const field = isFolder ? 'vererbt' : 'vererbtDateien';
     const parts = path.split('/');
 
     for (let i = parts.length - 1; i > 0; i--) {
@@ -1178,12 +1178,12 @@ class ExplorerCategoriesPlugin extends Plugin {
   buildMenuEntry(menu, items) {
     const entries = items.map((o) => ({
       path: o.path,
-      ordner: o instanceof TFolder,
+      isFolder: o instanceof TFolder,
     }));
     const paths = entries.map((e) => e.path);
     const several = paths.length > 1;
 
-    const folderCount = entries.filter((e) => e.ordner).length;
+    const folderCount = entries.filter((e) => e.isFolder).length;
     const fileCount = entries.length - folderCount;
     /* Which of the three wordings the count gets. A pure selection is
        named for what it is; a mixed one falls back to "items". */
@@ -1198,7 +1198,7 @@ class ExplorerCategoriesPlugin extends Plugin {
        for a shared category stays the one function it always was. */
     const lookup = {};
     for (const e of entries) {
-      lookup[e.path] = this.assignmentOf(e.path, e.ordner) || undefined;
+      lookup[e.path] = this.assignmentOf(e.path, e.isFolder) || undefined;
     }
 
     /* With several entries, a checkmark only when all of them really
@@ -1226,19 +1226,19 @@ class ExplorerCategoriesPlugin extends Plugin {
     /* The entries are identical either way; only the place differs:
        inside a submenu, or flat in the main menu.
 
-       "mitUnter" says whether this Obsidian has submenus at all. It is
+       "withSubmenus" says whether this Obsidian has submenus at all. It is
        known from the outer entry: if that one could not open a submenu,
        nothing below it can either. */
-    const fillEntries = (target, mitPraefix, mitUnter) => {
+    const fillEntries = (target, prefixed, withSubmenus) => {
       const head = several ? countTitle(paths.length) : TEXTS.menuTitle;
-      const title = (t) => (mitPraefix ? `${head}: ${t}` : t);
+      const title = (t) => (prefixed ? `${head}: ${t}` : t);
 
       const gruppen = this.data.gruppen;
 
       /* A single legend gets no level of its own. A submenu that always
          holds exactly one thing is a click for nothing -- and until
          somebody sets up a second legend, that is every vault. */
-      if (gruppen.length < 2 || !mitUnter) {
+      if (gruppen.length < 2 || !withSubmenus) {
         for (const gruppe of gruppen) {
           const cats = this.categoriesIn(gruppe.id);
           if (!cats.length) continue;
@@ -1269,7 +1269,7 @@ class ExplorerCategoriesPlugin extends Plugin {
          twenty different sources, which fits in no single line. */
       const source =
         !several && current === null
-          ? this.inheritsFrom(paths[0], entries[0].ordner)
+          ? this.inheritsFrom(paths[0], entries[0].isFolder)
           : null;
       if (source) {
         if (typeof target.addSeparator === 'function') target.addSeparator();
@@ -1404,7 +1404,7 @@ class ExplorerCategoriesPlugin extends Plugin {
       /* Released a moment later, not at once: revoking while the write
          is still running can cut the file short. */
       window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-      return { name, imVault: false };
+      return { name, inVault: false };
     }
 
     /* The phone has no downloads folder to speak of, so there the backup
@@ -1414,7 +1414,7 @@ class ExplorerCategoriesPlugin extends Plugin {
       await adapter.mkdir(BACKUP_FOLDER);
     }
     await adapter.write(`${BACKUP_FOLDER}/${name}`, body);
-    return { name, imVault: true };
+    return { name, inVault: true };
   }
 
   /* Newest first -- the name sorts by date, so reversing the plain sort
@@ -1528,12 +1528,12 @@ class ExplorerCategoriesPlugin extends Plugin {
      waiting time -- and the stylesheet would be rebuilt forty times
      over.
    *
-     Takes {path, ordner} pairs rather than plain paths: the pair says
+     Takes {path, isFolder} pairs rather than plain paths: the pair says
      which of the two tables the assignment belongs in, and the caller
      had that in hand anyway. */
   async assignMany(entries, catId) {
-    for (const { path, ordner } of entries) {
-      const table = this.tableFor(ordner);
+    for (const { path, isFolder } of entries) {
+      const table = this.tableFor(isFolder);
       if (catId === null) delete table[path];
       else table[path] = catId;
     }
@@ -1545,7 +1545,7 @@ class ExplorerCategoriesPlugin extends Plugin {
        be on screen. */
     if (entries.length > 1) {
       const n = entries.length;
-      const folders = entries.filter((e) => e.ordner).length;
+      const folders = entries.filter((e) => e.isFolder).length;
       const pick = (plain, files, mixed) =>
         folders === n ? plain : folders === 0 ? files : mixed;
 
@@ -1595,17 +1595,17 @@ class ExplorerCategoriesPlugin extends Plugin {
     return id;
   }
 
-  async changeCategory(catId, felder) {
+  async changeCategory(catId, fields) {
     const cat = this.data.kategorien.find((k) => k.id === catId);
     if (!cat) return;
-    Object.assign(cat, felder);
+    Object.assign(cat, fields);
     await this.save();
   }
 
-  async changeStyle(catId, felder) {
+  async changeStyle(catId, fields) {
     const cat = this.data.kategorien.find((k) => k.id === catId);
     if (!cat) return;
-    cat.stil = Object.assign({}, STYLE_DEFAULT, cat.stil || {}, felder);
+    cat.stil = Object.assign({}, STYLE_DEFAULT, cat.stil || {}, fields);
     await this.save();
   }
 
@@ -1619,10 +1619,10 @@ class ExplorerCategoriesPlugin extends Plugin {
    *
      A category with no child style at all is the normal case and means
      "children look like the parent". */
-  async changeChildStyle(catId, felder) {
+  async changeChildStyle(catId, fields) {
     const cat = this.data.kategorien.find((k) => k.id === catId);
     if (!cat) return;
-    cat.childStyle = Object.assign({}, cat.childStyle || {}, felder);
+    cat.childStyle = Object.assign({}, cat.childStyle || {}, fields);
     await this.save();
   }
 
@@ -1699,7 +1699,7 @@ class ExplorerCategoriesPlugin extends Plugin {
    *
    * Below two entries there is nothing to sort, and the buttons are dead
    * anyway -- the check is here as well so the method holds on its own. */
-  async sortCategories(groupId, absteigend) {
+  async sortCategories(groupId, descending) {
     const all = this.data.kategorien;
 
     const slots = [];
@@ -1713,7 +1713,7 @@ class ExplorerCategoriesPlugin extends Plugin {
       .sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
       );
-    if (absteigend) sorted.reverse();
+    if (descending) sorted.reverse();
 
     slots.forEach((slot, i) => {
       all[slot] = sorted[i];
@@ -1862,7 +1862,7 @@ class ExplorerCategoriesPlugin extends Plugin {
         farbe: this.colourOf(catId),
         stil: this.styleOf(catId),
         icon: this.iconOf(catId),
-        childStil: this.childStyleOf(catId),
+        childStyle: this.childStyleOf(catId),
         childIcon: this.childIconOf(catId),
       })),
       (id) => this.maskOf(id)
@@ -1918,7 +1918,7 @@ class CategoriesModal extends Modal {
     /* Which of the two looks the right-hand panel edits. Always starts
        at the parent: that is the one every category has, and for the
        many that pass nothing down it is the only one. */
-    this.ansicht = 'vater';
+    this.styleView = 'parent';
   }
 
   onOpen() {
@@ -2085,7 +2085,7 @@ class CategoriesModal extends Modal {
       try {
         const state = await this.plugin.writeBackup();
         new Notice(
-          state.imVault
+          state.inVault
             ? TEXTS.backupInVault(state.name)
             : TEXTS.backupRestored(state.name)
         );
@@ -2423,10 +2423,10 @@ class CategoriesModal extends Modal {
 
   /* Only the list is redrawn, same as for the arrows: sorting changes
      the order, not the settings of the category that stays selected. */
-  async sortCategories(absteigend) {
+  async sortCategories(descending) {
     const changed = await this.plugin.sortCategories(
       this.chosenGroup,
-      absteigend
+      descending
     );
     if (!changed) return;
     this.fillList();
@@ -2715,7 +2715,7 @@ class CategoriesModal extends Modal {
       return;
     }
 
-    const vaterStil = this.plugin.styleOf(cat.id);
+    const parentStyle = this.plugin.styleOf(cat.id);
 
     /* Since 1.1.0 a category has two looks, and this panel edits one of
        them at a time. Which one is a property of the window, not of the
@@ -2724,29 +2724,29 @@ class CategoriesModal extends Modal {
        The children's view only exists where something inherits. Without
        that there are no children, and a switch that edits nothing is
        worse than a missing one. */
-    const hatKinder = Boolean(vaterStil.vererbt || vaterStil.vererbtDateien);
-    const kinderAnsicht = this.ansicht === 'kinder' && hatKinder;
-    const folgt = !cat.childStyle;
+    const hasChildren = Boolean(parentStyle.vererbt || parentStyle.vererbtDateien);
+    const childView = this.styleView === 'children' && hasChildren;
+    const followsParent = !cat.childStyle;
 
     /* What the switches below show, and what they write to. Everything
        further down goes through these three, so a switch cannot end up
        editing the parent while the panel says "children". */
-    const stil = kinderAnsicht
-      ? this.plugin.childStyleOf(cat.id) || vaterStil
-      : vaterStil;
+    const stil = childView
+      ? this.plugin.childStyleOf(cat.id) || parentStyle
+      : parentStyle;
     /* Changes while typing in the icon field, so the picture in front of
        it and the hint below follow the name as it is typed. A constant
        here left both on the icon the panel was drawn with. */
-    let zeigeIcon = kinderAnsicht
+    let shownIcon = childView
       ? this.plugin.childIconOf(cat.id)
       : cat.icon || null;
 
-    const setzeStil = async (felder) => {
-      if (kinderAnsicht) await this.plugin.changeChildStyle(cat.id, felder);
-      else await this.plugin.changeStyle(cat.id, felder);
+    const updateStyle = async (fields) => {
+      if (childView) await this.plugin.changeChildStyle(cat.id, fields);
+      else await this.plugin.changeStyle(cat.id, fields);
     };
-    const setzeIcon = async (name) => {
-      if (kinderAnsicht) await this.plugin.changeChildIcon(cat.id, name);
+    const updateIcon = async (name) => {
+      if (childView) await this.plugin.changeChildIcon(cat.id, name);
       else await this.plugin.changeCategory(cat.id, { icon: name });
     };
 
@@ -2769,7 +2769,7 @@ class CategoriesModal extends Modal {
        on the row that stands for the parent, which read as a fault. The
        lit buttons and the file explorer show the children's look. */
     if (listRow) {
-      this.drawRowStyle(listRow, cat.farbe, vaterStil, cat.icon);
+      this.drawRowStyle(listRow, cat.farbe, parentStyle, cat.icon);
     }
 
     /* --- Colour and name ------------------------------------------ */
@@ -2818,18 +2818,18 @@ class CategoriesModal extends Modal {
        Only drawn where something inherits. Elsewhere the panel looks
        exactly as it did before 1.1.0 -- one folder, one look, no tabs to
        understand. */
-    if (hatKinder) {
+    if (hasChildren) {
       const viewField = this.section(TEXTS.editingFor);
       const viewRow = viewField.createDiv({ cls: 'fc-group' });
 
       for (const view of [
-        { id: 'vater', name: TEXTS.viewParent },
-        { id: 'kinder', name: TEXTS.viewChildren },
+        { id: 'parent', name: TEXTS.viewParent },
+        { id: 'children', name: TEXTS.viewChildren },
       ]) {
         const button = viewRow.createEl('button', { text: view.name });
-        if ((view.id === 'kinder') === kinderAnsicht) button.addClass('mod-cta');
+        if ((view.id === 'children') === childView) button.addClass('mod-cta');
         button.addEventListener('click', () => {
-          this.ansicht = view.id;
+          this.styleView = view.id;
           this.fillDetail();
         });
       }
@@ -2837,15 +2837,15 @@ class CategoriesModal extends Modal {
       /* The way back. Only in the children's view, and only usable once
          they have a look of their own -- pressing it while they already
          follow would do nothing and say nothing. */
-      if (kinderAnsicht) {
+      if (childView) {
         /* Its own row, not part of the pair above: those two are a
            choice between views, this one changes the data. Sharing a
            joined group would read as a third view. */
         const followRow = viewField.createDiv({ cls: 'fc-switches' });
         const follow = followRow.createEl('button', { text: TEXTS.childFollows });
-        if (folgt) follow.addClass('mod-cta');
+        if (followsParent) follow.addClass('mod-cta');
         follow.addEventListener('click', async () => {
-          if (folgt) return;
+          if (followsParent) return;
           await this.plugin.childFollowParent(cat.id);
           this.fillList();
           this.fillDetail();
@@ -2853,7 +2853,7 @@ class CategoriesModal extends Modal {
 
         viewField.createDiv({
           cls: 'fc-hint',
-          text: folgt ? TEXTS.childFollowsHint : TEXTS.childOwnHint,
+          text: followsParent ? TEXTS.childFollowsHint : TEXTS.childOwnHint,
         });
       }
     }
@@ -2871,7 +2871,7 @@ class CategoriesModal extends Modal {
       const button = gruppe.createEl('button', { text: m.name });
       if (stil.markierung === m.id) button.addClass('mod-cta');
       button.addEventListener('click', async () => {
-        await setzeStil({ markierung: m.id });
+        await updateStyle({ markierung: m.id });
         /* The list carries the marker too, so it has to follow. */
         this.fillList();
         this.fillDetail();
@@ -2905,7 +2905,7 @@ class CategoriesModal extends Modal {
       cls: 'fc-icontext',
       placeholder: TEXTS.iconLabel,
     });
-    iconField.value = shortIconName(zeigeIcon);
+    iconField.value = shortIconName(shownIcon);
 
     const paging = iconRow.createEl('button', {
       cls: 'clickable-icon fc-iconpaging',
@@ -2913,8 +2913,8 @@ class CategoriesModal extends Modal {
     setIcon(paging, 'layout-grid');
     paging.setAttribute('aria-label', TEXTS.pickIcon);
     paging.addEventListener('click', () => {
-      new IconModal(this.app, zeigeIcon, async (chosen) => {
-        await setzeIcon(chosen);
+      new IconModal(this.app, shownIcon, async (chosen) => {
+        await updateIcon(chosen);
         this.fillList();
         this.fillDetail();
       }).open();
@@ -2925,10 +2925,10 @@ class CategoriesModal extends Modal {
        clicked a category without an icon -- including "Delete", which
        then slid under the pointer. Reported 2026-08-28. */
     const iconRemove = iconRow.createEl('button', { text: TEXTS.removeIcon });
-    if (!zeigeIcon) iconRemove.addClass('fc-placeholder');
+    if (!shownIcon) iconRemove.addClass('fc-placeholder');
     iconRemove.addEventListener('click', async () => {
-      if (!zeigeIcon) return;
-      await setzeIcon(null);
+      if (!shownIcon) return;
+      await updateIcon(null);
       this.fillList();
       this.fillDetail();
     });
@@ -2945,20 +2945,20 @@ class CategoriesModal extends Modal {
        the icon. The line is only dimmed, not disabled, so a chosen icon
        survives and takes effect again as soon as a marker comes back.
        Same pattern as "coloured text" underneath a background. */
-    const showIconState = (unbekannt) => {
+    const showIconState = (unknown) => {
       /* Runs on every keystroke as well as on drawing, so what the line
          says and how it looks can never drift apart. */
-      const gilt = stil.markierung === 'symbol';
-      iconRow.classList.toggle('fc-noeffect', !gilt);
-      iconField.classList.toggle('fc-unknown', Boolean(unbekannt));
+      const applies = stil.markierung === 'symbol';
+      iconRow.classList.toggle('fc-noeffect', !applies);
+      iconField.classList.toggle('fc-unknown', Boolean(unknown));
 
-      if (unbekannt) iconHintEl.setText(TEXTS.iconUnknown);
-      else if (!gilt) iconHintEl.setText(TEXTS.iconOnlyWithMarker);
+      if (unknown) iconHintEl.setText(TEXTS.iconUnknown);
+      else if (!applies) iconHintEl.setText(TEXTS.iconOnlyWithMarker);
       /* The one thing left to do: the marker says "icon" and there is
          none. Said out loud, because the tree draws no marker at all in
          the meantime (see markKind) and that looks like the setting was
          ignored. */
-      else if (!zeigeIcon) iconHintEl.setText(TEXTS.iconNeeded);
+      else if (!shownIcon) iconHintEl.setText(TEXTS.iconNeeded);
       else iconHintEl.setText('');
     };
 
@@ -2966,8 +2966,8 @@ class CategoriesModal extends Modal {
        the same picture the tree will show. */
     const showIconImage = () => {
       iconImage.empty();
-      if (!zeigeIcon) return;
-      setIcon(iconImage, zeigeIcon);
+      if (!shownIcon) return;
+      setIcon(iconImage, shownIcon);
       iconImage.style.color = cat.farbe;
     };
 
@@ -2998,7 +2998,7 @@ class CategoriesModal extends Modal {
       if (field === 'schriftFarbig' && stil.hintergrund) button.addClass('fc-noeffect');
 
       button.addEventListener('click', async () => {
-        await setzeStil({ [field]: !stil[field] });
+        await updateStyle({ [field]: !stil[field] });
         this.fillDetail();
       });
     }
@@ -3122,7 +3122,7 @@ class CategoriesModal extends Modal {
       this.plugin.changeCategory(cat.id, { farbe: farbe.value });
       colourPicker();
       const row = this.rows.get(cat.id);
-      if (row) this.drawRowStyle(row, farbe.value, vaterStil, cat.icon);
+      if (row) this.drawRowStyle(row, farbe.value, parentStyle, cat.icon);
     });
 
     /* Same as the name field: no redraw while typing, only the pieces
@@ -3130,7 +3130,7 @@ class CategoriesModal extends Modal {
        it says so and leaves the saved icon alone, so a half-typed word
        does not wipe out what was there.
      *
-       Written through setzeIcon like the grid and the remove button.
+       Written through updateIcon like the grid and the remove button.
        Until 1.3.1 this went straight to the category, and in the
        children's view typing a name changed the parent's icon. */
     iconField.addEventListener('input', async () => {
@@ -3140,14 +3140,14 @@ class CategoriesModal extends Modal {
         return;
       }
 
-      zeigeIcon = id || null;
-      await setzeIcon(zeigeIcon);
-      iconRemove.classList.toggle('fc-placeholder', !zeigeIcon);
+      shownIcon = id || null;
+      await updateIcon(shownIcon);
+      iconRemove.classList.toggle('fc-placeholder', !shownIcon);
       showIconImage();
       showIconState(false);
 
       const row = this.rows.get(cat.id);
-      if (row) this.drawRowStyle(row, cat.farbe, vaterStil, cat.icon);
+      if (row) this.drawRowStyle(row, cat.farbe, parentStyle, cat.icon);
     });
 
     /* Deliberately no redraw while typing, or the field would lose the
@@ -3343,11 +3343,11 @@ class IconModal extends Modal {
     window.setTimeout(() => search.focus(), 0);
   }
 
-  fillGrid(suchtext) {
+  fillGrid(searchText) {
     this.gridEl.empty();
     this.hintEl.empty();
 
-    const text = suchtext.trim().toLowerCase();
+    const text = searchText.trim().toLowerCase();
     const fitting = text
       ? this.all.filter((id) => id.toLowerCase().includes(text))
       : this.all;
@@ -3585,7 +3585,7 @@ function prefixHits(index, prefix) {
  * has an assignment or an inheritance of its own. Without that, a mix of
  * styles would leave the inherited bar sitting next to the folder's own
  * background. */
-function buildTargets(data, nachschlagen) {
+function buildTargets(data, lookupCategory) {
   const zuordnung = data.zuordnung || {};
   const fileAssignments = data.fileAssignments || {};
   const targets = [];
@@ -3604,7 +3604,7 @@ function buildTargets(data, nachschlagen) {
      one look from the other, and could still only express one difference
      at a time. */
   const childLook = (entry) => ({
-    stil: entry.childStil || entry.stil,
+    stil: entry.childStyle || entry.stil,
     icon: 'childIcon' in entry ? entry.childIcon : entry.icon || null,
   });
 
@@ -3614,7 +3614,7 @@ function buildTargets(data, nachschlagen) {
   const sourcesWith = (field) =>
     Object.keys(zuordnung)
       .filter((path) => {
-        const entry = nachschlagen(zuordnung[path]);
+        const entry = lookupCategory(zuordnung[path]);
         return !!(entry && entry.stil && entry.stil[field]);
       })
       .sort((a, b) => depth(a) - depth(b) || a.localeCompare(b));
@@ -3628,10 +3628,10 @@ function buildTargets(data, nachschlagen) {
   const sourceIndex = buildIndex(sources);
 
   for (const source of sources) {
-    const entry = nachschlagen(zuordnung[source]);
+    const entry = lookupCategory(zuordnung[source]);
     const { farbe, stil } = entry;
     if (!farbe || !stil) continue;
-    const kinder = childLook(entry);
+    const child = childLook(entry);
 
     const prefix = source + '/';
 
@@ -3655,14 +3655,14 @@ function buildTargets(data, nachschlagen) {
         .map((a) => `:not(${a})`)
         .join('')}`,
       farbe,
-      stil: kinder.stil,
-      icon: kinder.icon,
+      stil: child.stil,
+      icon: child.icon,
     });
   }
 
   /* --- 2. the folders themselves ---------------------------------- */
   for (const [path, catId] of Object.entries(zuordnung)) {
-    const { farbe, stil, icon } = nachschlagen(catId);
+    const { farbe, stil, icon } = lookupCategory(catId);
     if (!farbe || !stil) continue;
     targets.push({
       selector: `.nav-folder-title[data-path="${toMask(path)}"]`,
@@ -3687,10 +3687,10 @@ function buildTargets(data, nachschlagen) {
   const ownFileIndex = buildIndex(Object.keys(fileAssignments));
 
   for (const source of fileSources) {
-    const entry = nachschlagen(zuordnung[source]);
+    const entry = lookupCategory(zuordnung[source]);
     const { farbe, stil } = entry;
     if (!farbe || !stil) continue;
-    const kinder = childLook(entry);
+    const child = childLook(entry);
 
     const prefix = source + '/';
 
@@ -3716,8 +3716,8 @@ function buildTargets(data, nachschlagen) {
         .join('')}`,
       body: 'nav-file-title-content',
       farbe,
-      stil: kinder.stil,
-      icon: kinder.icon,
+      stil: child.stil,
+      icon: child.icon,
     });
   }
 
@@ -3726,7 +3726,7 @@ function buildTargets(data, nachschlagen) {
      Drawn with the category's own style, never the children's: that one
      is for what hangs below a folder, and a file has nothing below it. */
   for (const [path, catId] of Object.entries(fileAssignments)) {
-    const { farbe, stil, icon } = nachschlagen(catId);
+    const { farbe, stil, icon } = lookupCategory(catId);
     if (!farbe || !stil) continue;
     targets.push({
       selector: `.nav-file-title[data-path="${toMask(path)}"]`,
@@ -3751,8 +3751,8 @@ function buildTargets(data, nachschlagen) {
  * If the function is missing or does not know an icon, the entry falls
  * back to its bar or dot -- a folder with no marker at all would be the
  * worse surprise. */
-function buildRules(eintraege, maskOf) {
-  if (!eintraege.length) return '';
+function buildRules(targets, maskOf) {
+  if (!targets.length) return '';
 
   const title = (e) => e.selector;
   /* Folders and notes carry their text in differently named elements.
@@ -3797,7 +3797,7 @@ function buildRules(eintraege, maskOf) {
      hundred folders sharing a category, that is the difference between
      a few hundred bytes and a few hundred kilobytes. */
   const toIcon = new Map();
-  for (const e of eintraege.filter(showsIcon)) {
+  for (const e of targets.filter(showsIcon)) {
     if (!toIcon.has(e.icon)) toIcon.set(e.icon, []);
     toIcon.get(e.icon).push(e);
   }
@@ -3837,7 +3837,7 @@ ${colours}`);
   for (const mode of ['lasche', 'punkt']) {
     /* markKind sorts out who draws what, including everything set to
        "icon" that cannot show one and falls back to the bar. */
-    const fitting = eintraege.filter(
+    const fitting = targets.filter(
       (e) => markKind(e.stil, Boolean(e.icon), iconUsable(e)) === mode
     );
     if (!fitting.length) continue;
@@ -3869,7 +3869,7 @@ ${colours}`);
      colour; a second fixed colour value would not.
      The "!important" is deliberate: third-party themes ship their own
      hover rules, and a rule of equal specificity loses against them. */
-  for (const e of eintraege.filter((x) => x.stil.hintergrund)) {
+  for (const e of targets.filter((x) => x.stil.hintergrund)) {
     blocks.push(`${title(e)},
 ${title(e)}:hover,
 ${title(e)}.is-active,
@@ -3890,7 +3890,7 @@ ${title(e)}.is-active {
   /* Only where no background is set: there the block above already
      works out a readable text colour, and a second colour would
      override it and make the text unreadable. */
-  const colouredText = eintraege.filter(
+  const colouredText = targets.filter(
     (e) => e.stil.schriftFarbig && !e.stil.hintergrund
   );
   for (const e of colouredText) {
@@ -3898,7 +3898,7 @@ ${title(e)}.is-active {
   }
 
   /* --- bold --------------------------------------------------------- */
-  const fett = eintraege.filter((e) => e.stil.fett);
+  const fett = targets.filter((e) => e.stil.fett);
   if (fett.length) {
     const selection = fett.map((e) => body(e)).join(',\n');
     blocks.push(`${selection} {
@@ -3920,7 +3920,7 @@ ${title(e)}.is-active {
      Deliberately not on :hover: pointing at a dimmed folder brings it
      back to full strength, so a row you actually reach for is readable
      while you work with it. */
-  const gedimmt = eintraege.filter((e) => e.stil.gedimmt);
+  const gedimmt = targets.filter((e) => e.stil.gedimmt);
   if (gedimmt.length) {
     const selection = gedimmt.map((e) => title(e)).join(',\n');
     const atCursor = gedimmt.map((e) => `${title(e)}:hover`).join(',\n');
@@ -3979,17 +3979,17 @@ function hslToHex(h, s, l) {
 /* Rewrites one path in a map (path -> value), together with everything
    below it. Renaming a parent folder changes its children's paths too.
    Returns whether anything changed. */
-function rewriteKeys(verzeichnis, old, fresh) {
+function rewriteKeys(pathMap, old, fresh) {
   let changed = false;
 
-  for (const path of Object.keys(verzeichnis)) {
+  for (const path of Object.keys(pathMap)) {
     if (path === old) {
-      verzeichnis[fresh] = verzeichnis[path];
-      delete verzeichnis[path];
+      pathMap[fresh] = pathMap[path];
+      delete pathMap[path];
       changed = true;
     } else if (path.startsWith(old + '/')) {
-      verzeichnis[fresh + path.slice(old.length)] = verzeichnis[path];
-      delete verzeichnis[path];
+      pathMap[fresh + path.slice(old.length)] = pathMap[path];
+      delete pathMap[path];
       changed = true;
     }
   }
