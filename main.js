@@ -614,7 +614,7 @@ class ExplorerCategoriesPlugin extends Plugin {
 
     /* Right-click on a multi-selection. Obsidian fires a separate event
        for this; "file-menu" does not arrive at all. Users select with
-       old-click (single) or shift-click (range) in the file explorer.
+       alt-click (single) or shift-click (range) in the file explorer.
 
        Verified against Obsidian 1.12.7: the file explorer triggers
        "files-menu" with every selected entry and only filters out
@@ -1821,8 +1821,8 @@ class ExplorerCategoriesPlugin extends Plugin {
     let mask = null;
 
     /* If anything fails here -- an older Obsidian, an icon that no
-       longer exists -- this stays null and the folder falls back to its
-       bar or dot. No reason to let the whole stylesheet fail. */
+       longer exists -- this stays null and the folder falls back to the
+       bar (see markKind). No reason to let the whole stylesheet fail. */
     try {
       const holder = document.createElement('div');
       setIcon(holder, id);
@@ -2162,8 +2162,6 @@ class CategoriesModal extends Modal {
        while typing without rebuilding everything. */
     this.rows = new Map();
 
-    /* The rows scroll, the button below stays put -- otherwise it drops
-       out of sight once there are many categories. */
     /* Says what the list is. This one can sit above its column: the
        height it costs comes out of the list, not out of the settings
        column that has none to spare. */
@@ -2172,6 +2170,9 @@ class CategoriesModal extends Modal {
       text: TEXTS.areaCategories,
     });
 
+    /* The rows in a box of their own, apart from the buttons below. On
+       the desktop the window grows with them; on a phone the box scrolls
+       and the buttons stay put (see styles.css). */
     const scroller = this.listEl.createDiv({ cls: 'fc-listscroll' });
 
     /* Only the active group. That is the whole point of groups: the same
@@ -2698,7 +2699,7 @@ class CategoriesModal extends Modal {
    * better.
    *
    * The 7em for the heading column is measured, not picked: wider and
-   * the switches under "Zusaetzlich" and "Vererbung" start wrapping,
+   * the switches under "Additional" and "Inheritance" start wrapping,
    * which gives back more than the heading row saved. */
   section(text) {
     const row = this.detailEl.createDiv({ cls: 'fc-section' });
@@ -3449,7 +3450,7 @@ function catchUpGroups(data, defaultName) {
  * a copy of every category in it within the same millisecond --
  * they would all come out with the same id, and a category is looked up
  * by id everywhere: in the folder assignments, in the stylesheet, in the
- * window. The second one would quietly state in for the first.
+ * window. The second one would quietly stand in for the first.
  *
  * The ids already taken are handed in, so this can be tested without
  * Obsidian. */
@@ -3749,8 +3750,8 @@ function buildTargets(data, lookupCategory) {
  * The icon itself is fetched from Obsidian by the plugin; keeping that
  * out of here is what makes this function testable without Obsidian.
  * If the function is missing or does not know an icon, the entry falls
- * back to its bar or dot -- a folder with no marker at all would be the
- * worse surprise. */
+ * back to the bar -- a folder with no marker at all would be the worse
+ * surprise. */
 function buildRules(targets, maskOf) {
   if (!targets.length) return '';
 
@@ -4000,7 +4001,7 @@ function rewriteKeys(pathMap, old, fresh) {
 /* Which category do ALL of these folders share? If there is none, the
    result is null -- then no checkmark appears anywhere in the menu, and
    one click recolours the whole selection. Note that "none of them has
-   one" counts as shared too, giving null just like "mixed does". For the
+   one" counts as shared too, giving null just as "mixed" does. For the
    menu that makes no difference: in both cases no checkmark is the
    right answer. */
 function sharedCategory(zuordnung, paths) {

@@ -41,6 +41,11 @@ request and the tests will be run for you.
 Code, comments and commit messages are in English. The user interface is
 translated; the source is not.
 
+The one exception is the keys stored in `data.json`, such as `gruppen`,
+`kategorien`, `stil` or `hintergrund`. They are German because every
+existing installation saves them that way, and renaming them would need a
+migration step. Leave them as they are.
+
 ## License
 
 By contributing you agree that your work is published under the MIT

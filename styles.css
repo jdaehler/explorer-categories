@@ -5,15 +5,8 @@
  * colours except where the user picked one.
  */
 
-/* The window takes a set height rather than growing with its content.
-   Otherwise it changes size with every click in the list, because a hint
-   appears for some categories and not for others.
-
-   Set here, on the window, and no longer on the columns: pinning the
-   columns to a number of pixels left the rest of the window empty on a
-   large display (reported 2026-08-27, measured at 1920x1080 -- roughly
-   900px available against 640px used). Now the columns take whatever is
-   left over, so the space is used whatever the screen.
+/* The window's width. Only the width is set; the height follows the
+   content, see NO HEIGHT SET HERE below.
 
    WHY VARIABLES AND NOT PROPERTIES
    Obsidian's own rule for ".modal" sets "width: var(--dialog-width)" and
@@ -200,9 +193,9 @@
   color: var(--text-muted);
 }
 
-/* Name and delete for the active group, under the tabs. */
-/* Arrows, name, copy, paste, delete. Six things in one row: it may wrap
-   rather than squeeze the name field to nothing. */
+/* The controls for the active group, under the tabs: arrows, name,
+   copy, paste, delete. Six things in one row: it may wrap rather than
+   squeeze the name field to nothing. */
 .fc-grouprow {
   display: flex;
   flex-wrap: wrap;
@@ -232,8 +225,9 @@
 
 /* Both columns take the height their content needs, and the window
    follows them. Until 0.9.43 it was the other way round: the window was
-   pinned to 85vh and the columns scrolled inside it. */
-/* Each column on a surface of its own, the same recipe as the group box
+   pinned to 85vh and the columns scrolled inside it.
+
+   Each column on a surface of its own, the same recipe as the group box
    at the top of the window: a surface says "this belongs together"
    where a line only separates. The line between the columns goes with
    it -- a border and a box side by side would be two separators for one
@@ -368,12 +362,11 @@
    a fixed spot -- under the list, and under the tabs -- rather than on
    each row: the button stays where it is while the entry moves, so
    tapping three times in a row does not mean chasing it down the
-   screen. */
-/* Wraps rather than squeezing. Four icon buttons and "New category" do
-   not fit across 200px, and without this the text button would be
-   crushed to a sliver instead of dropping to its own line. The list
-   above scrolls, so a second row here costs the list a row, not the
-   window its height. */
+   screen.
+
+   The row wraps rather than squeezing. Four icon buttons and "New
+   category" do not fit across 200px, and without this the text button
+   would be crushed to a sliver instead of dropping to its own line. */
 .fc-listfooter {
   display: flex;
   align-items: center;
@@ -444,8 +437,6 @@
   gap: 8px;
 }
 
-/* The system colour picker brings its own frame, which looks alien in
-   Obsidian. Hence rounded and borderless. */
 /* Holds the colour field and the picker lying on top of it. */
 .fc-colourfield {
   position: relative;
@@ -453,6 +444,8 @@
   flex: 0 0 auto;
 }
 
+/* The system colour picker brings its own frame, which looks alien in
+   Obsidian. Hence rounded, in Obsidian's own border colour. */
 .fc-colour {
   flex: 0 0 auto;
   width: 34px;
@@ -490,15 +483,6 @@
   min-width: 0;
 }
 
-/* Section headings in the settings column. Muted grey made them fade
-   into the hints around them (reported 2026-08-27), so they carry the
-   normal text colour and some weight -- they are what you scan for when
-   looking for a setting. */
-/* Tightened on 2026-08-29 from 14/6. Six headings state in the settings
-   column, so every pixel here counts six times over. Height was scarce
-   then, with the window pinned to 85vh; since 0.9.44 it grows with its
-   content, but a tall column still pushes the window towards the cap,
-   so the tightening keeps earning its place. */
 /* Heading on the left, what it controls on the right. Six headings on
    six rows of their own came to 168px of the column; measured at the
    real width of 430px the whole panel went from 405px to 297. The window
@@ -506,8 +490,8 @@
    scrollbar.
 
    The heading column is 7em because that is where it stops costing more
-   than it saves: from 7.5em on, the switches under "Zusaetzlich" and
-   "Vererbung" wrap to a second row, and the wrap is taller than the
+   than it saves: from 7.5em on, the switches under "Additional" and
+   "Inheritance" wrap to a second row, and the wrap is taller than the
    heading row it replaced. Measured 2026-08-29, not estimated.
 
    CORRECTION, same day: that 7.5em limit held only for Obsidian's own
@@ -538,6 +522,16 @@
   min-width: 0;
 }
 
+/* Section headings in the settings column. Muted grey made them fade
+   into the hints around them (reported 2026-08-27), so they carry the
+   normal text colour and some weight -- they are what you scan for when
+   looking for a setting.
+
+   Tightened on 2026-08-29 from 14/6. Six headings stand in the settings
+   column, so every pixel here counts six times over. Height was scarce
+   then, with the window pinned to 85vh; since 0.9.44 it grows with its
+   content, but a tall column still pushes the window towards the cap,
+   so the tightening keeps earning its place. */
 .fc-subtitle {
   margin: 10px 0 4px 0;
   font-size: var(--font-ui-smaller);
@@ -560,8 +554,8 @@
   height: auto;
 }
 
-/* Marker: the three belong together and therefore look like one piece
-   rather than three separate buttons. */
+/* Buttons that are one choice -- the four markers, Parent and Children
+   -- look like one piece rather than separate buttons. */
 .fc-group {
   display: inline-flex;
 }
@@ -712,7 +706,7 @@
   }
 
   /* The surface brings its own border all the way round, so the divider
-     that used to state between the columns is not needed here either --
+     that used to stand between the columns is not needed here either --
      stacked, the two boxes already read as two areas. */
   .fc-list {
     max-height: 180px;
