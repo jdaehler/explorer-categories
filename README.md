@@ -222,6 +222,11 @@ them. It changes nothing else in the explorer.
 
 Obsidian 1.12.0 or newer. Works on desktop and mobile.
 
+## Changes
+
+What each version brought is on the
+[releases page](https://github.com/jdaehler/explorer-categories/releases).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
