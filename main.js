@@ -578,7 +578,8 @@ function isInTitleStrip(evt, stripBottom) {
 /* The phone's backup folder, and only the phone's.
  *
  * On the desktop a backup leaves the vault altogether and goes to the
- * downloads folder -- see writeBackup. A copy inside the vault
+ * downloads folder, or wherever the save dialog puts it -- see
+ * writeBackup. A copy inside the vault
  * shares the fate of the file it is meant to survive: the same folder
  * tree, the same sync, the same mishap.
  *
@@ -2146,7 +2147,7 @@ class CategoriesModal extends Modal {
     backupButton.addEventListener('click', async () => {
       try {
         const state = await this.plugin.writeBackup();
-        /* Only the phone gets a message: there the file is written by
+        /* Only phone and tablet get a message: there the file is written by
            the time this line runs. On the desktop the download may still
            wait in a save dialog, and "it is in your downloads folder"
            turned out wrong whenever that dialog was cancelled. Taken out

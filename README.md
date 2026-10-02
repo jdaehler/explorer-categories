@@ -101,17 +101,20 @@ so the mistake shows.
 rename a folder above it — the assignment follows.
 
 **Give the children a look of their own.** Where a category inherits, the
-panel gains a switch at the top: **Parent** or **Children**. Everything
-below it — marker, icon, background, colored text, bold, dim — is then set
-for that side alone.
+panel gains a switch at the top: **Parent**, **Subfolders** and **Files**,
+each child view only where its inheritance switch is on. Everything below
+it — marker, icon, background, colored text, bold, dim — is then set for
+that view alone.
 
-So the folder carrying the category can have colored text and an icon
-while the folders below it carry neither, or only a quiet bar. Any
+So the folder carrying the category can have a background, the folders
+below it only colored text, and the files below them a bar. Any
 combination works, not one difference at a time.
 
-Children start out looking exactly like the parent, and "Same as parent"
-puts them back. What you do not set apart keeps following: change the
-category's color and both sides change with it.
+Subfolders and files start out looking exactly like the parent, and
+"Same as parent" puts them back. The two are independent of each other:
+changing the subfolders leaves the files alone. What you do not set apart
+keeps following the parent: change the category's color and every view
+changes with it.
 
 ![A parent folder set apart from the folders inheriting below it](screenshots/inheritance.png)
 
