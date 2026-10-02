@@ -63,15 +63,18 @@ const TEXTS_DE = {
      first row says: a colour and a name. */
   areaGroups: 'Gruppen',
   areaCategories: 'Kategorien',
-  /* Two looks per category since 1.1.0. The switch between them stands
-     above the switches it redirects, so you see what you are about to
-     edit before you press anything. */
+  /* Two looks per category since 1.1.0, three since 1.4.0. The switch
+     between them stands above the switches it redirects, so you see
+     what you are about to edit before you press anything. */
   editingFor: 'Aussehen',
   viewParent: 'Vater',
-  viewChildren: 'Kinder',
+  viewChildren: 'Unterordner',
+  viewFiles: 'Dateien',
   childFollows: 'Wie der Vater',
-  childFollowsHint: 'Die Kinder sehen aus wie der Vater. Stell etwas um, damit sie ein eigenes Aussehen bekommen.',
-  childOwnHint: 'Die Kinder haben ein eigenes Aussehen. Alles Übrige folgt weiter dem Vater.',
+  childFollowsHint: 'Die Unterordner sehen aus wie der Vater. Stell etwas um, damit sie ein eigenes Aussehen bekommen.',
+  childOwnHint: 'Die Unterordner haben ein eigenes Aussehen. Alles Übrige folgt weiter dem Vater.',
+  fileFollowsHint: 'Die Dateien sehen aus wie der Vater. Stell etwas um, damit sie ein eigenes Aussehen bekommen.',
+  fileOwnHint: 'Die Dateien haben ein eigenes Aussehen. Alles Übrige folgt weiter dem Vater.',
   childOnlyWithReach: 'Erst mit Vererbung gibt es Kinder.',
   /* Short on purpose: these share one reserved line with the sentence
      above them, and a second line would push the window a step taller
@@ -208,10 +211,13 @@ const TEXTS_EN = {
   areaCategories: 'Categories',
   editingFor: 'Look of',
   viewParent: 'Parent',
-  viewChildren: 'Children',
+  viewChildren: 'Subfolders',
+  viewFiles: 'Files',
   childFollows: 'Same as parent',
-  childFollowsHint: 'Children look like the parent. Change anything to give them a look of their own.',
-  childOwnHint: 'Children have a look of their own. Everything else still follows the parent.',
+  childFollowsHint: 'Subfolders look like the parent. Change anything to give them a look of their own.',
+  childOwnHint: 'Subfolders have a look of their own. Everything else still follows the parent.',
+  fileFollowsHint: 'Files look like the parent. Change anything to give them a look of their own.',
+  fileOwnHint: 'Files have a look of their own. Everything else still follows the parent.',
   childOnlyWithReach: 'There are no children until something inherits.',
   iconName: 'Icon',
   pickIcon: 'Choose icon …',
@@ -375,6 +381,32 @@ function markKind(stil, named, usable) {
   if (stil.markierung !== 'symbol') return stil.markierung;
   if (!named) return null;
   return usable ? 'symbol' : 'lasche';
+}
+
+/* Does a child look ("childStyle" or "fileStyle") differ from the parent
+ * at all? Missing and empty both mean no: an empty object is how "same
+ * as the parent" is written since 1.4.0, see childFollowParent. */
+function hasOwnLook(look) {
+  return Boolean(look) && Object.keys(look).length > 0;
+}
+
+/* Since 1.4.0 the files below a folder have a look of their own,
+ * separate from the subfolders. Until then both shared the children's
+ * look, so a category that has none yet starts from that one -- the
+ * tree has to look the same afterwards as it did before.
+ *
+ * Runs on every start, on a restored backup and on every pasted or
+ * copied category, so it must recognise its own work: the key being
+ * present is the sign, which is why "same as the parent" is an empty
+ * object and never a missing key. Were the key deleted, the next start
+ * would copy the children's look over a choice somebody made.
+ *
+ * Also covers a category made by an older version -- on a phone whose
+ * plugin has not been updated yet. It arrives without the key, and its
+ * files get the look that older version shows them with. */
+function seedFileStyle(cat) {
+  if ('fileStyle' in cat) return;
+  cat.fileStyle = Object.assign({}, cat.childStyle || {});
 }
 
 /* What a freshly created category starts out with. */
@@ -695,6 +727,9 @@ class ExplorerCategoriesPlugin extends Plugin {
     this.migrateInheritance();
     this.migrateChildStyle();
     this.migrateMarkerIcon();
+    /* Last of the three: it copies the children's look as the two before
+       it have left it. */
+    for (const cat of this.data.kategorien) seedFileStyle(cat);
     catchUpGroups(this.data, TEXTS.exampleGroup);
   }
 
@@ -902,6 +937,13 @@ class ExplorerCategoriesPlugin extends Plugin {
        Copied, not shared, for the same reason as the style. */
     if (template.childStyle) {
       copy.childStyle = Object.assign({}, template.childStyle);
+    }
+    /* The files' look likewise. A category copied by a version before
+       1.4.0 has none, and gets the one its files were drawn with there. */
+    if ('fileStyle' in template) {
+      copy.fileStyle = Object.assign({}, template.fileStyle || {});
+    } else {
+      seedFileStyle(copy);
     }
     return copy;
   }
@@ -1120,20 +1162,22 @@ class ExplorerCategoriesPlugin extends Plugin {
    *
      The reach switches are deliberately not part of it: how far a colour
      carries is a property of the category, not of a single row, and two
-     places to set it would drift apart. */
-  childStyleOf(catId) {
+     places to set it would drift apart.
+   *
+     "side" as in changeChildStyle: the subfolders or the files. */
+  childStyleOf(catId, side = 'childStyle') {
     const cat = this.data.kategorien.find((k) => k.id === catId);
-    if (!cat || !cat.childStyle) return null;
-    return Object.assign({}, STYLE_DEFAULT, cat.stil || {}, cat.childStyle);
+    if (!cat || !hasOwnLook(cat[side])) return null;
+    return Object.assign({}, STYLE_DEFAULT, cat.stil || {}, cat[side]);
   }
 
   /* The icon the inheriting rows carry. Undefined in the child style
      means "same as the parent"; an explicit null means "none", which is
      how a parent keeps an icon the children do not get. */
-  childIconOf(catId) {
+  childIconOf(catId, side = 'childStyle') {
     const cat = this.data.kategorien.find((k) => k.id === catId);
     if (!cat) return null;
-    if (cat.childStyle && 'icon' in cat.childStyle) return cat.childStyle.icon;
+    if (cat[side] && 'icon' in cat[side]) return cat[side].icon;
     return cat.icon || null;
   }
 
@@ -1591,6 +1635,10 @@ class ExplorerCategoriesPlugin extends Plugin {
       farbe: randomColour(),
       gruppe: groupId || this.data.gruppen[0].id,
       stil: Object.assign({}, STYLE_DEFAULT),
+      /* Present from the start, see seedFileStyle: without the key, a
+         look given to the subfolders later would be copied onto the
+         files at the next start. */
+      fileStyle: {},
     });
     await this.save();
     return id;
@@ -1619,31 +1667,41 @@ class ExplorerCategoriesPlugin extends Plugin {
      every later change to the category would have to be made twice.
    *
      A category with no child style at all is the normal case and means
-     "children look like the parent". */
-  async changeChildStyle(catId, fields) {
+     "children look like the parent".
+   *
+     "side" says which children: "childStyle" for the subfolders,
+     "fileStyle" for the files below (since 1.4.0). Both work the same
+     way, so they share these three methods. */
+  async changeChildStyle(catId, fields, side = 'childStyle') {
     const cat = this.data.kategorien.find((k) => k.id === catId);
     if (!cat) return;
-    cat.childStyle = Object.assign({}, cat.childStyle || {}, fields);
+    cat[side] = Object.assign({}, cat[side] || {}, fields);
     await this.save();
   }
 
   /* The icon sits beside the style rather than in it, so it needs its own
      way in. Null means "no icon for the children" and is a real setting,
      which is why it cannot be expressed by leaving the field out. */
-  async changeChildIcon(catId, name) {
+  async changeChildIcon(catId, name, side = 'childStyle') {
     const cat = this.data.kategorien.find((k) => k.id === catId);
     if (!cat) return;
-    cat.childStyle = Object.assign({}, cat.childStyle || {}, { icon: name });
+    cat[side] = Object.assign({}, cat[side] || {}, { icon: name });
     await this.save();
   }
 
   /* Back to "children look like the parent". Drops the differences
      rather than filling them with the parent's values: the second would
-     look the same today and stop following tomorrow. */
-  async childFollowParent(catId) {
+     look the same today and stop following tomorrow.
+   *
+     Empties the object instead of deleting it. Until 1.4.0 it was
+     deleted, and for a category carrying the old "vaterHervor" that did
+     not last: the next start found no child style, ran
+     migrateChildStyle again and brought the old difference back. For the
+     files' look the key itself is the sign that seedFileStyle has run. */
+  async childFollowParent(catId, side = 'childStyle') {
     const cat = this.data.kategorien.find((k) => k.id === catId);
     if (!cat) return;
-    delete cat.childStyle;
+    cat[side] = {};
     await this.save();
   }
 
@@ -1865,6 +1923,8 @@ class ExplorerCategoriesPlugin extends Plugin {
         icon: this.iconOf(catId),
         childStyle: this.childStyleOf(catId),
         childIcon: this.childIconOf(catId),
+        fileStyle: this.childStyleOf(catId, 'fileStyle'),
+        fileIcon: this.childIconOf(catId, 'fileStyle'),
       })),
       (id) => this.maskOf(id)
     );
@@ -1916,7 +1976,8 @@ class CategoriesModal extends Modal {
     const first = plugin.categoriesIn(this.chosenGroup)[0];
     this.chosen = first ? first.id : null;
 
-    /* Which of the two looks the right-hand panel edits. Always starts
+    /* Which look the right-hand panel edits: 'parent', 'children' (the
+       subfolders) or 'files'. Always starts
        at the parent: that is the one every category has, and for the
        many that pass nothing down it is the only one. */
     this.styleView = 'parent';
@@ -2720,36 +2781,58 @@ class CategoriesModal extends Modal {
 
     const parentStyle = this.plugin.styleOf(cat.id);
 
-    /* Since 1.1.0 a category has two looks, and this panel edits one of
-       them at a time. Which one is a property of the window, not of the
-       data -- closing and reopening starts at the parent again.
+    /* A category has several looks, and this panel edits one of them at
+       a time. Which one is a property of the window, not of the data --
+       closing and reopening starts at the parent again.
 
-       The children's view only exists where something inherits. Without
-       that there are no children, and a switch that edits nothing is
-       worse than a missing one. */
-    const hasChildren = Boolean(parentStyle.vererbt || parentStyle.vererbtDateien);
-    const childView = this.styleView === 'children' && hasChildren;
-    const followsParent = !cat.childStyle;
+       Since 1.4.0 the children are two: subfolders and files, each with a
+       look of its own. Each view exists only where its switch is on --
+       without it there are no such children, and a switch that edits
+       nothing is worse than a missing one. A view that has just lost its
+       switch falls back to the parent. */
+    const views = [{ id: 'parent', name: TEXTS.viewParent }];
+    if (parentStyle.vererbt) {
+      views.push({
+        id: 'children',
+        name: TEXTS.viewChildren,
+        side: 'childStyle',
+        followsHint: TEXTS.childFollowsHint,
+        ownHint: TEXTS.childOwnHint,
+      });
+    }
+    if (parentStyle.vererbtDateien) {
+      views.push({
+        id: 'files',
+        name: TEXTS.viewFiles,
+        side: 'fileStyle',
+        followsHint: TEXTS.fileFollowsHint,
+        ownHint: TEXTS.fileOwnHint,
+      });
+    }
+    const hasChildren = views.length > 1;
+    const view = views.find((v) => v.id === this.styleView) || views[0];
+    const childView = view.id !== 'parent';
+    const followsParent = childView && !hasOwnLook(cat[view.side]);
 
     /* What the switches below show, and what they write to. Everything
        further down goes through these three, so a switch cannot end up
        editing the parent while the panel says "children". */
     const stil = childView
-      ? this.plugin.childStyleOf(cat.id) || parentStyle
+      ? this.plugin.childStyleOf(cat.id, view.side) || parentStyle
       : parentStyle;
     /* Changes while typing in the icon field, so the picture in front of
        it and the hint below follow the name as it is typed. A constant
        here left both on the icon the panel was drawn with. */
     let shownIcon = childView
-      ? this.plugin.childIconOf(cat.id)
+      ? this.plugin.childIconOf(cat.id, view.side)
       : cat.icon || null;
 
     const updateStyle = async (fields) => {
-      if (childView) await this.plugin.changeChildStyle(cat.id, fields);
+      if (childView) await this.plugin.changeChildStyle(cat.id, fields, view.side);
       else await this.plugin.changeStyle(cat.id, fields);
     };
     const updateIcon = async (name) => {
-      if (childView) await this.plugin.changeChildIcon(cat.id, name);
+      if (childView) await this.plugin.changeChildIcon(cat.id, name, view.side);
       else await this.plugin.changeCategory(cat.id, { icon: name });
     };
 
@@ -2825,38 +2908,35 @@ class CategoriesModal extends Modal {
       const viewField = this.section(TEXTS.editingFor);
       const viewRow = viewField.createDiv({ cls: 'fc-group' });
 
-      for (const view of [
-        { id: 'parent', name: TEXTS.viewParent },
-        { id: 'children', name: TEXTS.viewChildren },
-      ]) {
-        const button = viewRow.createEl('button', { text: view.name });
-        if ((view.id === 'children') === childView) button.addClass('mod-cta');
+      for (const option of views) {
+        const button = viewRow.createEl('button', { text: option.name });
+        if (option.id === view.id) button.addClass('mod-cta');
         button.addEventListener('click', () => {
-          this.styleView = view.id;
+          this.styleView = option.id;
           this.fillDetail();
         });
       }
 
-      /* The way back. Only in the children's view, and only usable once
+      /* The way back. Only in a children's view, and only usable once
          they have a look of their own -- pressing it while they already
          follow would do nothing and say nothing. */
       if (childView) {
-        /* Its own row, not part of the pair above: those two are a
-           choice between views, this one changes the data. Sharing a
-           joined group would read as a third view. */
+        /* Its own row, not part of the views above: those are a choice
+           of what to edit, this one changes the data. Sharing a joined
+           group would read as one more view. */
         const followRow = viewField.createDiv({ cls: 'fc-switches' });
         const follow = followRow.createEl('button', { text: TEXTS.childFollows });
         if (followsParent) follow.addClass('mod-cta');
         follow.addEventListener('click', async () => {
           if (followsParent) return;
-          await this.plugin.childFollowParent(cat.id);
+          await this.plugin.childFollowParent(cat.id, view.side);
           this.fillList();
           this.fillDetail();
         });
 
         viewField.createDiv({
           cls: 'fc-hint',
-          text: followsParent ? TEXTS.childFollowsHint : TEXTS.childOwnHint,
+          text: followsParent ? view.followsHint : view.ownHint,
         });
       }
     }
@@ -3119,7 +3199,7 @@ class CategoriesModal extends Modal {
     /* The colour takes effect immediately, so you can see the tree
        change while still dragging in the picker. Only the row in the
        list is redrawn -- it is the preview since 0.9.43. */
-    /* The row stands for the parent in either view, so it is drawn with
+    /* The row stands for the parent in every view, so it is drawn with
        the parent's style -- the same as fillDetail does. */
     farbe.addEventListener('input', () => {
       this.plugin.changeCategory(cat.id, { farbe: farbe.value });
@@ -3611,6 +3691,19 @@ function buildTargets(data, lookupCategory) {
     icon: 'childIcon' in entry ? entry.childIcon : entry.icon || null,
   });
 
+  /* Since 1.4.0 the files below have a third look, set apart from the
+     subfolders. A lookup without the field is one from before that, and
+     its files keep sharing the subfolders' look. Null in the field
+     means "same as the parent", never "same as the subfolders": the two
+     children's looks are independent of each other. */
+  const fileLook = (entry) => {
+    if (!('fileStyle' in entry)) return childLook(entry);
+    return {
+      stil: entry.fileStyle || entry.stil,
+      icon: 'fileIcon' in entry ? entry.fileIcon : entry.icon || null,
+    };
+  };
+
   /* Which folders pass their colour down? Every folder whose category
      says so. There is no table of its own for this any more -- the
      switch sits on the category, so this is a lookup. */
@@ -3693,7 +3786,7 @@ function buildTargets(data, lookupCategory) {
     const entry = lookupCategory(zuordnung[source]);
     const { farbe, stil } = entry;
     if (!farbe || !stil) continue;
-    const child = childLook(entry);
+    const child = fileLook(entry);
 
     const prefix = source + '/';
 
