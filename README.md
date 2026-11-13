@@ -228,7 +228,9 @@ assignments live in `data.json` inside your vault, and that is the only
 file the plugin reads or writes on its own. Other files in the vault are
 touched only when you pick an image as an icon: the image you pick is
 read, and one chosen through the file dialog is copied into the folder
-for custom icons.
+for custom icons. To list the images in your vault, the button that
+offers them goes through the vault's list of files — names only, and only
+when you press it.
 
 **Images never load anything from the network.** Before an image is
 stored it is redrawn as a small PNG, plain pixels. Anything an SVG might
