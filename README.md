@@ -172,7 +172,7 @@ the middle again.
 
 ## Settings
 
-Settings → Explorer Categories holds two things that are not about any
+Settings → Explorer Categories holds three things that are not about any
 one category.
 
 **Expand folders only with the arrow.** Turn it on, and
@@ -188,6 +188,11 @@ that note. Closing a folder by its name stays blocked either way.
 are copied to, as a path inside the vault. It is
 `explorer-categories-icons` unless you change it, and it is created with
 the first image.
+
+**Hide the folder for custom icons.** Takes that folder out of the file
+explorer. It stays in the vault, and its images can still be picked in
+the window. Off by default — if you point the setting above at a folder
+that also holds notes, those would disappear from the explorer with it.
 
 ## Nothing is written until you save
 
