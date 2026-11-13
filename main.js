@@ -204,6 +204,9 @@ const TEXTS_DE = {
   settingIconFolder: 'Ordner für eigene Symbole',
   settingIconFolderDesc:
     'Bilder, die du im Fenster über den Dateidialog wählst, werden in diesen Ordner im Vault kopiert. Er wird mit dem ersten Bild angelegt.',
+  settingHideIconFolder: 'Ordner für eigene Symbole ausblenden',
+  settingHideIconFolderDesc:
+    'Der Ordner verschwindet aus dem Dateibaum. Er bleibt im Vault, und seine Bilder lassen sich im Fenster weiter auswählen.',
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
@@ -347,6 +350,9 @@ const TEXTS_EN = {
   settingIconFolder: 'Folder for custom icons',
   settingIconFolderDesc:
     'Images you choose in the window through the file dialog are copied into this folder in the vault. It is created with the first image.',
+  settingHideIconFolder: 'Hide the folder for custom icons',
+  settingHideIconFolderDesc:
+    'The folder disappears from the file explorer. It stays in the vault, and its images can still be picked in the window.',
 };
 
 const LANGUAGES = { de: TEXTS_DE, en: TEXTS_EN };
@@ -566,6 +572,11 @@ const DEFAULT_DATA = {
   /* A plugin setting too: where pictures from the file dialog are copied
      to, see ICON_FOLDER_DEFAULT. */
   iconFolder: ICON_FOLDER_DEFAULT,
+  /* Hides that folder in the file explorer (since 1.5.0, asked for on
+     2026-11-13: the folder at the top of the tree was in the way). Off by
+     default: someone who names a folder holding notes as the library
+     would otherwise lose those notes from the tree without a word. */
+  hideIconFolder: false,
 };
 
 const STYLE_ID = 'explorer-categories-stil';
@@ -1612,12 +1623,14 @@ class ExplorerCategoriesPlugin extends Plugin {
        vault, and a backup from another vault may name one that does not
        exist here. The pictures themselves come along in the categories. */
     const iconFolder = this.data.iconFolder;
+    const hideIconFolder = this.data.hideIconFolder;
     this.data = Object.assign(
       JSON.parse(JSON.stringify(DEFAULT_DATA)),
       JSON.parse(JSON.stringify(data))
     );
     this.data.arrowOnlyCollapse = arrowOnly;
     this.data.iconFolder = iconFolder;
+    this.data.hideIconFolder = hideIconFolder;
     this.migrateOldData();
     this.writeStyle();
   }
@@ -2090,7 +2103,10 @@ class ExplorerCategoriesPlugin extends Plugin {
       this.maskOf(id)
     );
     const lines = buildLineRules(buildLines(this.data, lookup));
-    this.styleEl.textContent = [rows, lines].filter(Boolean).join('\n\n');
+    const hidden = this.data.hideIconFolder
+      ? hiddenFolderRules(iconFolderPath(this.data.iconFolder))
+      : '';
+    this.styleEl.textContent = [rows, lines, hidden].filter(Boolean).join('\n\n');
   }
 }
 
@@ -2139,6 +2155,21 @@ class CategoriesSettingTab extends PluginSettingTab {
           .setValue(this.plugin.data.iconFolder || '')
           .onChange(async (value) => {
             this.plugin.data.iconFolder = value.trim();
+            await this.plugin.save();
+          })
+      );
+
+    /* Takes that folder out of the file explorer. It stays in the vault,
+       so its pictures are still in the window's picture list. A rule in
+       the stylesheet, like everything else the plugin draws. */
+    new Setting(containerEl)
+      .setName(TEXTS.settingHideIconFolder)
+      .setDesc(TEXTS.settingHideIconFolderDesc)
+      .addToggle((toggle) =>
+        toggle
+          .setValue(Boolean(this.plugin.data.hideIconFolder))
+          .onChange(async (value) => {
+            this.plugin.data.hideIconFolder = value;
             await this.plugin.save();
           })
       );
@@ -4596,6 +4627,24 @@ function buildLineRules(lines) {
 }`);
   }
   return blocks.join('\n\n');
+}
+
+/* Since 1.5.0: takes one folder out of the file explorer -- the library
+ * of custom icons, when the settings say so.
+ *
+ * Two rules, the same pair the line along a folder uses: the folder's
+ * own row, and the box with its contents directly behind it. Hiding only
+ * the row would leave an open folder's contents standing in the tree
+ * without a parent. Nothing in the vault changes, so the pictures stay in
+ * the window's picture list. "!important" for the same reason as the
+ * background: themes bring rules of their own for these rows. */
+function hiddenFolderRules(folder) {
+  if (!folder) return '';
+  const title = `.nav-folder-title[data-path="${toMask(folder)}"]`;
+  return `${title},
+${title} + .nav-folder-children {
+  display: none !important;
+}`;
 }
 
 /* Text on a coloured box has to stay readable. The formula is the usual
