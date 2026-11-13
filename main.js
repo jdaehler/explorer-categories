@@ -23,6 +23,7 @@
 const {
   Plugin,
   Modal,
+  FuzzySuggestModal,
   TFolder,
   TFile,
   Notice,
@@ -90,6 +91,20 @@ const TEXTS_DE = {
   iconNeeded: 'Wähle ein Symbol — bis dahin bleibt die Zeile unmarkiert.',
   iconOnlyWithMarker: 'Wirkt erst, wenn die Markierung auf „Symbol" steht.',
   iconMore: (shown, total) => `${shown} von ${total} — weiter eingrenzen.`,
+  /* Pictures of one's own as icons, since 1.5.0. */
+  pickVaultImage: 'Bild aus dem Vault wählen …',
+  pickFileImage: 'Bild aus einer Datei wählen …',
+  imageInField: 'Eigenes Bild',
+  imageSearch: 'Bild im Vault suchen',
+  imageNothingFound: 'Kein Bild gefunden.',
+  imageNoneInVault: 'Im Vault liegt kein Bild (SVG, PNG oder JPG).',
+  imageUnreadable: 'Das Bild lässt sich nicht lesen.',
+  imageWrongType: 'Es gehen nur Bilder im Format SVG, PNG oder JPG.',
+  imageStored: (path) => `Bild nach „${path}" kopiert.`,
+  imageNotStored: 'Das Bild ist gesetzt, ließ sich aber nicht in den Ordner für eigene Symbole kopieren.',
+  imageOpaque: 'Das Bild hat keinen durchsichtigen Grund. In der Kategoriefarbe wird es ein volles Quadrat, mit „Eigene Farben" erscheint es richtig.',
+  imageColourCategory: 'Kategoriefarbe',
+  imageColourOwn: 'Eigene Farben',
   folderCountText: (n) => (n === 1 ? '1 Ordner' : `${n} Ordner`),
   deleteQuestion: (name, n) =>
     n === 0
@@ -186,6 +201,9 @@ const TEXTS_DE = {
   settingArrowOnly: 'Ordner nur über den Pfeil aufklappen',
   settingArrowOnlyDesc:
     'Ein Klick auf den Ordnernamen klappt nicht mehr auf oder zu. Das geht dann nur noch über den Pfeil davor.',
+  settingIconFolder: 'Ordner für eigene Symbole',
+  settingIconFolderDesc:
+    'Bilder, die du im Fenster über den Dateidialog wählst, werden in diesen Ordner im Vault kopiert. Er wird mit dem ersten Bild angelegt.',
 };
 
 /* American spelling ("color"), matching Obsidian itself. */
@@ -230,6 +248,19 @@ const TEXTS_EN = {
   iconNeeded: 'Pick an icon — until then the row stays unmarked.',
   iconOnlyWithMarker: 'Takes effect once the marker is set to "Icon".',
   iconMore: (shown, total) => `${shown} of ${total} — narrow the search.`,
+  pickVaultImage: 'Choose an image from the vault …',
+  pickFileImage: 'Choose an image file …',
+  imageInField: 'Own image',
+  imageSearch: 'Search images in the vault',
+  imageNothingFound: 'No image found.',
+  imageNoneInVault: 'There is no image in the vault (SVG, PNG or JPG).',
+  imageUnreadable: 'The image cannot be read.',
+  imageWrongType: 'Only SVG, PNG and JPG images work.',
+  imageStored: (path) => `Image copied to "${path}".`,
+  imageNotStored: 'The image is set but could not be copied to the folder for custom icons.',
+  imageOpaque: 'The image has no transparent background. In the category color it becomes a solid square; with "Its own colors" it shows as it is.',
+  imageColourCategory: 'Category color',
+  imageColourOwn: 'Its own colors',
   folderCountText: (n) => (n === 1 ? '1 folder' : `${n} folders`),
   deleteQuestion: (name, n) =>
     n === 0
@@ -313,6 +344,9 @@ const TEXTS_EN = {
   settingArrowOnly: 'Expand folders only with the arrow',
   settingArrowOnlyDesc:
     'Clicking a folder name no longer expands or collapses it. Only the arrow in front of it does.',
+  settingIconFolder: 'Folder for custom icons',
+  settingIconFolderDesc:
+    'Images you choose in the window through the file dialog are copied into this folder in the vault. It is created with the first image.',
 };
 
 const LANGUAGES = { de: TEXTS_DE, en: TEXTS_EN };
@@ -438,6 +472,12 @@ const STYLE_DEFAULT = {
      category, not to one of its looks. English key, unlike its
      neighbours: a field that starts out missing needs no migration. */
   subtreeLine: false,
+  /* Since 1.5.0, and only for a picture of one's own as the icon: draw
+     it in its own colours instead of as a shape in the category colour.
+     An Obsidian icon is always a shape, so there this does nothing.
+     Part of the look, like the icon itself, so the subfolders and the
+     files can differ from the parent. English key, starts out missing. */
+  iconOwnColours: false,
   /* Kept for reading old data only -- the window does not set it any
      more. migrateChildStyle() turns it into a child style on the first
      start and leaves it in place, so an older version installed
@@ -470,6 +510,36 @@ const EXAMPLE_CATEGORIES = [
  * colour is still decided per folder, exactly as before. */
 const EXAMPLE_GROUPS = [{ id: 'grp-1', name: TEXTS.exampleGroup }];
 
+/* Pictures of one's own as icons, since 1.5.0.
+ *
+ * The picture itself is kept in the plugin's data, as a small PNG
+ * written into the icon field (a "data:" address). That is what lets it
+ * travel with copy and paste and with a backup into another vault, and
+ * what keeps the icon standing when the file it came from is moved or
+ * deleted -- both asked for on 2026-11-13.
+ *
+ * The folder below is only the library: where a picture chosen through
+ * the system's file dialog is copied to, so it can be picked again for
+ * another category. Set on the settings page; this is the default.
+ * Lower case and no spaces, like the backup folder. */
+const ICON_FOLDER_DEFAULT = 'explorer-categories-icons';
+
+/* Longest side of the stored picture, in pixels. The tree draws icons
+   15 pixels wide; on a phone with three device pixels to the CSS pixel
+   that is 45, so 64 leaves room and keeps the data small: a plain shape
+   comes to about 2 KB, the worst case (pure noise) to 22 KB. Measured in
+   Chrome on 2026-11-13. */
+const ICON_IMAGE_SIZE = 64;
+
+/* The file types a picture may come from. Everything is stored as PNG
+   in the end, see rasterizeImage. */
+const IMAGE_TYPES = {
+  svg: 'image/svg+xml',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+};
+
 const DEFAULT_DATA = {
   gruppen: EXAMPLE_GROUPS,
   kategorien: EXAMPLE_CATEGORIES,
@@ -493,6 +563,9 @@ const DEFAULT_DATA = {
   /* A plugin setting, not category data: folders expand only through
      their arrow. Off by default, which is Obsidian's own behaviour. */
   arrowOnlyCollapse: false,
+  /* A plugin setting too: where pictures from the file dialog are copied
+     to, see ICON_FOLDER_DEFAULT. */
+  iconFolder: ICON_FOLDER_DEFAULT,
 };
 
 const STYLE_ID = 'explorer-categories-stil';
@@ -1535,13 +1608,92 @@ class ExplorerCategoriesPlugin extends Plugin {
     /* A backup holds categories. How folders open is a setting of this
        device's vault and should not flip because an old file came back. */
     const arrowOnly = this.data.arrowOnlyCollapse;
+    /* Same for the folder of custom icons: it names a folder in this
+       vault, and a backup from another vault may name one that does not
+       exist here. The pictures themselves come along in the categories. */
+    const iconFolder = this.data.iconFolder;
     this.data = Object.assign(
       JSON.parse(JSON.stringify(DEFAULT_DATA)),
       JSON.parse(JSON.stringify(data))
     );
     this.data.arrowOnlyCollapse = arrowOnly;
+    this.data.iconFolder = iconFolder;
     this.migrateOldData();
     this.writeStyle();
+  }
+
+  /* --- Pictures of one's own as icons (since 1.5.0) ----------------- */
+
+  /* Every picture in the vault that can become an icon, the library
+     folder first -- that is where pictures picked before are waiting.
+     Through the vault's own file list, so this works the same on the
+     phone, and nothing outside the vault is looked at. */
+  imageFiles() {
+    const byPath = new Map();
+    for (const file of this.app.vault.getFiles()) {
+      if (imageType(file.name)) byPath.set(file.path, file);
+    }
+    return sortImagePaths([...byPath.keys()], iconFolderPath(this.data.iconFolder)).map(
+      (path) => byPath.get(path)
+    );
+  }
+
+  /* Reads a picture from the vault and turns it into an icon. */
+  async iconFromVaultFile(file) {
+    const buffer = await this.app.vault.readBinary(file);
+    return rasterizeImage(buffer, imageType(file.name), ICON_IMAGE_SIZE);
+  }
+
+  /* Copies a picture from the file dialog into the library folder, so it
+   * can be picked again from the vault later. Asked for on 2026-11-13:
+   * a picture from outside should end up in the vault.
+   *
+   * The same file a second time is not copied again -- picking one logo
+   * for three categories should not leave three copies of it. A
+   * different file of the same name gets a number, the way Obsidian
+   * names its own copies.
+   *
+   * Through the vault, not the adapter: then the new file shows up in the
+   * vault's file list at once and can be picked from there straight away.
+   * Hands back where the file lies. */
+  async storeInLibrary(fileName, buffer) {
+    const vault = this.app.vault;
+    const folder = iconFolderPath(this.data.iconFolder);
+    await this.ensureFolder(folder);
+
+    const name = String(fileName || '').split(/[\\/]/).pop() || 'icon.png';
+    const existing = vault.getAbstractFileByPath(`${folder}/${name}`);
+    if (existing instanceof TFile) {
+      const old = await vault.readBinary(existing);
+      if (sameBytes(old, buffer)) return existing.path;
+    }
+
+    const here = vault.getAbstractFileByPath(folder);
+    const taken = here && Array.isArray(here.children) ? here.children.map((f) => f.name) : [];
+    const path = `${folder}/${freeFileName(name, taken)}`;
+    await vault.createBinary(path, buffer);
+    return path;
+  }
+
+  /* Creates the folder step by step. Obsidian's createFolder says nothing
+     about creating missing parents, and the setting may name a folder
+     two levels deep. */
+  async ensureFolder(folder) {
+    const vault = this.app.vault;
+    let path = '';
+    for (const part of folder.split('/')) {
+      path = path ? `${path}/${part}` : part;
+      const existing = vault.getAbstractFileByPath(path);
+      if (existing instanceof TFolder) continue;
+      if (existing) throw new Error('A file stands where the folder should be.');
+      try {
+        await vault.createFolder(path);
+      } catch (e) {
+        /* Already there after all -- the vault's list may spell it
+           differently (case), or it appeared in the meantime. */
+        if (!(await vault.adapter.exists(path))) throw e;
+      }
+    }
   }
 
   /* The safety copy is taken once, when the window opens. Everything
@@ -1969,6 +2121,24 @@ class CategoriesSettingTab extends PluginSettingTab {
           .setValue(Boolean(this.plugin.data.arrowOnlyCollapse))
           .onChange(async (value) => {
             this.plugin.data.arrowOnlyCollapse = value;
+            await this.plugin.save();
+          })
+      );
+
+    /* Where pictures from the file dialog are copied to. Free text, like
+       Obsidian's own setting for the attachment folder; what is typed is
+       stored as it is and cleaned up where it is used (iconFolderPath),
+       so a half-typed path never turns into a folder. Empty means the
+       default. */
+    new Setting(containerEl)
+      .setName(TEXTS.settingIconFolder)
+      .setDesc(TEXTS.settingIconFolderDesc)
+      .addText((text) =>
+        text
+          .setPlaceholder(ICON_FOLDER_DEFAULT)
+          .setValue(this.plugin.data.iconFolder || '')
+          .onChange(async (value) => {
+            this.plugin.data.iconFolder = value.trim();
             await this.plugin.save();
           })
       );
@@ -2435,6 +2605,72 @@ class CategoriesModal extends Modal {
     ).open();
   }
 
+  /* --- Pictures of one's own (since 1.5.0) -------------------------- */
+
+  /* A searchable list of every picture in the vault, library first --
+     Obsidian's own kind of list, the one its quick switcher uses. */
+  pickVaultImage(onPick) {
+    const files = this.plugin.imageFiles();
+    if (!files.length) {
+      new Notice(TEXTS.imageNoneInVault);
+      return;
+    }
+    new ImagePickModal(this.app, files, async (file) => {
+      let result;
+      try {
+        result = await this.plugin.iconFromVaultFile(file);
+      } catch (e) {
+        new Notice(TEXTS.imageUnreadable);
+        return;
+      }
+      await onPick(result);
+    }).open();
+  }
+
+  /* The system's own open dialog, the same plain file input that
+     restores a backup on the desktop. The picture is turned into an icon
+     first: a file that is no readable picture is refused before anything
+     is copied anywhere. Copying it into the library comes second, and if
+     that fails the icon is set all the same -- it lives in the data, not
+     in the file -- and the window says so. */
+  pickImageFile(onPick) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg';
+
+    input.addEventListener('change', async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      const type = imageType(file.name);
+      if (!type) {
+        new Notice(TEXTS.imageWrongType);
+        return;
+      }
+
+      let buffer;
+      let result;
+      try {
+        buffer = await file.arrayBuffer();
+        result = await rasterizeImage(buffer, type, ICON_IMAGE_SIZE);
+      } catch (e) {
+        new Notice(TEXTS.imageUnreadable);
+        return;
+      }
+
+      try {
+        const path = await this.plugin.storeInLibrary(file.name, buffer);
+        new Notice(TEXTS.imageStored(path));
+      } catch (e) {
+        new Notice(TEXTS.imageNotStored);
+      }
+
+      await onPick(result);
+    });
+
+    input.click();
+  }
+
   /* Everything on screen came from the old data -- which group is open,
      which category is selected. Both are worked out again rather than
      kept, or the window would point at entries the restored file does
@@ -2710,13 +2946,20 @@ class CategoriesModal extends Modal {
 
     /* Same function the stylesheet asks, so list and tree cannot drift
        apart. Whether Obsidian really knows the name shows up by itself
-       here: setIcon simply draws nothing. */
-    const kind = markKind(stil, Boolean(icon), true);
+       here: setIcon simply draws nothing. A picture of one's own is
+       checked the way the stylesheet checks it -- one it would refuse
+       falls back to the bar here as well. */
+    const usable = isImageIcon(icon) ? Boolean(imageCss(icon)) : true;
+    const kind = markKind(stil, Boolean(icon), usable);
 
     if (kind === 'symbol') {
       const iconName = target.createSpan({ cls: 'fc-listicon' });
-      setIcon(iconName, icon);
-      iconName.style.color = markColour;
+      if (isImageIcon(icon)) {
+        paintImageIcon(iconName.createSpan(), icon, markColour, stil.iconOwnColours);
+      } else {
+        setIcon(iconName, icon);
+        iconName.style.color = markColour;
+      }
     } else if (kind) {
       const mark = target.createSpan({ cls: 'fc-listmark' });
       mark.addClass(kind === 'lasche' ? 'fc-bar' : 'fc-dot');
@@ -2994,10 +3237,12 @@ class CategoriesModal extends Modal {
        does not shift sideways the moment one is set. */
     const iconImage = iconRow.createSpan({ cls: 'fc-iconimage' });
 
+    /* With a picture of one's own the field stays empty and says so in
+       grey. Typing a name replaces the picture, like any other icon. */
     const iconField = iconRow.createEl('input', {
       type: 'text',
       cls: 'fc-icontext',
-      placeholder: TEXTS.iconLabel,
+      placeholder: isImageIcon(shownIcon) ? TEXTS.imageInField : TEXTS.iconLabel,
     });
     iconField.value = shortIconName(shownIcon);
 
@@ -3014,6 +3259,35 @@ class CategoriesModal extends Modal {
       }).open();
     });
 
+    /* Since 1.5.0: a picture of one's own instead of an Obsidian icon.
+       Two ways in, both asked for on 2026-11-13: any picture already in
+       the vault, or one from the system's file dialog, which is then
+       copied into the library folder. Either way the picture itself ends
+       up in the icon field, see ICON_FOLDER_DEFAULT. */
+    const takeImage = async (result) => {
+      await updateIcon(result.icon);
+      /* Said once, at the moment it matters: drawn as a shape, a picture
+         without transparency is a solid square. Not switched over
+         automatically -- which colours to show is a choice. */
+      if (result.opaque && !stil.iconOwnColours) new Notice(TEXTS.imageOpaque);
+      this.fillList();
+      this.fillDetail();
+    };
+
+    const fromVault = iconRow.createEl('button', {
+      cls: 'clickable-icon fc-iconpaging',
+    });
+    setIcon(fromVault, 'image');
+    fromVault.setAttribute('aria-label', TEXTS.pickVaultImage);
+    fromVault.addEventListener('click', () => this.pickVaultImage(takeImage));
+
+    const fromFile = iconRow.createEl('button', {
+      cls: 'clickable-icon fc-iconpaging',
+    });
+    setIcon(fromFile, 'folder-open');
+    fromFile.setAttribute('aria-label', TEXTS.pickFileImage);
+    fromFile.addEventListener('click', () => this.pickImageFile(takeImage));
+
     /* The button is always there, only invisible without an icon. Left
        out entirely, everything below it moved up by a row as soon as you
        clicked a category without an icon -- including "Delete", which
@@ -3026,6 +3300,33 @@ class CategoriesModal extends Modal {
       this.fillList();
       this.fillDetail();
     });
+
+    /* Category colour or the picture's own colours -- two states that
+       exclude each other, so one choice of two, not a switch. Only there
+       while a picture of one's own is set: an Obsidian icon is always a
+       shape in the category colour, and a row that can change nothing
+       would only cost height in a column that has little to give. It
+       appears on a deliberate pick directly above it, and what is below
+       moves down, away from the hand (see "Die Einstellungsspalte hat
+       kein Fenster zum Wachsen" in the requirements). */
+    let colourRow = null;
+    if (isImageIcon(shownIcon)) {
+      colourRow = iconSection.createDiv({ cls: 'fc-group fc-imagecolours' });
+      const choices = [
+        [false, TEXTS.imageColourCategory],
+        [true, TEXTS.imageColourOwn],
+      ];
+      for (const [own, label] of choices) {
+        const button = colourRow.createEl('button', { text: label });
+        if (Boolean(stil.iconOwnColours) === own) button.addClass('mod-cta');
+        button.addEventListener('click', async () => {
+          if (Boolean(stil.iconOwnColours) === own) return;
+          await updateStyle({ iconOwnColours: own });
+          this.fillList();
+          this.fillDetail();
+        });
+      }
+    }
 
     /* Same reason as the button above: the line keeps its space even
        when it has nothing to say. .fc-hint reserves one row. */
@@ -3045,6 +3346,12 @@ class CategoriesModal extends Modal {
       const applies = stil.markierung === 'symbol';
       iconRow.classList.toggle('fc-noeffect', !applies);
       iconField.classList.toggle('fc-unknown', Boolean(unknown));
+      /* The colour choice belongs to the picture, so it fades with it --
+         and goes once a typed name has replaced the picture. */
+      if (colourRow) {
+        colourRow.classList.toggle('fc-noeffect', !applies);
+        colourRow.classList.toggle('fc-gone', !isImageIcon(shownIcon));
+      }
 
       if (unknown) iconHintEl.setText(TEXTS.iconUnknown);
       else if (!applies) iconHintEl.setText(TEXTS.iconOnlyWithMarker);
@@ -3061,6 +3368,10 @@ class CategoriesModal extends Modal {
     const showIconImage = () => {
       iconImage.empty();
       if (!shownIcon) return;
+      if (isImageIcon(shownIcon)) {
+        paintImageIcon(iconImage.createSpan(), shownIcon, cat.farbe, stil.iconOwnColours);
+        return;
+      }
       setIcon(iconImage, shownIcon);
       iconImage.style.color = cat.farbe;
     };
@@ -3242,6 +3553,7 @@ class CategoriesModal extends Modal {
 
       shownIcon = id || null;
       await updateIcon(shownIcon);
+      iconField.placeholder = TEXTS.iconLabel;
       iconRemove.classList.toggle('fc-placeholder', !shownIcon);
       showIconImage();
       showIconState(false);
@@ -3481,6 +3793,33 @@ class IconModal extends Modal {
   }
 }
 
+/* Picks a picture from the vault (since 1.5.0).
+ *
+ * Obsidian's fuzzy list, the one behind its quick switcher: type a few
+ * letters of the name or the folder, choose. It searches the whole path,
+ * so a picture can be found by the folder it lies in. */
+class ImagePickModal extends FuzzySuggestModal {
+  constructor(app, files, onPick) {
+    super(app);
+    this.files = files;
+    this.onPick = onPick;
+    this.setPlaceholder(TEXTS.imageSearch);
+    this.emptyStateText = TEXTS.imageNothingFound;
+  }
+
+  getItems() {
+    return this.files;
+  }
+
+  getItemText(file) {
+    return file.path;
+  }
+
+  onChooseItem(file) {
+    this.onPick(file);
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Stylesheet generation                                               */
 /* ------------------------------------------------------------------ */
@@ -3584,9 +3923,133 @@ function freeName(name, taken) {
 }
 
 /* The id without the prefix. Almost all of them read "lucide-folder";
- * what a person types, pastes or looks up is "folder". */
+ * what a person types, pastes or looks up is "folder".
+ *
+ * A picture of one's own has no name to show -- its field value is a
+ * few kilobytes of image data, which nobody wants in a text field. */
 function shortIconName(id) {
+  if (isImageIcon(id)) return '';
   return (id || '').replace(/^lucide-/, '');
+}
+
+/* --- Pictures of one's own as icons (since 1.5.0) ----------------- */
+
+/* Is this icon a picture of one's own rather than an Obsidian icon id?
+ * Decided by the "data:" at the front alone, so a damaged picture still
+ * counts as one: it is then refused by imageCss and falls back to the
+ * bar, instead of being looked up as an icon name it is not. */
+function isImageIcon(icon) {
+  return typeof icon === 'string' && icon.startsWith('data:');
+}
+
+/* The picture as a CSS value, or null.
+ *
+ * This is the one gate between the icon field and the stylesheet, and
+ * it is strict on purpose. The field is filled by this plugin, but it
+ * also arrives from a pasted clipboard and from a backup file, and both
+ * can come from anywhere. A quote or a bracket in it would end the CSS
+ * value and let the rest be read as rules of its own. So only exactly
+ * what rasterizeImage writes passes: a PNG, base64, nothing else. No
+ * other image type, no SVG -- an SVG is text and could carry anything. */
+function imageCss(icon) {
+  if (!isImageIcon(icon)) return null;
+  if (!/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(icon)) return null;
+  return `url("${icon}")`;
+}
+
+/* Which kind of picture a file name stands for, or null if it is none
+   the plugin takes. By the extension, as Obsidian itself does. */
+function imageType(name) {
+  const text = String(name || '');
+  const dot = text.lastIndexOf('.');
+  if (dot < 0) return null;
+  return IMAGE_TYPES[text.slice(dot + 1).toLowerCase()] || null;
+}
+
+/* How large the stored picture becomes.
+ *
+ * The longest side ends up at "max" at most, the proportions stay. A
+ * picture already smaller is left as it is: enlarging it would only
+ * blur it and make the data bigger. A drawing (SVG) has no pixels to
+ * lose and is always drawn at full size.
+ *
+ * Without a usable size -- an SVG that states none, in a browser that
+ * then reports 0 -- it becomes a square. Chrome reports 150 by 150 for
+ * an SVG that has only a viewBox, which keeps the proportions; measured
+ * on 2026-11-13. */
+function fitSize(width, height, max, vector) {
+  const w = Number(width) > 0 ? Number(width) : 0;
+  const h = Number(height) > 0 ? Number(height) : 0;
+  if (!w || !h) return { width: max, height: max };
+  const longest = Math.max(w, h);
+  const scale = vector || longest > max ? max / longest : 1;
+  return {
+    width: Math.max(1, Math.round(w * scale)),
+    height: Math.max(1, Math.round(h * scale)),
+  };
+}
+
+/* An SVG without its namespace does not load as a picture at all --
+   measured in Chrome on 2026-11-13. Plenty of hand-written ones leave it
+   out, because a browser shows them fine inside a web page. */
+function withSvgNamespace(text) {
+  const svg = String(text || '');
+  const open = svg.match(/<svg\b[^>]*>/i);
+  if (!open || /\sxmlns\s*=/.test(open[0])) return svg;
+  return svg.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+}
+
+/* The library folder as a clean vault path.
+ *
+ * Typed by hand on the settings page, so anything can stand there: a
+ * slash too many, a backslash from Windows, spaces around it. Steps up
+ * ("..") are dropped: the folder must stay inside the vault. Nothing
+ * left means the default. */
+function iconFolderPath(setting) {
+  const parts = String(setting || '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .map((part) => part.trim())
+    .filter((part) => part && part !== '.' && part !== '..');
+  return parts.length ? parts.join('/') : ICON_FOLDER_DEFAULT;
+}
+
+/* A file name not yet taken in the folder: the name itself, else
+   "name 1.png", "name 2.png" and on -- the way Obsidian numbers its own
+   copies. */
+function freeFileName(name, taken) {
+  const names = new Set(taken || []);
+  if (!names.has(name)) return name;
+  const dot = name.lastIndexOf('.');
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : '';
+  let n = 1;
+  while (names.has(`${base} ${n}${ext}`)) n++;
+  return `${base} ${n}${ext}`;
+}
+
+/* Are two files the same, byte for byte? */
+function sameBytes(a, b) {
+  if (!a || !b || a.byteLength !== b.byteLength) return false;
+  const x = new Uint8Array(a);
+  const y = new Uint8Array(b);
+  for (let i = 0; i < x.length; i++) {
+    if (x[i] !== y[i]) return false;
+  }
+  return true;
+}
+
+/* The pictures in the order the list shows them: the library folder
+   first, then everything else, each by path. Plain code-point order, as
+   in toPath below, so the order is the same on every device. */
+function sortImagePaths(paths, folder) {
+  const prefix = folder + '/';
+  const inLibrary = (path) => (path.startsWith(prefix) ? 0 : 1);
+  return paths
+    .slice()
+    .sort(
+      (a, b) => inLibrary(a) - inLibrary(b) || (a < b ? -1 : a > b ? 1 : 0)
+    );
 }
 
 /* Turns whatever someone typed into the icon line into a real id.
@@ -3895,30 +4358,60 @@ function buildRules(targets, maskOf) {
      one stays unmarked -- falling back to a bar would draw something
      nobody chose, and the window says so while it is being set.
      Worked out once so the blocks below agree with each other. */
+  /* A picture of one's own (since 1.5.0) needs no maskOf: it carries its
+     image data in the field and only has to pass imageCss. */
   const masks = new Map();
+  const cssOf = (icon) =>
+    isImageIcon(icon) ? imageCss(icon) : (maskOf && maskOf(icon)) || null;
   const iconUsable = (e) => {
     if (!e.icon) return false;
-    if (!masks.has(e.icon)) {
-      masks.set(e.icon, (maskOf && maskOf(e.icon)) || null);
-    }
+    if (!masks.has(e.icon)) masks.set(e.icon, cssOf(e.icon));
     return masks.get(e.icon) !== null;
   };
   const showsIcon = (e) =>
     markKind(e.stil, Boolean(e.icon), iconUsable(e)) === 'symbol';
+  /* Only a picture of one's own can keep its own colours. An Obsidian
+     icon is a line drawing in black, so it stays a shape. */
+  const ownColours = (e) => isImageIcon(e.icon) && Boolean(e.stil.iconOwnColours);
 
   /* --- marker: icon ----------------------------------------------- */
   /* Grouped by icon, not by entry: that way the image data appears once
      per icon in the stylesheet rather than once per folder. With a few
      hundred folders sharing a category, that is the difference between
-     a few hundred bytes and a few hundred kilobytes. */
+     a few hundred bytes and a few hundred kilobytes. A picture drawn in
+     its own colours by one category and as a shape by another is two
+     groups. */
   const toIcon = new Map();
   for (const e of targets.filter(showsIcon)) {
-    if (!toIcon.has(e.icon)) toIcon.set(e.icon, []);
-    toIcon.get(e.icon).push(e);
+    const own = ownColours(e);
+    const key = `${own ? 'own' : 'mask'}|${e.icon}`;
+    if (!toIcon.has(key)) toIcon.set(key, { id: e.icon, own, fitting: [] });
+    toIcon.get(key).fitting.push(e);
   }
 
-  for (const [id, fitting] of toIcon) {
+  for (const { id, own, fitting } of toIcon.values()) {
     const shape = fitting.map((e) => `${body(e)}::before`).join(',\n');
+
+    /* The picture as it is: same box as the shape below, but painted
+       with the image instead of a colour through a mask. No colour rule
+       per folder -- there is nothing to colour. */
+    if (own) {
+      blocks.push(`${shape} {
+  content: '';
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  margin-right: 6px;
+  vertical-align: -0.19em;
+  flex: 0 0 auto;
+  background-image: ${masks.get(id)};
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}`);
+      continue;
+    }
+
     const colours = fitting
       .map((e) => `${body(e)}::before { background-color: ${markColour(e)}; }`)
       .join('\n');
@@ -4203,6 +4696,93 @@ function svgToMask(svgText) {
   const text = String(svgText || '').trim();
   if (!text.startsWith('<svg')) return null;
   return `url("data:image/svg+xml,${encodeURIComponent(text)}")`;
+}
+
+/* Turns a picture file into the icon that is stored (since 1.5.0).
+ *
+ * Whatever comes in -- SVG, PNG or JPG, large or small -- comes out as a
+ * small PNG in a "data:" address: drawn onto a canvas at ICON_IMAGE_SIZE
+ * at most and read back. Three things follow from that, all wanted:
+ *
+ *   - The data stays small, so the picture can live in data.json and
+ *     travel with copy and paste and with a backup.
+ *   - Nothing is loaded from the network. A picture loaded as an image
+ *     fetches nothing from outside, and what is stored afterwards is
+ *     plain pixels. Checked in Chrome on 2026-11-13 with an SVG holding
+ *     four kinds of reference to a local test server (an image, an
+ *     @import, a fill and a script), loaded three ways: as a CSS mask,
+ *     as a CSS background and through a canvas. Not one request arrived.
+ *   - imageCss only has to accept one shape, base64 PNG.
+ *
+ * Loaded through a blob address, not a "data:" one: that keeps the
+ * picture the page's own, so the canvas may be read back afterwards.
+ *
+ * Also says whether the picture is fully opaque. Drawn as a shape in the
+ * category colour, such a picture is a solid square -- the window warns
+ * about that once, when it is picked. */
+function rasterizeImage(buffer, type, max) {
+  return new Promise((resolve, reject) => {
+    if (!type) {
+      reject(new Error('unknown type'));
+      return;
+    }
+    const isSvg = type === 'image/svg+xml';
+    const content = isSvg ? withSvgNamespace(new TextDecoder().decode(buffer)) : buffer;
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const image = new Image();
+
+    image.onload = () => {
+      try {
+        const size = fitSize(image.naturalWidth, image.naturalHeight, max, isSvg);
+        const canvas = document.createElement('canvas');
+        canvas.width = size.width;
+        canvas.height = size.height;
+        const context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0, size.width, size.height);
+
+        const pixels = context.getImageData(0, 0, size.width, size.height).data;
+        let opaque = true;
+        for (let i = 3; i < pixels.length; i += 4) {
+          if (pixels[i] < 255) {
+            opaque = false;
+            break;
+          }
+        }
+
+        const icon = canvas.toDataURL('image/png');
+        if (!imageCss(icon)) throw new Error('no PNG');
+        resolve({ icon, opaque });
+      } catch (e) {
+        reject(e);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('unreadable'));
+    };
+
+    image.src = url;
+  });
+}
+
+/* Draws a picture of one's own into an element of the window -- the
+   list row and the field's preview. Same two ways the stylesheet draws
+   it in the tree: as a shape in the given colour, or as it is. A
+   picture imageCss refuses draws nothing. */
+function paintImageIcon(el, icon, colour, ownColours) {
+  el.addClass('fc-imageicon');
+  const url = imageCss(icon);
+  if (!url) return;
+  if (ownColours) {
+    el.style.backgroundImage = url;
+    return;
+  }
+  el.style.backgroundColor = colour;
+  el.style.setProperty('-webkit-mask-image', url);
+  el.style.setProperty('mask-image', url);
 }
 
 module.exports = ExplorerCategoriesPlugin;

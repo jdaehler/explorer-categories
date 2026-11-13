@@ -601,6 +601,13 @@
   pointer-events: none;
 }
 
+/* Takes a control out altogether, space and all. Only for the colour
+   choice under a custom image, once a typed icon name has replaced the
+   image -- a change the person just made directly above it. */
+.fc-gone {
+  display: none;
+}
+
 .fc-empty {
   color: var(--text-muted);
   font-style: italic;
@@ -769,6 +776,35 @@
 .fc-iconimage svg {
   width: 16px;
   height: 16px;
+}
+
+/* A custom image as the icon (since 1.5.0), in the list and in front
+   of the field. Drawn like the tree draws it: a mask over the colour,
+   or the image itself -- which of the two is set inline by
+   paintImageIcon. Both kinds of property stand here so either works. */
+.fc-imageicon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.fc-iconimage .fc-imageicon {
+  width: 16px;
+  height: 16px;
+}
+
+/* "Category color | Its own colors" under the icon row. */
+.fc-imagecolours {
+  margin-top: 8px;
 }
 
 /* The id as text, so it can be pasted. Working through many categories
