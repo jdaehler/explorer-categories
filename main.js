@@ -102,7 +102,7 @@ const TEXTS_DE = {
   imageWrongType: 'Es gehen nur Bilder im Format SVG, PNG oder JPG.',
   imageStored: (path) => `Bild nach „${path}" kopiert.`,
   imageNotStored: 'Das Bild ist gesetzt, ließ sich aber nicht in den Ordner für eigene Symbole kopieren.',
-  imageOpaque: 'Das Bild hat keinen durchsichtigen Grund. In der Kategoriefarbe wird es ein volles Quadrat, mit „Eigene Farben" erscheint es richtig.',
+  imageOpaque: 'Das Bild hat keinen durchsichtigen Grund. In der Kategoriefarbe wird es ein volles Rechteck, mit „Eigene Farben" erscheint es richtig.',
   imageColourCategory: 'Kategoriefarbe',
   imageColourOwn: 'Eigene Farben',
   folderCountText: (n) => (n === 1 ? '1 Ordner' : `${n} Ordner`),
@@ -261,7 +261,7 @@ const TEXTS_EN = {
   imageWrongType: 'Only SVG, PNG and JPG images work.',
   imageStored: (path) => `Image copied to "${path}".`,
   imageNotStored: 'The image is set but could not be copied to the folder for custom icons.',
-  imageOpaque: 'The image has no transparent background. In the category color it becomes a solid square; with "Its own colors" it shows as it is.',
+  imageOpaque: 'The image has no transparent background. In the category color it becomes a solid rectangle; with "Its own colors" it shows as it is.',
   imageColourCategory: 'Category color',
   imageColourOwn: 'Its own colors',
   folderCountText: (n) => (n === 1 ? '1 folder' : `${n} folders`),
@@ -1675,14 +1675,24 @@ class ExplorerCategoriesPlugin extends Plugin {
     await this.ensureFolder(folder);
 
     const name = String(fileName || '').split(/[\\/]/).pop() || 'icon.png';
-    const existing = vault.getAbstractFileByPath(`${folder}/${name}`);
-    if (existing instanceof TFile) {
-      const old = await vault.readBinary(existing);
-      if (sameBytes(old, buffer)) return existing.path;
+    const here = vault.getAbstractFileByPath(folder);
+    const files =
+      here && Array.isArray(here.children)
+        ? here.children.filter((f) => f instanceof TFile)
+        : [];
+    const taken = files.map((f) => f.name);
+
+    /* The same picture may already lie here under its own name or under
+       one of the numbered names a different picture of the same name
+       pushed it to: "logo.png", "logo 1.png", "logo 2.png". All of them
+       are compared. Until the report of 2026-11-13 (I1) only the first
+       was, and every further pick of the second picture added one more
+       copy. */
+    for (const candidate of sameNameFamily(name, taken)) {
+      const file = files.find((f) => f.name === candidate);
+      if (file && sameBytes(await vault.readBinary(file), buffer)) return file.path;
     }
 
-    const here = vault.getAbstractFileByPath(folder);
-    const taken = here && Array.isArray(here.children) ? here.children.map((f) => f.name) : [];
     const path = `${folder}/${freeFileName(name, taken)}`;
     await vault.createBinary(path, buffer);
     return path;
@@ -2663,7 +2673,12 @@ class CategoriesModal extends Modal {
      first: a file that is no readable picture is refused before anything
      is copied anywhere. Copying it into the library comes second, and if
      that fails the icon is set all the same -- it lives in the data, not
-     in the file -- and the window says so. */
+     in the file -- and the window says so.
+
+     Copied at once, not on Save, and so it stays after Cancel: the one
+     write that does not wait for the draft. Decided on 2026-11-13 after
+     the report of that day (D2) -- a picture left in the library does no
+     harm, and the README says so. */
   pickImageFile(onPick) {
     const input = document.createElement('input');
     input.type = 'file';
@@ -3298,7 +3313,7 @@ class CategoriesModal extends Modal {
     const takeImage = async (result) => {
       await updateIcon(result.icon);
       /* Said once, at the moment it matters: drawn as a shape, a picture
-         without transparency is a solid square. Not switched over
+         without transparency is a solid rectangle. Not switched over
          automatically -- which colours to show is a choice. */
       if (result.opaque && !stil.iconOwnColours) new Notice(TEXTS.imageOpaque);
       this.fillList();
@@ -4047,16 +4062,38 @@ function iconFolderPath(setting) {
 
 /* A file name not yet taken in the folder: the name itself, else
    "name 1.png", "name 2.png" and on -- the way Obsidian numbers its own
-   copies. */
+   copies.
+ *
+   Upper and lower case count as the same name. The Mac's file system
+   does not tell "Logo.png" from "logo.png" (measured on 2026-11-13), so
+   a name that differs only in case is taken there all the same. */
 function freeFileName(name, taken) {
-  const names = new Set(taken || []);
-  if (!names.has(name)) return name;
-  const dot = name.lastIndexOf('.');
-  const base = dot > 0 ? name.slice(0, dot) : name;
-  const ext = dot > 0 ? name.slice(dot) : '';
+  const names = new Set((taken || []).map((t) => String(t).toLowerCase()));
+  const free = (candidate) => !names.has(candidate.toLowerCase());
+  if (free(name)) return name;
+  const { base, ext } = splitFileName(name);
   let n = 1;
-  while (names.has(`${base} ${n}${ext}`)) n++;
+  while (!free(`${base} ${n}${ext}`)) n++;
   return `${base} ${n}${ext}`;
+}
+
+/* The names in the folder that the same picture could be lying under:
+   the name itself and its numbered copies ("logo.png", "logo 1.png" ...),
+   whatever their case. In the order the folder lists them. */
+function sameNameFamily(name, taken) {
+  const { base, ext } = splitFileName(name);
+  const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`^${escape(base)}( \\d+)?${escape(ext)}$`, 'i');
+  return (taken || []).filter((t) => pattern.test(String(t)));
+}
+
+/* "logo.png" -> "logo" and ".png". A name without a dot, or with the dot
+   only at the front, has no extension. */
+function splitFileName(name) {
+  const dot = name.lastIndexOf('.');
+  return dot > 0
+    ? { base: name.slice(0, dot), ext: name.slice(dot) }
+    : { base: name, ext: '' };
 }
 
 /* Are two files the same, byte for byte? */
@@ -4767,7 +4804,7 @@ function svgToMask(svgText) {
  * picture the page's own, so the canvas may be read back afterwards.
  *
  * Also says whether the picture is fully opaque. Drawn as a shape in the
- * category colour, such a picture is a solid square -- the window warns
+ * category colour, such a picture is a solid rectangle -- the window warns
  * about that once, when it is picked. */
 function rasterizeImage(buffer, type, max) {
   return new Promise((resolve, reject) => {

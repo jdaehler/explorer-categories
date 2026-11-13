@@ -118,8 +118,9 @@ stays put if the original file is moved or deleted.
 Below the field you choose how it is drawn: in the **category color**,
 as a shape like Obsidian's icons, or in **its own colors**, like a logo.
 The shape takes the image's transparent parts as its outline, so an image
-without transparency — a typical JPG — turns into a solid square there;
-the window tells you when that is about to happen.
+without transparency — a typical JPG — turns into a solid rectangle
+there; the window says so when you pick such an image while the category
+color is set.
 
 **Renaming keeps the category.** Move a folder or a file, rename it,
 rename a folder above it — the assignment follows.
@@ -200,6 +201,10 @@ The window works on a draft. Change a color, rename, delete, restore a
 backup — none of it reaches your vault until you press **Save**. **Cancel**
 puts everything back the way it was, and closing the window counts as
 cancelling.
+
+One thing happens at once: an image chosen through the file dialog is
+copied into the folder for custom icons when you pick it, and it stays
+there after Cancel. The icon itself waits for Save like everything else.
 
 **Back up your work.** "Back up" writes your categories, groups and folder
 assignments to a readable JSON file. On the desktop it is downloaded like
