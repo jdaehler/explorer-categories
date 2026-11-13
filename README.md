@@ -14,7 +14,8 @@ sorting them into groups that happen to be visible.
 A category is a name plus an appearance, and the appearance is complete:
 
 - a color
-- a marker in front of the name — a bar, a dot, or an icon
+- a marker in front of the name — a bar, a dot, or an icon: one of
+  Obsidian's, or an image of your own
 - an optional background, colored text, bold text
 - or the opposite: dim, which makes the whole row step back
 
@@ -106,6 +107,20 @@ category's color. Until an icon is picked, the row stays unmarked, and
 the window says so. A name Obsidian does not know falls back to the bar,
 so the mistake shows.
 
+**Or use an image of your own.** Two buttons next to the icon field take
+an SVG, PNG or JPG instead: one lists every image in the vault, searchable
+by name or folder; the other opens the system file dialog and copies the
+image into a folder in your vault, so you can pick it again for the next
+category. Either way the image is shrunk to a small PNG and stored with
+the category itself. It travels with copy, paste and backups, and it
+stays put if the original file is moved or deleted.
+
+Below the field you choose how it is drawn: in the **category color**,
+as a shape like Obsidian's icons, or in **its own colors**, like a logo.
+The shape takes the image's transparent parts as its outline, so an image
+without transparency — a typical JPG — turns into a solid square there;
+the window tells you when that is about to happen.
+
 **Renaming keeps the category.** Move a folder or a file, rename it,
 rename a folder above it — the assignment follows.
 
@@ -157,8 +172,10 @@ the middle again.
 
 ## Settings
 
-Settings → Explorer Categories holds one switch, and it has nothing to do
-with categories: **Expand folders only with the arrow.** Turn it on, and
+Settings → Explorer Categories holds two things that are not about any
+one category.
+
+**Expand folders only with the arrow.** Turn it on, and
 a click on a folder's name no longer opens or closes the folder. Only the
 arrow in front of it does. It is off by default.
 
@@ -166,6 +183,11 @@ One combination still opens a folder on a click. The Folder notes plugin
 opens the note that lives inside the folder, and if the file explorer is
 set to reveal the active file, Obsidian then expands the folders above
 that note. Closing a folder by its name stays blocked either way.
+
+**Folder for custom icons.** Where images chosen through the file dialog
+are copied to, as a path inside the vault. It is
+`explorer-categories-icons` unless you change it, and it is created with
+the first image.
 
 ## Nothing is written until you save
 
@@ -193,16 +215,25 @@ not your colors.
 **The plugin makes no network requests.** Nothing is sent anywhere, there
 is no telemetry, no account and no paid tier. Your categories and folder
 assignments live in `data.json` inside your vault, and that is the only
-file the plugin reads or writes on its own.
+file the plugin reads or writes on its own. Other files in the vault are
+touched only when you pick an image as an icon: the image you pick is
+read, and one chosen through the file dialog is copied into the folder
+for custom icons.
 
-**Four actions reach outside the vault, and only when you press them.**
+**Images never load anything from the network.** Before an image is
+stored it is redrawn as a small PNG, plain pixels. Anything an SVG might
+point to elsewhere is not fetched, and of an image nothing but such a PNG
+makes it into the stylesheet.
+
+**Five actions reach outside the vault, and only when you press them.**
 Pressing "Back up" on the desktop hands the file to your browser as a
 download, the way any web page does — it lands in your downloads folder,
 or wherever you choose if your system asks.
 Pressing "Restore" opens the system file dialog and reads the one file
-you pick. "Copy" and "Copy group" put that group or category on the
+you pick, and so does the button that takes an image from a file.
+"Copy" and "Copy group" put that group or category on the
 system clipboard, and "Paste" reads the clipboard. The plugin has no
-access to your disk beyond those two dialogs; it uses no Node.js or
+access to your disk beyond those dialogs; it uses no Node.js or
 Electron APIs, which is why it runs on mobile as well.
 
 ## Interface language
