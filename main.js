@@ -47,6 +47,7 @@ const TEXTS_DE = {
   manage: 'Kategorien verwalten …',
   toSubfolders: 'Gilt auch für Unterordner',
   toNotes: 'Gilt auch für Dateien darin',
+  subtreeLine: 'Linie am Unterbaum',
   inheritsFrom: (folder, category) => `Erbt „${category}" von „${folder}"`,
   windowTitle: 'Farbkategorien',
   openWindow: 'Farbkategorien verwalten',
@@ -75,7 +76,6 @@ const TEXTS_DE = {
   childOwnHint: 'Die Unterordner haben ein eigenes Aussehen. Alles Übrige folgt weiter dem Vater.',
   fileFollowsHint: 'Die Dateien sehen aus wie der Vater. Stell etwas um, damit sie ein eigenes Aussehen bekommen.',
   fileOwnHint: 'Die Dateien haben ein eigenes Aussehen. Alles Übrige folgt weiter dem Vater.',
-  childOnlyWithReach: 'Erst mit Vererbung gibt es Kinder.',
   /* Short on purpose: these share one reserved line with the sentence
      above them, and a second line would push the window a step taller
      for everyone, not just for the case that needs it. */
@@ -195,6 +195,7 @@ const TEXTS_EN = {
   manage: 'Manage categories …',
   toSubfolders: 'Also applies to subfolders',
   toNotes: 'Also applies to the files inside',
+  subtreeLine: 'Line along the contents',
   inheritsFrom: (folder, category) => `Inherits "${category}" from "${folder}"`,
   windowTitle: 'Color categories',
   openWindow: 'Manage color categories',
@@ -218,7 +219,6 @@ const TEXTS_EN = {
   childOwnHint: 'Subfolders have a look of their own. Everything else still follows the parent.',
   fileFollowsHint: 'Files look like the parent. Change anything to give them a look of their own.',
   fileOwnHint: 'Files have a look of their own. Everything else still follows the parent.',
-  childOnlyWithReach: 'There are no children until something inherits.',
   iconName: 'Icon',
   pickIcon: 'Choose icon …',
   iconLabel: 'Icon name',
@@ -430,6 +430,14 @@ const STYLE_DEFAULT = {
      because subfolders do. */
   vererbt: false,
   vererbtDateien: false,
+  /* Since 1.5.0: a line in the category colour along everything inside
+     a folder that carries the category, drawn while the folder is open.
+     It shows how far the folder reaches, not how far the colour does --
+     so it runs past subfolders with a category of their own as well.
+     Sits beside the two reach switches because it belongs to the whole
+     category, not to one of its looks. English key, unlike its
+     neighbours: a field that starts out missing needs no migration. */
+  subtreeLine: false,
   /* Kept for reading old data only -- the window does not set it any
      more. migrateChildStyle() turns it into a child style on the first
      start and leaves it in place, so an older version installed
@@ -575,7 +583,7 @@ function isInTitleStrip(evt, stripBottom) {
   return evt.clientY <= stripBottom;
 }
 
-/* The phone's backup folder, and only the phone's.
+/* The backup folder on phone and tablet, and only there.
  *
  * On the desktop a backup leaves the vault altogether and goes to the
  * downloads folder, or wherever the save dialog puts it -- see
@@ -583,8 +591,8 @@ function isInTitleStrip(evt, stripBottom) {
  * shares the fate of the file it is meant to survive: the same folder
  * tree, the same sync, the same mishap.
  *
- * The phone has no downloads folder worth the name, so there the backup
- * stays here, where at least it can be reached and shared out.
+ * Phone and tablet have no downloads folder worth the name, so there the
+ * backup stays here, where at least it can be reached and shared out.
  *
  * Lower case and no spaces, so the name survives every filesystem and
  * every sync in one piece. */
@@ -1453,8 +1461,8 @@ class ExplorerCategoriesPlugin extends Plugin {
       return { name, inVault: false };
     }
 
-    /* The phone has no downloads folder to speak of, so there the backup
-       stays in the vault -- reachable rather than nowhere. */
+    /* Phone and tablet have no downloads folder to speak of, so there the
+       backup stays in the vault -- reachable rather than nowhere. */
     const adapter = this.app.vault.adapter;
     if (!(await adapter.exists(BACKUP_FOLDER))) {
       await adapter.mkdir(BACKUP_FOLDER);
@@ -1917,18 +1925,20 @@ class ExplorerCategoriesPlugin extends Plugin {
   }
 
   writeStyle() {
-    this.styleEl.textContent = buildRules(
-      buildTargets(this.data, (catId) => ({
-        farbe: this.colourOf(catId),
-        stil: this.styleOf(catId),
-        icon: this.iconOf(catId),
-        childStyle: this.childStyleOf(catId),
-        childIcon: this.childIconOf(catId),
-        fileStyle: this.childStyleOf(catId, 'fileStyle'),
-        fileIcon: this.childIconOf(catId, 'fileStyle'),
-      })),
-      (id) => this.maskOf(id)
+    const lookup = (catId) => ({
+      farbe: this.colourOf(catId),
+      stil: this.styleOf(catId),
+      icon: this.iconOf(catId),
+      childStyle: this.childStyleOf(catId),
+      childIcon: this.childIconOf(catId),
+      fileStyle: this.childStyleOf(catId, 'fileStyle'),
+      fileIcon: this.childIconOf(catId, 'fileStyle'),
+    });
+    const rows = buildRules(buildTargets(this.data, lookup), (id) =>
+      this.maskOf(id)
     );
+    const lines = buildLineRules(buildLines(this.data, lookup));
+    this.styleEl.textContent = [rows, lines].filter(Boolean).join('\n\n');
   }
 }
 
@@ -2898,7 +2908,7 @@ class CategoriesModal extends Modal {
     });
     name.value = cat.name;
 
-    /* --- Parent or children ---------------------------------------- */
+    /* --- Parent, subfolders or files ------------------------------- */
     /* Sits above everything it switches, so you can see what you are
        about to edit before you press anything.
 
@@ -3116,9 +3126,15 @@ class CategoriesModal extends Modal {
     const inheritField = this.section(TEXTS.inheritance);
 
     const reach = inheritField.createDiv({ cls: 'fc-switches' });
+    /* The line (since 1.5.0) sits here too: like the reach switches it
+       is about where the category shows, and it is set once for the
+       whole category. Under "Extra" it would have been one switch per
+       look, and inheriting subfolders drawing lines of their own would
+       have stacked line inside line. */
     const inheritSwitches = [
       ['vererbt', TEXTS.toSubfolders],
       ['vererbtDateien', TEXTS.toNotes],
+      ['subtreeLine', TEXTS.subtreeLine],
     ];
 
     for (const [field, label] of inheritSwitches) {
@@ -3676,12 +3692,14 @@ function buildTargets(data, lookupCategory) {
 
   const depth = (path) => path.split('/').length;
 
-  /* --- parent and children ---------------------------------------- */
+  /* --- parent, subfolders and files ------------------------------- */
 
-  /* Since 1.1.0 a category carries two looks: the one for the folder it
-     is assigned to, and the one for everything inheriting below it. The
-     second is optional -- without it the children look like the parent,
-     which is what every category did before and what most still want.
+  /* Since 1.1.0 a category carries more than one look: the one for the
+     folder it is assigned to, and one for everything inheriting below it
+     -- since 1.4.0 split into subfolders and files, see fileLook. The
+     children's looks are optional -- without them the children look like
+     the parent, which is what every category did before and what most
+     still want.
    *
      Both come ready-made from the lookup. Nothing is worked out here any
      more; the old "set the parent apart" needed three helpers to derive
@@ -4029,6 +4047,61 @@ ${atCursor} {
 }`);
   }
 
+  return blocks.join('\n\n');
+}
+
+/* Since 1.5.0: which folders draw the line along their contents.
+ *
+ * Obsidian already draws a thin grey line there -- the indentation
+ * guide is the left border of the box holding a folder's children
+ * (".tree-item-children" in its stylesheet). The plugin only colours
+ * that border, so the line runs unbroken past every row inside, and
+ * nothing in the tree is touched. A collapsed folder has no such box,
+ * so its line goes away by itself.
+ *
+ * Only folders with an assignment of their own. Inheriting subfolders
+ * drawing a line too would stack line inside line in a deep tree. */
+function buildLines(data, lookupCategory) {
+  const zuordnung = data.zuordnung || {};
+  const lines = [];
+  for (const [path, catId] of Object.entries(zuordnung)) {
+    const entry = lookupCategory(catId);
+    if (!entry || !entry.farbe || !entry.stil || !entry.stil.subtreeLine) {
+      continue;
+    }
+    lines.push({
+      selector: `.nav-folder-title[data-path="${toMask(path)}"] + .nav-folder-children`,
+      farbe: entry.farbe,
+      gedimmt: !!entry.stil.gedimmt,
+    });
+  }
+  return lines;
+}
+
+/* The stylesheet part for the lines, grouped by colour so a category
+ * with many folders writes its colour once.
+ *
+ * Two pixels instead of Obsidian's one: a one-pixel line in colour was
+ * hard to tell from the grey guides around it. A dimmed category gets
+ * the same 45 percent its rows get, as a transparent colour -- opacity
+ * on the box would fade every row inside it along with the line. */
+function buildLineRules(lines) {
+  if (!lines.length) return '';
+  const byColour = new Map();
+  for (const line of lines) {
+    const rgb = hexToRgb(line.farbe);
+    const colour =
+      line.gedimmt && rgb ? `rgba(${rgb.join(', ')}, 0.45)` : line.farbe;
+    if (!byColour.has(colour)) byColour.set(colour, []);
+    byColour.get(colour).push(line.selector);
+  }
+  const blocks = [];
+  for (const [colour, selectors] of byColour) {
+    blocks.push(`${selectors.join(',\n')} {
+  border-inline-start-width: 2px;
+  border-inline-start-color: ${colour};
+}`);
+  }
   return blocks.join('\n\n');
 }
 

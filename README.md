@@ -80,11 +80,20 @@ one go, without anyone changing a setting.
 Both switches sit in the management window, on the category — not on the
 single folder. Everything a category decides is decided in one place.
 
+**Draw a line along a folder's contents.** "Line along the contents" is
+the third switch in the same row. Turn it on, and every open folder that
+carries the category draws a line in its color down the left of
+everything inside it. It is the thin guide Obsidian draws there anyway,
+colored and a little wider, so you see at a glance where the folder
+ends. The line runs past everything inside, subfolders with a category
+of their own included. Only folders the category is assigned to draw
+it, so lines do not stack up inside each other.
+
 **Manage categories.** Right-click any folder and choose "Manage
 categories …", or run the command from the command palette. The window
 lists your categories on the left and the settings of the selected one on
-the right: color, name, marker, icon, the four extra switches and the two
-inheritance switches. The list on the left is the preview: every row
+the right: color, name, marker, icon, the four extra switches, the two
+inheritance switches and the line. The list on the left is the preview: every row
 shows its category exactly as the file explorer will, so you see all of
 them at once rather than only the selected one.
 
