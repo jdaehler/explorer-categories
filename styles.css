@@ -848,6 +848,18 @@
   height: 20px;
 }
 
+/* Since 1.5.0 the row holds three round buttons and "Remove". On a
+   phone, with 44-pixel buttons, that left the name field a sliver about
+   as wide as a thumb -- seen on the iPhone on 2026-11-13. So there the
+   picture and the field share the first line, and the buttons go below. */
+.is-mobile .fc-window .fc-iconrow {
+  flex-wrap: wrap;
+}
+
+.is-mobile .fc-window .fc-iconrow .fc-icontext {
+  flex: 1 1 calc(100% - 24px);
+}
+
 /* --- Icon picker --------------------------------------------------- */
 
 .fc-iconsearch {
